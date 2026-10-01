@@ -49,3 +49,8 @@ When Claude has made changes and you have agreed to them: `make down`, then `mak
 - Your Google tokens: macOS Keychain (`ig-harness-google-client`, `ig-harness-google-calendar`, `ig-harness-google-gmail`).
 - Recent emails (trimmed text) are kept in `~/IG-Harness-data` only, and are only ever read by your local model.
 - Never send email: the harness has no send function (Phase 3 adds drafts only, with a test that proves it).
+
+## Proving the safety rules still hold
+
+- `make test` includes the red-team tests (sensitive samples can't reach any external provider), the "one exit door" scan, and fail-safe tests for bad, huge and hostile email input.
+- `make check-network` proves the containers have no internet, that only the gateway can reach your Ollama, and that Gmail's API is unreachable from the containers. Run it after any change to `docker-compose.yml`.
