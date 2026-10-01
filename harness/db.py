@@ -166,6 +166,31 @@ MIGRATIONS: list[str] = [
     );
     CREATE INDEX idx_emails_received ON emails (received_at);
     """,
+    # 5: triage v2: action + deadline from the model, her feedback labels, standing rules, model scoreboard
+    """
+    ALTER TABLE emails ADD COLUMN action TEXT;           -- e.g. 'reply', 'fill in the survey'
+    ALTER TABLE emails ADD COLUMN deadline TEXT;         -- ISO date the sender asks for, if any
+    ALTER TABLE emails ADD COLUMN user_label TEXT CHECK (user_label IN ('yes','no'));   -- her verdict: does this need me?
+    ALTER TABLE emails ADD COLUMN labeled_at TEXT;
+    ALTER TABLE emails ADD COLUMN task_id INTEGER;       -- task created from this email (Today & overdue)
+    CREATE TABLE triage_rules (
+        id INTEGER PRIMARY KEY,
+        text TEXT NOT NULL,
+        active INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    INSERT INTO triage_rules (text) VALUES
+        ('Unsolicited investment, venture-fund, fundraising or sales pitches never need a reply. ICT4Peace does not do that kind of thing.');
+    CREATE TABLE model_evals (
+        id INTEGER PRIMARY KEY,
+        started_at TEXT NOT NULL,
+        finished_at TEXT,
+        status TEXT NOT NULL DEFAULT 'running' CHECK (status IN ('running','done','error')),
+        n_labelled INTEGER NOT NULL DEFAULT 0,
+        results TEXT,                        -- JSON
+        error TEXT
+    );
+    """,
 ]
 
 

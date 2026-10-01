@@ -35,6 +35,7 @@ export type Email = {
   id: number; thread_id: string; subject: string; from_name: string; from_email: string; known: boolean;
   org: string | null; role: string | null; why: string | null; urgency: number | null; received_at: string;
   snippet: string | null; hours_ago: number; direct: boolean; status: string;
+  action: string | null; deadline: string | null; user_label: "yes" | "no" | null; task_id: number | null;
 };
 export type EmailsResponse = {
   needs_reply: Email[]; not_needing_reply?: Email[];
@@ -45,3 +46,24 @@ export const getEmails = (hours: number, full: boolean) =>
   j<EmailsResponse>(`/api/emails?hours=${hours}&include_skipped=${full}`);
 export const getTriageStatus = () => j<TriageStatus>("/api/triage/status");
 export const runTriage = () => j<TriageStatus>("/api/triage/run", { method: "POST" });
+
+export const labelEmail = (id: number, label: "yes" | "no" | null) =>
+  j<{ ok: boolean }>(`/api/emails/${id}/label`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ label }) });
+export const emailToTask = (id: number) => j<{ task_id: number; created: boolean }>(`/api/emails/${id}/task`, { method: "POST" });
+export const redoTriage = () => j<TriageStatus>("/api/triage/run?redo=true", { method: "POST" });
+
+export type Rule = { id: number; text: string };
+export const getRules = () => j<{ items: Rule[] }>("/api/triage/rules");
+export const addRule = (text: string) => j<{ id: number }>("/api/triage/rules", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
+export const deleteRule = (id: number) => j<{ changed: boolean }>(`/api/triage/rules/${id}`, { method: "DELETE" });
+
+export type ModelResult = { n: number; failed: number; tp: number; fp: number; fn: number; tn: number; accuracy: number | null; precision: number | null; recall: number | null; seconds_per_email: number | null; first_call_seconds: number | null };
+export type Scoreboard = {
+  running: boolean; n_labelled: number; n_yes: number;
+  latest: null | { id: number; status: string; started_at: string; finished_at: string | null; error: string | null;
+    results: null | { n_labelled: number; n_model_cases: number; rule_misses: number; models: Record<string, ModelResult> } };
+};
+export const getScoreboard = () => j<Scoreboard>("/api/scoreboard");
+export const runScoreboard = (models: string[]) => j<{ started: boolean }>("/api/scoreboard/run", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ models }) });
+export type GatewayStatus = { local: { up: boolean; model: string; model_installed: boolean; installed: string[] } };
+export const getGatewayStatus = () => j<GatewayStatus>("/api/gateway/status");

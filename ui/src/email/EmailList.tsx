@@ -1,25 +1,45 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { type Email, type EmailsResponse, type TriageStatus, getEmails, getTriageStatus, runTriage } from "../api";
+import { type Email, type EmailsResponse, type TriageStatus, emailToTask, getEmails, getTriageStatus, labelEmail, runTriage } from "../api";
 import { Shell } from "../today/Drawer";
-import { dayShort, timeOf } from "../format";
+import { dayMonth, dayShort, timeOf } from "../format";
 
 const RANGES = [24, 48, 72];
 const initials = (n: string) => n.split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((x) => x[0]?.toUpperCase()).join("");
 const ago = (h: number) => (h < 1 ? "<1 h" : h < 48 ? `${Math.round(h)} h` : `${Math.round(h / 24)} d`);
 
-function EmailDrawer({ e, onClose }: { e: Email; onClose: () => void }) {
+function EmailDrawer({ e, onClose, onChanged }: { e: Email; onClose: () => void; onChanged: () => void }) {
+  const [label, setLabel] = useState(e.user_label);
+  const [taskId, setTaskId] = useState(e.task_id);
+  const [busy, setBusy] = useState(false);
+  const pick = async (v: "yes" | "no") => { const next = label === v ? null : v; setLabel(next); await labelEmail(e.id, next); onChanged(); };
+  const addTask = async () => { setBusy(true); try { const r = await emailToTask(e.id); setTaskId(r.task_id); onChanged(); } finally { setBusy(false); } };
   const facts: [string, string][] = [
     ["From", `${e.from_name} <${e.from_email}>`],
     ...(e.known ? ([["Known as", [e.role, e.org].filter(Boolean).join(", ") || "in your People list"]] as [string, string][]) : []),
     ["Received", `${dayShort(e.received_at)} · ${timeOf(e.received_at)}`],
     ["Addressed", e.direct ? "to you directly" : "you are copied"],
-    ["Why flagged", e.why ?? "—"],
+    ["What", e.action ?? "—"],
+    ...(e.deadline ? ([["Deadline", dayShort(e.deadline)]] as [string, string][]) : []),
+    ["Why", e.why ?? "—"],
     ["Urgency", e.urgency === 3 ? "time pressure" : e.urgency === 2 ? "soon" : "ordinary"],
   ];
   return (
     <Shell kicker={`EMAIL${e.org ? " · " + e.org.toUpperCase() : ""}`} title={e.subject} meta={`${e.from_name} · ${Math.round(e.hours_ago)} h ago`} onClose={onClose}>
       <div className="facts">{facts.map(([k, v]) => <><span key={k + "k"}>{k}</span><span key={k + "v"}>{v}</span></>)}</div>
       {e.snippet && <div className="related"><div className="kicker">PREVIEW</div><div className="preview">{e.snippet}</div></div>}
+      <div className="actions">
+        {taskId
+          ? <div className="added">✓ In Today &amp; overdue{e.deadline ? ` (due ${dayMonth(e.deadline)})` : " (due today)"}</div>
+          : <button type="button" className="btn-primary" disabled={busy} onClick={addTask}>Add to Today &amp; overdue{e.deadline ? ` · due ${dayMonth(e.deadline)}` : ""}</button>}
+      </div>
+      <div className="feedback">
+        <div className="kicker">TEACH THE HARNESS</div>
+        <div className="fb-row">
+          <button type="button" className={label === "yes" ? "on-yes" : ""} onClick={() => pick("yes")}>This needs me</button>
+          <button type="button" className={label === "no" ? "on-no" : ""} onClick={() => pick("no")}>This doesn't need me</button>
+        </div>
+        <div className="note">Your verdicts are saved here only. They are used to score the models, and never leave this Mac.</div>
+      </div>
       <a className="btn-primary link-btn" href={`https://mail.google.com/mail/u/0/#inbox/${e.thread_id}`} target="_blank" rel="noreferrer">Open in Gmail</a>
       <div className="note">Suggested replies arrive in Phase 3. The harness will only ever create drafts; it can't send.</div>
     </Shell>
@@ -32,7 +52,9 @@ function Row({ e, onOpen, dim }: { e: Email; onOpen: (e: Email) => void; dim?: b
       <div className="avatar">{initials(e.from_name)}</div>
       <div className="row-main">
         <div className="row-subject">{e.subject}</div>
-        <div className="row-sub"><span>{e.from_name}</span>{e.why && <span className={`why ${e.urgency === 3 ? "why-urgent" : ""}`}>{e.why}</span>}</div>
+        <div className="row-sub"><span>{e.from_name}</span>{e.why && <span className={`why ${e.urgency === 3 ? "why-urgent" : ""}`}>{e.why}</span>}
+          {e.deadline && <span className="why why-urgent">by {dayMonth(e.deadline)}</span>}
+          {e.user_label && <span className="mark-label">{e.user_label === "yes" ? "✓ you: needs me" : "✕ you: doesn't"}</span>}</div>
       </div>
       <span className="ago">{ago(e.hours_ago)}</span>
     </button>
@@ -97,7 +119,7 @@ export default function EmailList({ full }: { full: boolean }) {
           {data.not_needing_reply!.map((e) => <Row key={e.id} e={e} onOpen={setOpen} dim />)}
         </details>
       )}
-      {open && <EmailDrawer e={open} onClose={() => setOpen(null)} />}
+      {open && <EmailDrawer e={open} onClose={() => { setOpen(null); load(); }} onChanged={load} />}
     </>
   );
 }

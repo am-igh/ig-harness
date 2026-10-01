@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import TodayTab from "./today/TodayTab";
 import EmailList from "./email/EmailList";
+import Rules from "./email/Rules";
+import Scoreboard from "./email/Scoreboard";
 
 const TABS = [
   { id: "today", label: "Today" },
@@ -49,7 +51,7 @@ export default function App() {
         </div>
       </header>
       {tab === "today" ? <TodayTab /> : tab === "inbox" ? (
-        <main className="page"><section className="panel inbox"><div className="panel-head"><h2 className="serif">Inbox</h2></div><EmailList full /></section></main>
+        <main className="page inbox-page"><section className="panel inbox"><div className="panel-head"><h2 className="serif">Inbox</h2></div><EmailList full /></section><div className="side-col"><Rules /><Scoreboard /></div></main>
       ) : (
         <main className="page"><h2 className="serif">{current.label}</h2><p className="muted">Placeholder. Coming in {current.phase}.</p></main>
       )}
