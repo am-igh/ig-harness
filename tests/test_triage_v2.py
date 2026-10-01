@@ -69,7 +69,7 @@ def test_deadline_and_action_are_stored_and_make_the_email_urgent(env):
     c, gw, m, _ = env
     triage_pending(c, gw, now=NOW)
     r = c.execute("SELECT action, deadline, urgency FROM emails WHERE thread_id='t1'").fetchone()
-    assert r["action"] == "fill in the survey" and r["deadline"] == "2026-10-07" and r["urgency"] == 1   # 6 days away: not yet urgent
+    assert r["action"] == "fill in the survey" and r["deadline"] == "2026-10-07" and r["urgency"] == 2   # 6 days away: raised to 'soon', not yet urgent
     m.answer = lambda p: {"needs_action": True, "action": "reply", "why": "x", "urgency": 1, "deadline": "2026-10-03"}
     c.execute("UPDATE emails SET triage_status='pending'"); c.commit()
     triage_pending(c, gw, now=NOW)
