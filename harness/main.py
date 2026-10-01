@@ -5,6 +5,7 @@ from fastapi import FastAPI
 
 from harness import db
 from harness.config import DATA_DIR, VERSION
+from harness.importers.run import run_all
 
 
 @asynccontextmanager
@@ -30,3 +31,9 @@ def health() -> dict:
         "version": VERSION,
         "data_dir_mounted": DATA_DIR.is_dir(),
     }
+
+
+@app.post("/api/import")
+def import_now() -> dict:
+    """Re-read Suivi.xlsx and Registre_Projets.xlsx (read-only) and report what changed."""
+    return {"reports": run_all()}
