@@ -8,6 +8,7 @@ file of upcoming events into ~/IG-Harness-data, which the harness imports.
   python3 tools/google_helper.py store-client <client_secret.json>   one time
   python3 tools/google_helper.py login | sync                        calendar (login once)
   python3 tools/google_helper.py login-gmail | sync-gmail            Gmail (login once)
+  python3 tools/google_helper.py sync-correspondence                 past threads with each person (for style profiles)
 
 Keychain items: ig-harness-google-client (account calendar), ig-harness-google-calendar and
 ig-harness-google-gmail (account refresh-token). Scopes: calendar.readonly, gmail.readonly.
@@ -15,7 +16,7 @@ There is NO send or draft code in this file: Gmail access here cannot create or 
 Calendar keeps only title, start, end, status. Gmail keeps recent inbox threads (sender,
 subject, snippet, trimmed text) in ~/IG-Harness-data, on this Mac only.
 """
-import base64, hashlib, http.server, json, os, secrets, ssl, subprocess, sys, threading
+import base64, hashlib, http.server, json, os, re, secrets, ssl, subprocess, sys, threading
 import urllib.parse, urllib.request, webbrowser
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -32,6 +33,9 @@ GMAIL_TOKEN_ITEM = "ig-harness-google-gmail"
 DATA = Path(os.environ.get("IG_DATA_DIR", Path.home() / "IG-Harness-data"))
 OUT = DATA / "calendar_events.json"
 GMAIL_OUT = DATA / "gmail_recent.json"
+CORR_OUT = DATA / "correspondence.json"
+CORR_THREADS = 8
+BODY_CHARS_CORR = 1500
 GMAIL_QUERY = "in:inbox newer_than:3d -category:promotions -category:social -category:forums"
 GMAIL_MAX_THREADS = 100
 BODY_CHARS = 3000
@@ -224,7 +228,28 @@ def _text_of(payload: dict) -> str:
     if plain:
         return "\n".join(plain)
     text = re.sub(r"(?is)<(script|style).*?</\1>", " ", "\n".join(html))
-    return re.sub(r"[ \t]+", " ", re.sub(r"(?s)<[^>]+>", " ", text))
+    text = re.sub(r"(?i)<br\s*/?>|</(p|div|li|tr|h[1-6])>", "\n", text)       # keep the line structure
+    text = re.sub(r"(?s)<[^>]+>", " ", text)
+    return "\n".join(re.sub(r"[ \t]+", " ", ln).strip() for ln in text.splitlines())
+
+
+_QUOTE_START = re.compile(
+    r"^\s*(on .{3,160}wrote:?|le .{3,160}a écrit\s*:?|am .{3,160}schrieb.{0,80}:?|-{2,}\s*(original message|forwarded message|message d.origine|ursprüngliche nachricht)"
+    r"|(from|de|von|van)\s*:\s*\S|sent from my |envoyé de mon |gesendet von meinem )", re.I)
+
+
+def strip_quoted(text: str) -> str:
+    """Only what the author wrote: cut at the first quoted-reply marker and drop '>' quote lines."""
+    lines = text.replace("\r", "").split("\n")
+    out = []
+    for i, ln in enumerate(lines):
+        pair = ln.strip() + " " + (lines[i + 1].strip() if i + 1 < len(lines) else "")   # 'On ... wrote:' often wraps
+        if _QUOTE_START.match(ln) or (ln.strip().lower().startswith(("on ", "le ", "am ")) and _QUOTE_START.match(pair)):
+            break
+        if ln.lstrip().startswith(">"):
+            continue
+        out.append(ln.rstrip())
+    return "\n".join(out).strip()
 
 
 def _parse_from(value: str) -> tuple[str, str]:
@@ -250,6 +275,8 @@ def normalize_thread(thread: dict, me: str) -> dict | None:
         "to_me_directly": me in _header(h, "To").lower(), "cc_only": me in to_all and me not in _header(h, "To").lower(),
         "subject": _header(h, "Subject"), "snippet": last.get("snippet", ""), "body": body,
         "labels": last.get("labelIds", []), "last_from_me": addr == me,
+        "rfc_message_id": _header(h, "Message-ID").strip(), "references": _header(h, "References").strip(),
+        "reply_to": _parse_from(_header(h, "Reply-To"))[1] if _header(h, "Reply-To") else "",
         "bulk": bool(_header(h, "List-Unsubscribe")) or _header(h, "Precedence").lower() in ("bulk", "list", "junk")
                 or _header(h, "Auto-Submitted").lower().startswith("auto-"),
     }
@@ -281,6 +308,76 @@ def sync_gmail() -> None:
     print(f"Wrote {len(threads)} recent inbox threads to {GMAIL_OUT}")
 
 
+def correspondents(me: str) -> list[str]:
+    """Whose past correspondence to read: people in the People list (work) and senders of emails that need her."""
+    import sqlite3
+    path = DATA / "harness.db"
+    if not path.exists():
+        sys.exit("No harness database yet: start the harness (make up) and run make import first.")
+    db = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+    rows = db.execute("SELECT lower(email) FROM people WHERE email IS NOT NULL AND space='work' UNION "
+                      "SELECT lower(from_email) FROM emails WHERE in_window=1 AND needs_reply=1 AND handled_at IS NULL AND space='work'").fetchall()
+    db.close()
+    return sorted({r[0] for r in rows if r[0] and r[0] != me.lower()})[:80]
+
+
+def normalize_correspondence(thread: dict, me: str, addr: str) -> dict | None:
+    """One thread -> the messages between her and `addr` (new text only), plus the thread's last-message headers."""
+    import re as _re
+    msgs, me, addr = [], me.lower(), addr.lower()
+    for m in thread.get("messages") or []:
+        h = m.get("payload", {}).get("headers", [])
+        sender = _parse_from(_header(h, "From"))[1]
+        people = (_header(h, "From") + "," + _header(h, "To") + "," + _header(h, "Cc")).lower()
+        if addr not in people:
+            continue                                                  # a third party's message in a shared thread
+        text = strip_quoted(_text_of(m.get("payload", {})))
+        msgs.append({"msg_id": m["id"], "ms": int(m.get("internalDate", 0)), "from_me": sender == me, "from_email": sender,
+                     "subject": _header(h, "Subject"), "body": text[:BODY_CHARS_CORR], "rfc_id": _header(h, "Message-ID").strip(),
+                     "references": _header(h, "References").strip()})
+    if not msgs:
+        return None
+    last = msgs[-1]
+    return {"thread_id": thread["id"], "subject": msgs[0]["subject"], "last_ms": last["ms"], "last_from_me": last["from_me"],
+            "last_rfc_id": last["rfc_id"], "last_references": last["references"], "messages": msgs}
+
+
+def sync_correspondence() -> None:
+    access = _access_token(GMAIL_TOKEN_ITEM, "login-gmail")
+    me = _get(f"{GMAIL_API}/profile", access)["emailAddress"]
+    addrs = correspondents(me)
+    cache: dict[str, dict] = {}
+    import time
+    out, failed = {}, 0
+    for n, addr in enumerate(addrs, 1):
+        try:
+            ids = _get(f"{GMAIL_API}/threads", access, {"q": f"from:{addr} OR to:{addr}", "maxResults": str(CORR_THREADS)}).get("threads", [])
+        except GoogleError:
+            failed += 1
+            continue
+        threads = []
+        for t in ids:
+            if t["id"] not in cache:
+                try:
+                    cache[t["id"]] = _get(f"{GMAIL_API}/threads/{t['id']}", access, {"format": "full"})
+                except GoogleError:
+                    failed += 1
+                    continue
+                time.sleep(0.15)
+            nt = normalize_correspondence(cache[t["id"]], me, addr)
+            if nt:
+                threads.append(nt)
+        out[addr] = threads
+        print(f"  {n}/{len(addrs)} people", end="\r", flush=True)
+    DATA.mkdir(parents=True, exist_ok=True)
+    tmp = CORR_OUT.with_suffix(".tmp")
+    tmp.write_text(json.dumps({"fetched_at": datetime.now(timezone.utc).isoformat(), "me": me, "people": out}, ensure_ascii=False))
+    tmp.replace(CORR_OUT)
+    CORR_OUT.chmod(0o600)
+    n_msgs = sum(len(t["messages"]) for ts in out.values() for t in ts)
+    print(f"\nWrote {len(out)} people, {n_msgs} messages to {CORR_OUT}" + (f" ({failed} fetches skipped)" if failed else ""))
+
+
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else ""
     if cmd == "store-client" and len(sys.argv) == 3: store_client(sys.argv[2])
@@ -288,4 +385,5 @@ if __name__ == "__main__":
     elif cmd == "sync": sync()
     elif cmd == "login-gmail": login(GMAIL_SCOPE, GMAIL_TOKEN_ITEM)
     elif cmd == "sync-gmail": sync_gmail()
+    elif cmd == "sync-correspondence": sync_correspondence()
     else: sys.exit(__doc__)

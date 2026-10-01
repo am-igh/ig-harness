@@ -85,3 +85,19 @@ export const editItem = (it: Pick<Item, "type" | "id">, patch: { title?: string;
 
 export type Revealed = { title: string; code: string | null; person: string | null };
 export const reveal = (it: Pick<Item, "type" | "id">) => j<Revealed>(`/api/items/${it.type}/${it.id}/reveal`);
+
+export type Profile = {
+  person_email: string; name: string | null; org: string | null; role: string | null;
+  language: string | null; formality: "formal" | "informal" | "neutral" | null; pronoun: string | null;
+  greeting: string | null; closing: string | null; avg_words: number | null;
+  n_mine: number; n_theirs: number; n_threads: number; confidence: "none" | "low" | "medium" | "high";
+  notes: string | null; source: "learned" | "edited";
+};
+export const getProfiles = () => j<{ items: Profile[] }>("/api/style/profiles");
+export const patchProfile = (email: string, patch: Partial<Pick<Profile, "language" | "formality" | "pronoun" | "greeting" | "closing" | "notes">>) =>
+  fetch(`/api/style/profiles/${encodeURIComponent(email)}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patch) })
+    .then(async (r) => { if (!r.ok) throw new Error((await r.json().catch(() => ({ detail: "Could not save" }))).detail); return r.json(); });
+export const relearnProfile = (email: string) => j<Record<string, number>>(`/api/style/profiles/${encodeURIComponent(email)}/relearn`, { method: "POST" });
+export type Signature = { signature: string; source: string; learned: string | null };
+export const getSignature = () => j<Signature>("/api/style/signature");
+export const putSignature = (signature: string) => j<{ ok: boolean }>("/api/style/signature", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ signature }) });

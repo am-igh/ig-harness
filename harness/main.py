@@ -341,3 +341,81 @@ def reveal_item(item_type: str, item_id: int) -> dict:
     if d is None:
         raise HTTPException(404, "No such item")
     return d
+
+
+# --- Style profiles: how she writes to each person (learned from past correspondence, correctable) ---
+class ProfileIn(BaseModel):
+    language: str | None = None
+    formality: str | None = None
+    pronoun: str | None = None
+    greeting: str | None = None
+    closing: str | None = None
+    notes: str | None = None
+
+
+class SignatureIn(BaseModel):
+    signature: str
+
+
+@app.get("/api/style/profiles")
+def get_profiles() -> dict:
+    def go(c):
+        rows = c.execute("SELECT s.*, p.name, p.org, p.role FROM style_profiles s LEFT JOIN people p ON p.email = s.person_email "
+                         "ORDER BY s.n_mine DESC, s.n_theirs DESC, s.person_email")
+        return [dict(r) for r in rows]
+    return {"items": _with_conn(go)}
+
+
+@app.patch("/api/style/profiles/{email}")
+def edit_profile(email: str, body: ProfileIn) -> dict:
+    sent = body.model_fields_set
+    checks = {"language": {None, "en", "fr", "de", "it", "es"}, "formality": {None, "formal", "informal", "neutral"},
+              "pronoun": {None, "vous", "tu", "Sie", "du"}}
+    for k, allowed in checks.items():
+        if k in sent and getattr(body, k) not in allowed:
+            raise HTTPException(422, f"{k} must be one of {sorted(x for x in allowed if x)} or empty")
+    for k, n in (("greeting", 120), ("closing", 80), ("notes", 300)):
+        if k in sent and getattr(body, k) and len(getattr(body, k)) > n:
+            raise HTTPException(422, f"{k} is too long (max {n})")
+    def go(c):
+        if c.execute("SELECT 1 FROM style_profiles WHERE person_email=?", (email.lower(),)).fetchone() is None:
+            c.execute("INSERT INTO style_profiles (person_email, confidence, source) VALUES (?, 'none', 'edited')", (email.lower(),))
+        with c:
+            for k in sent:
+                c.execute(f"UPDATE style_profiles SET {k} = ? WHERE person_email = ?", (getattr(body, k) or None, email.lower()))
+            c.execute("UPDATE style_profiles SET source='edited', updated_at=datetime('now') WHERE person_email=?", (email.lower(),))
+        return True
+    return {"ok": _with_conn(go)}
+
+
+@app.post("/api/style/profiles/{email}/relearn")
+def relearn_profile(email: str) -> dict:
+    from harness import style
+    def go(c):
+        with c:
+            c.execute("UPDATE style_profiles SET source='learned' WHERE person_email=?", (email.lower(),))
+        return style.rebuild_profiles(c)
+    return _with_conn(go)
+
+
+@app.get("/api/style/signature")
+def get_signature() -> dict:
+    def go(c):
+        g = lambda k: c.execute("SELECT value, source FROM draft_settings WHERE key=?", (k,)).fetchone()
+        eff, learned = g("signature"), g("signature_learned")
+        return {"signature": eff["value"] if eff else "", "source": eff["source"] if eff else "none",
+                "learned": learned["value"] if learned else None}
+    return _with_conn(go)
+
+
+@app.put("/api/style/signature")
+def put_signature(body: SignatureIn) -> dict:
+    text = body.signature.strip()
+    if len(text) > 600:
+        raise HTTPException(422, "The signature is too long (max 600 characters)")
+    def go(c):
+        with c:
+            c.execute("INSERT INTO draft_settings (key, value, source) VALUES ('signature', ?, 'edited') "
+                      "ON CONFLICT (key) DO UPDATE SET value=excluded.value, source='edited', updated_at=datetime('now')", (text,))
+    _with_conn(go)
+    return {"ok": True}

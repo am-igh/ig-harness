@@ -193,3 +193,12 @@ table.score td.best { font-weight: 700; color: var(--purple); }
 .masked-title { all: unset; cursor: pointer; font-size: 14px; font-weight: 600; color: #5b2a4e; display: inline-flex; align-items: baseline; gap: 6px; } .masked-title:hover { color: var(--purple); }
 .masked-title span { font-size: 11px; font-weight: 600; color: var(--muted); text-decoration: underline; }
 .link-quiet.inline { display: inline; margin-left: 8px; padding: 0; }
+
+/* style profiles */
+.sig-box { display: flex; flex-direction: column; gap: 6px; } .sig-box textarea, .prof-edit input, .prof-edit select { font: inherit; font-size: 13px; border: 1px solid #c9cfe6; border-radius: 8px; padding: 8px 10px; background: #fff; }
+.prof { border: 1px solid #e6e8ef; border-radius: 12px; background: #fff; } .prof.open { border-color: var(--purple); }
+.prof-head { all: unset; box-sizing: border-box; width: 100%; cursor: pointer; padding: 10px 12px; display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center; } .prof-head:hover { background: #f5f6fc; border-radius: 12px; }
+.prof-name { font-size: 13px; font-weight: 700; } .prof-name em { font-style: normal; font-weight: 500; color: var(--purple); font-size: 11px; }
+.prof-tags { display: flex; gap: 6px; align-items: center; } .dots { font-size: 9px; color: var(--purple); letter-spacing: 1px; } .prof-line { grid-column: 1 / -1; }
+.prof-edit { padding: 4px 12px 12px; display: flex; flex-direction: column; gap: 10px; } .prof-edit label { display: flex; flex-direction: column; gap: 4px; font-size: 11px; font-weight: 700; letter-spacing: .05em; color: #4f5fa8; text-transform: uppercase; }
+.prof-edit label small { text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--muted); } .prof-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }

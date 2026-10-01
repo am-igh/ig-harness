@@ -6,6 +6,7 @@ from harness import db
 from harness.config import DATA_DIR
 from harness.importers.calendar import import_calendar
 from harness.importers.gmail import import_gmail
+from harness.importers.correspondence import import_correspondence
 from harness.importers.registre import import_registre
 from harness.importers.suivi import import_suivi
 
@@ -24,6 +25,7 @@ def run_all(conn=None, suivi_dir: Path = None, projets_dir: Path = None, data_di
             ("registre", import_registre, projets_dir or PROJETS_DIR),
             ("calendar", import_calendar, data_dir or DATA_DIR),
             ("gmail", import_gmail, data_dir or DATA_DIR),
+            ("correspondence", import_correspondence, data_dir or DATA_DIR),
         ):
             try:
                 reports += [r.as_dict() for r in fn(conn, folder)]

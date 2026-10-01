@@ -1,4 +1,4 @@
-.PHONY: up down test logs import calendar gmail check-network
+.PHONY: up down test logs import calendar gmail correspondence check-network
 
 up:      ## Start the harness (UI at http://localhost:5173)
 	docker compose up -d --build
@@ -27,3 +27,7 @@ gmail:   ## Fetch recent inbox threads (read-only, on the Mac), import them and 
 
 check-network: ## Prove the containers are isolated (no internet; only the gateway reaches Ollama)
 	sh scripts/check_network.sh
+
+correspondence: ## Read your past emails with each person (read-only, on the Mac), then learn how you write to them
+	python3 tools/google_helper.py sync-correspondence
+	docker compose exec api python -m harness.importers.run

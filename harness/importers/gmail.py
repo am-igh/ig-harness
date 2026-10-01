@@ -31,6 +31,7 @@ def import_gmail(conn: sqlite3.Connection, folder: Path) -> list[Report]:
                 "subject": t["subject"], "received_at": received, "snippet": t["snippet"], "body": t["body"],
                 "direct": int(t["to_me_directly"]), "cc_only": int(t["cc_only"]), "bulk": int(t["bulk"]),
                 "last_from_me": int(t["last_from_me"]), "in_window": 1, "person_slug": people.get(t["from_email"]),
+                "rfc_message_id": t.get("rfc_message_id") or None, "references_hdr": t.get("references") or None, "reply_to": t.get("reply_to") or None,
             }
             row = conn.execute("SELECT * FROM emails WHERE thread_id = ?", (t["thread_id"],)).fetchone()
             if row is None:

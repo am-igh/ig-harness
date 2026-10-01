@@ -256,6 +256,59 @@ MIGRATIONS: list[str] = [
     );
     CREATE INDEX idx_draft_requests_email ON draft_requests (email_id);
     """,
+    # 10: threading headers for replies, past correspondence per person, learned style profiles, drafting settings
+    """
+    ALTER TABLE emails ADD COLUMN rfc_message_id TEXT;       -- Message-ID of the newest message (for In-Reply-To)
+    ALTER TABLE emails ADD COLUMN references_hdr TEXT;
+    ALTER TABLE emails ADD COLUMN reply_to TEXT;
+    CREATE TABLE correspondence_threads (
+        id INTEGER PRIMARY KEY,
+        person_email TEXT NOT NULL,
+        thread_id TEXT NOT NULL,
+        subject TEXT,
+        last_at TEXT,
+        last_from_me INTEGER NOT NULL DEFAULT 0,
+        last_rfc_id TEXT,
+        last_references TEXT,
+        n_messages INTEGER NOT NULL DEFAULT 0,
+        UNIQUE (person_email, thread_id)
+    );
+    CREATE TABLE correspondence_messages (
+        id INTEGER PRIMARY KEY,
+        person_email TEXT NOT NULL,
+        thread_id TEXT NOT NULL,
+        msg_id TEXT NOT NULL,
+        sent_at TEXT,
+        from_me INTEGER NOT NULL,
+        subject TEXT,
+        body TEXT,                          -- new text only (quotes stripped), trimmed; stays on this Mac (S2)
+        language TEXT,
+        UNIQUE (person_email, msg_id)
+    );
+    CREATE INDEX idx_corr_msgs_person ON correspondence_messages (person_email, from_me);
+    CREATE TABLE style_profiles (
+        person_email TEXT PRIMARY KEY,
+        language TEXT,                      -- 'en', 'fr', 'de', 'it', 'es'
+        formality TEXT CHECK (formality IN ('formal','informal','neutral')),
+        pronoun TEXT,                       -- vous / tu / Sie / du
+        greeting TEXT,                      -- e.g. 'Dear {name},' or 'Bonjour {name},'
+        closing TEXT,                       -- e.g. 'Kind regards,'
+        avg_words INTEGER,
+        n_mine INTEGER NOT NULL DEFAULT 0,
+        n_theirs INTEGER NOT NULL DEFAULT 0,
+        n_threads INTEGER NOT NULL DEFAULT 0,
+        confidence TEXT NOT NULL DEFAULT 'none' CHECK (confidence IN ('none','low','medium','high')),
+        notes TEXT,
+        source TEXT NOT NULL DEFAULT 'learned' CHECK (source IN ('learned','edited')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE TABLE draft_settings (
+        key TEXT PRIMARY KEY,
+        value TEXT,
+        source TEXT NOT NULL DEFAULT 'learned' CHECK (source IN ('learned','edited')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    """,
 ]
 
 
