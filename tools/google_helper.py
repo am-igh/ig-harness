@@ -114,7 +114,7 @@ def login(scope: str = SCOPE, item: str = TOKEN_ITEM) -> None:
         "client_id": c["client_id"], "redirect_uri": redirect, "response_type": "code",
         "scope": scope, "access_type": "offline", "prompt": "consent", "state": state,
         "code_challenge": challenge, "code_challenge_method": "S256"})
-    print("Opening your browser to approve READ-ONLY calendar access...")
+    print("Opening your browser to approve READ-ONLY access...")
     webbrowser.open(url)
     threading.Thread(target=srv.handle_request, daemon=True).start()
     for _ in range(300):
@@ -166,11 +166,38 @@ def sync() -> None:
     print(f"Wrote {len(events)} events to {OUT}")
 
 
-def _get(url: str, access: str, params: dict | None = None) -> dict:
+def _get(url: str, access: str, params: dict | None = None, tries: int = 5) -> dict:
+    """GET with retry: Google answers 403 rateLimitExceeded / 429 / 5xx when asked too fast."""
+    import time
     full = url + ("?" + urllib.parse.urlencode(params) if params else "")
     req = urllib.request.Request(full, headers={"Authorization": f"Bearer {access}"})
-    with urllib.request.urlopen(req, timeout=30, context=_ssl_context()) as r:
-        return json.load(r)
+    for attempt in range(tries):
+        try:
+            with urllib.request.urlopen(req, timeout=30, context=_ssl_context()) as r:
+                return json.load(r)
+        except urllib.error.HTTPError as e:
+            reason = _error_reason(e)
+            retryable = e.code in (429, 500, 502, 503, 504) or (e.code == 403 and "ate" in reason and "imit" in reason)
+            if retryable and attempt < tries - 1:
+                time.sleep(2 ** attempt)           # 1, 2, 4, 8 seconds
+                continue
+            raise GoogleError(e.code, reason) from None
+    raise AssertionError("unreachable")
+
+
+class GoogleError(Exception):
+    def __init__(self, code: int, reason: str):
+        super().__init__(f"HTTP {code}: {reason}")
+        self.code, self.reason = code, reason
+
+
+def _error_reason(e: urllib.error.HTTPError) -> str:
+    """Google's own explanation (error text only, never mail content)."""
+    try:
+        err = json.loads(e.read().decode() or "{}").get("error", {})
+        return f"{err.get('message', '')} [{', '.join(x.get('reason', '') for x in err.get('errors', []))}]".strip()
+    except Exception:
+        return "no details"
 
 
 def _header(headers: list[dict], name: str) -> str:
@@ -232,12 +259,19 @@ def sync_gmail() -> None:
     access = _access_token(GMAIL_TOKEN_ITEM, "login-gmail")
     me = _get(f"{GMAIL_API}/profile", access)["emailAddress"]
     ids = _get(f"{GMAIL_API}/threads", access, {"q": GMAIL_QUERY, "maxResults": str(GMAIL_MAX_THREADS)}).get("threads", [])
-    threads = []
+    threads, failed = [], {}
+    import time
     for t in ids:
-        full = _get(f"{GMAIL_API}/threads/{t['id']}", access, {"format": "full"})
-        n = normalize_thread(full, me)
+        try:
+            n = normalize_thread(_get(f"{GMAIL_API}/threads/{t['id']}", access, {"format": "full"}), me)
+        except GoogleError as e:               # one bad thread must not lose the rest
+            failed[e.reason] = failed.get(e.reason, 0) + 1
+            continue
         if n:
             threads.append(n)
+        time.sleep(0.15)                       # stay well under Gmail's per-user rate limit
+    for reason, n in failed.items():
+        print(f"Skipped {n} thread(s): {reason}")
     DATA.mkdir(parents=True, exist_ok=True)
     tmp = GMAIL_OUT.with_suffix(".tmp")
     tmp.write_text(json.dumps({"fetched_at": datetime.now(timezone.utc).isoformat(), "me": me,
