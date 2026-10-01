@@ -79,3 +79,25 @@ def untick(item_type: str, item_id: int) -> dict:
     if item_type not in deadlines.ITEM_TYPES:
         raise HTTPException(404, "Unknown item type")
     return {"changed": _with_conn(lambda c: deadlines.mark_undone(c, item_type, item_id))}
+
+
+@app.get("/api/gateway/status")
+def gateway_status() -> dict:
+    """Is the local model reachable, and where does the external-spend budget stand."""
+    from harness.gateway import budget
+    from harness.gateway.providers import OllamaProvider
+    local = OllamaProvider().status()
+    conn = db.connect()
+    try:
+        spend, state = budget.month_spend(conn), budget.state(conn)
+    finally:
+        conn.close()
+    return {"local": local, "external_spend_chf": round(spend, 2), "budget_state": state}
+
+
+@app.get("/api/privacy-log")
+def privacy_log(limit: int = 50) -> dict:
+    rows = _with_conn(lambda c: [dict(r) for r in c.execute(
+        "SELECT ts, provider, model, tier, redacted, in_chars, out_chars, cost_chf, purpose, outcome, detail "
+        "FROM privacy_log ORDER BY id DESC LIMIT ?", (min(limit, 500),))])
+    return {"items": rows}

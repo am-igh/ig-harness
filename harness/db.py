@@ -97,6 +97,36 @@ MIGRATIONS: list[str] = [
     );
     CREATE INDEX idx_calendar_start ON calendar_events (start);
     """,
+    # 3: model gateway: privacy log (never stores prompt or answer text) and approvals
+    """
+    CREATE TABLE privacy_log (
+        id INTEGER PRIMARY KEY,
+        ts TEXT NOT NULL,                   -- Geneva time
+        request_id TEXT NOT NULL,
+        provider TEXT NOT NULL,             -- local | infomaniak | anthropic | openrouter
+        model TEXT,
+        tier TEXT NOT NULL CHECK (tier IN ('S0','S1','S2','S3')),
+        redacted INTEGER NOT NULL DEFAULT 0,
+        in_chars INTEGER NOT NULL DEFAULT 0,
+        out_chars INTEGER NOT NULL DEFAULT 0,
+        cost_chf REAL NOT NULL DEFAULT 0,
+        purpose TEXT NOT NULL,
+        outcome TEXT NOT NULL,              -- ok | blocked | needs_approval | error
+        detail TEXT                         -- short reason, never content
+    );
+    CREATE INDEX idx_privacy_log_ts ON privacy_log (ts);
+    CREATE TABLE approvals (
+        id INTEGER PRIMARY KEY,
+        created_at TEXT NOT NULL,
+        tier TEXT NOT NULL,
+        provider TEXT NOT NULL,
+        purpose TEXT NOT NULL,
+        content_hash TEXT NOT NULL,         -- hash of the redacted prompt that was previewed
+        preview TEXT NOT NULL,              -- the redacted text she approves (placeholders only)
+        status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected')),
+        decided_at TEXT
+    );
+    """,
 ]
 
 

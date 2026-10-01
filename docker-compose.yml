@@ -8,7 +8,10 @@ services:
   api:
     build: { context: ., dockerfile: harness/Dockerfile }
     command: uvicorn harness.main:app --host 0.0.0.0 --port 8000 --reload
-    environment: { IG_DATA_DIR: /data }
+    environment:
+      IG_DATA_DIR: /data
+      OLLAMA_URL: http://ollama.internal:11434
+      IG_LOCAL_MODEL: ${IG_LOCAL_MODEL:-qwen3:8b}
     volumes:
       - ${HOME}/IG-Harness-data:/data
       - ./harness:/app/harness
@@ -18,7 +21,16 @@ services:
       # Her spreadsheets, mounted READ-ONLY. Paths come from .env (see .env.example).
       - ${SUIVI_DIR:-./tests/fixtures/suivi}:/sources/suivi:ro
       - ${PROJETS_DIR:-./tests/fixtures/projets}:/sources/projets:ro
-    networks: [backend]
+    networks: [backend, ollama_net]
+
+  ollama-bridge:
+    image: nginx:alpine
+    volumes:
+      - ./docker/ollama-bridge.conf:/etc/nginx/nginx.conf:ro
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    networks:
+      ollama_net: { aliases: [ollama.internal] }   # Ollama only accepts *.internal host names
+      edge: {}
 
   worker:
     build: { context: ., dockerfile: harness/Dockerfile }
@@ -42,6 +54,7 @@ services:
 
 networks:
   backend: { internal: true }
+  ollama_net: { internal: true }   # only the API (gateway) and the Ollama forwarder
   edge: {}
 
 volumes:

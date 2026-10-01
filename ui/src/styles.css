@@ -25,7 +25,7 @@ nav { display: flex; gap: 4px; height: 72px; margin-left: 28px; }
 .badge-lock { height: 36px; display: flex; align-items: center; padding: 0 12px; background: #f6f0f7; border-radius: 10px; font-size: 12px; font-weight: 600; color: #5b2a4e; }
 .badge-model { height: 36px; display: flex; align-items: center; gap: 8px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; font-size: 12px; }
 .dot { width: 8px; height: 8px; border-radius: 4px; background: var(--grey); display: inline-block; }
-.dot.ok { background: #7fa000; } .dot.down { background: var(--orange); }
+.dot.ok { background: #7fa000; } .dot.down, .dot.warn { background: var(--orange); }
 
 /* lake */
 .lake { position: relative; height: 220px; background: var(--deep); color: #fff; overflow: hidden; }

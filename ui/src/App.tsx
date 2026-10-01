@@ -9,13 +9,18 @@ const TABS = [
 ];
 
 type Health = "checking" | "ok" | "down";
+type Local = { up: boolean; model: string; model_installed: boolean } | null;
 
 export default function App() {
   const [tab, setTab] = useState("today");
   const [health, setHealth] = useState<Health>("checking");
+  const [local, setLocal] = useState<Local>(null);
 
   useEffect(() => {
-    const check = () => fetch("/api/health").then((r) => setHealth(r.ok ? "ok" : "down")).catch(() => setHealth("down"));
+    const check = () => {
+      fetch("/api/health").then((r) => setHealth(r.ok ? "ok" : "down")).catch(() => setHealth("down"));
+      fetch("/api/gateway/status").then((r) => r.json()).then((d) => setLocal(d.local)).catch(() => setLocal(null));
+    };
     check();
     const t = setInterval(check, 30_000);
     return () => clearInterval(t);
@@ -37,7 +42,10 @@ export default function App() {
         </nav>
         <div className="grow" />
         <div className="badge-lock">🔒 Drafts only · never sent automatically</div>
-        <div className="badge-model"><i className={`dot ${health}`} />{health === "ok" ? "Harness running" : health === "down" ? "Back end not reachable" : "Checking…"}</div>
+        <div className="badge-model" title={local ? `Model: ${local.model}${local.model_installed ? "" : " (not installed)"}` : ""}>
+          <i className={`dot ${health === "down" ? "down" : local?.up && local.model_installed ? "ok" : "warn"}`} />
+          {health === "down" ? "Back end not reachable" : local?.up && local.model_installed ? "Local model" : local?.up ? "Local model: not installed" : "Local model: off"}
+        </div>
       </header>
       {tab === "today" ? <TodayTab /> : (
         <main className="page"><h2 className="serif">{current.label}</h2><p className="muted">Placeholder. Coming in {current.phase}.</p></main>
