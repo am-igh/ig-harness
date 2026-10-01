@@ -315,6 +315,12 @@ MIGRATIONS: list[str] = [
     ALTER TABLE draft_requests ADD COLUMN needs_input TEXT;       -- JSON list of things only she can fill in
     ALTER TABLE draft_requests ADD COLUMN profile_summary TEXT;   -- JSON: which style information was used
     """,
+    # 12: who the newest message went to, and the messages before it (for follow-ups and for context in drafts)
+    """
+    ALTER TABLE emails ADD COLUMN to_addrs TEXT;            -- JSON list: addresses in To of the newest message
+    ALTER TABLE emails ADD COLUMN cc_addrs TEXT;            -- JSON list
+    ALTER TABLE emails ADD COLUMN history TEXT;             -- JSON list: up to 3 earlier messages, newest first
+    """,
 ]
 
 

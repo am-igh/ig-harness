@@ -349,3 +349,106 @@ def test_learned_signature_drops_formatting_leftovers():
     assert clean_signature_line("<https://twitter.com/ict4peace>") == ""
     raw = "Hello,\n\nBest,\nAnne-Marie\n*Anne-Marie Buzatu*\nExecutive Director\n<https://twitter.com/ict4peace>"
     assert learned_signature([raw, raw]) == "Anne-Marie\nAnne-Marie Buzatu\nExecutive Director"
+
+
+# ---------------------------------------------------------------- follow-ups: she wrote last (the bug found in real use)
+ME = "me@ict4peace.org"
+
+
+@pytest.fixture
+def mine(env):
+    """An email whose newest message is HER OWN, sent to Dan, with two earlier messages from Dan."""
+    c, gw, m, ext, out, path = env
+    c.execute("INSERT INTO draft_settings (key, value, source) VALUES ('my_address', ?, 'learned')", (ME,))
+    hist = [{"from_me": False, "from_email": "dan@org.ch", "from_name": "Daniel", "body": "Pouvez-vous nous envoyer le contrat avant vendredi ?"},
+            {"from_me": True, "from_email": ME, "from_name": "", "body": "Bien reçu, je regarde."}]
+    c.execute("INSERT INTO emails (thread_id, message_id, from_name, from_email, subject, received_at, snippet, body, direct, rfc_message_id, last_from_me, to_addrs, cc_addrs, history, space) "
+              "VALUES ('18c0ffee77777777','m7','Anne-Marie',?, 'Re: Contrat','2026-10-01T11:00:00+02:00','s','Voici le contrat signé, avec mes remerciements.',0,'<mine@ict4peace.org>',1,?,'[]',?, 'work')",
+              (ME, json.dumps(["dan@org.ch", ME]), json.dumps(hist)))
+    c.commit()
+    return env
+
+
+def test_when_she_wrote_last_the_draft_is_a_follow_up_to_the_other_person_never_to_herself(mine):
+    c, gw, m, ext, out, _ = mine
+    d = drafting.generate_reply(c, gw, eid(c, "18c0ffee77777777"))
+    assert d["to"] == ["dan@org.ch"] and ME not in d["to"] and d["follow_up"] is True and d["subject"] == "Re: Contrat"
+    prompt = m.calls[0][0]
+    assert "written by Anne-Marie herself" in prompt and "FOLLOW UP" in prompt and "not a reply to herself" in prompt
+    assert "Pouvez-vous nous envoyer le contrat" in prompt and "Bien reçu" in prompt                       # earlier messages give the context
+    assert "French" in m.calls[0][1] and "'vous'" in m.calls[0][1]                                          # style is Dan's, not hers
+    assert "Triage note" not in prompt
+
+
+def test_she_can_say_what_the_follow_up_should_cover(mine):
+    c, gw, m, ext, out, _ = mine
+    drafting.generate_reply(c, gw, eid(c, "18c0ffee77777777"), instruction="Ask whether they received the signed contract")
+    assert "HER INSTRUCTION FOR THIS FOLLOW-UP: Ask whether" in m.calls[0][0]
+
+
+def test_if_the_recipients_are_unknown_it_refuses_instead_of_guessing(mine):
+    c, gw, m, ext, out, _ = mine
+    c.execute("UPDATE emails SET to_addrs=NULL WHERE thread_id='18c0ffee77777777'"); c.commit()
+    with pytest.raises(DraftRefused, match="make gmail"):
+        drafting.generate_reply(c, gw, eid(c, "18c0ffee77777777"))
+    c.execute("UPDATE emails SET to_addrs=? WHERE thread_id='18c0ffee77777777'", (json.dumps([ME]),)); c.commit()      # only to herself
+    with pytest.raises(DraftRefused, match="make gmail"):
+        drafting.generate_reply(c, gw, eid(c, "18c0ffee77777777"))
+    assert m.calls == []                                                                                              # the model was never asked
+
+
+def test_her_own_address_as_sender_counts_even_if_the_flag_is_missing(mine):
+    c, gw, m, ext, out, _ = mine
+    c.execute("UPDATE emails SET last_from_me=0 WHERE thread_id='18c0ffee77777777'"); c.commit()
+    assert drafting.generate_reply(c, gw, eid(c, "18c0ffee77777777"))["to"] == ["dan@org.ch"]
+
+
+def test_a_reply_to_pointing_at_herself_is_refused(mine):
+    c, gw, m, ext, out, _ = mine
+    c.execute("UPDATE emails SET reply_to=? WHERE thread_id='18c0ffee12345678'", (ME,)); c.commit()
+    with pytest.raises(DraftRefused, match="who to reply to"):
+        drafting.generate_reply(c, gw, eid(c, "18c0ffee12345678"))
+
+
+def test_a_draft_addressed_only_to_herself_cannot_be_saved(mine):
+    c, gw, m, ext, out, _ = mine
+    d = drafting.generate_reply(c, gw, eid(c, "18c0ffee77777777"))
+    with pytest.raises(DraftRefused, match="only to you"):
+        drafting.approve(c, d["id"], out, to=[ME.upper()])
+    assert not out.exists() or list(out.glob("*.json")) == []
+    assert drafting.approve(c, d["id"], out, to=["dan@org.ch", ME])["status"] == "approved"                           # her address next to Dan's is fine
+
+
+def test_earlier_messages_also_inform_ordinary_replies(env):
+    c, gw, m, ext, out, _ = env
+    c.execute("UPDATE emails SET history=? WHERE thread_id='18c0ffee12345678'", (json.dumps([{"from_me": True, "from_email": "x", "from_name": "", "body": "Je confirme le principe."}]),)); c.commit()
+    drafting.generate_reply(c, gw, eid(c, "18c0ffee12345678"))
+    assert "Earlier in the conversation" in m.calls[0][0] and "Anne-Marie: Je confirme le principe." in m.calls[0][0]
+    assert "written by Anne-Marie herself" not in m.calls[0][0]
+
+
+def test_reader_captures_recipients_and_earlier_messages():
+    import base64
+    from tools.google_helper import normalize_thread
+    b = lambda t: base64.urlsafe_b64encode(t.encode()).decode()
+    mk = lambda id, frm, to, cc, text, ms: {"id": id, "internalDate": str(ms), "snippet": "s", "labelIds": [], "payload": {"mimeType": "text/plain", "body": {"data": b(text)},
+        "headers": [{"name": "From", "value": frm}, {"name": "To", "value": to}, {"name": "Cc", "value": cc}, {"name": "Subject", "value": "Plan"}, {"name": "Message-ID", "value": f"<{id}@x>"}]}}
+    t = {"id": "T9", "messages": [mk("m1", "Dan Known <dan@org.ch>", "me@x.org", "", "First question?\n\nOn Mon Dan wrote:\n> old", 1),
+                                  mk("m2", "me@x.org", "dan@org.ch", "", "Looking into it.", 2),
+                                  mk("m3", "me@x.org", "Dan Known <Dan@Org.ch>, other@y.org", "boss@z.org", "Here it is.", 3)]}
+    n = normalize_thread(t, "me@x.org")
+    assert n["last_from_me"] is True and n["to_addrs"] == ["dan@org.ch", "other@y.org"] and n["cc_addrs"] == ["boss@z.org"]
+    assert [(h["from_me"], h["body"]) for h in n["history"]] == [(True, "Looking into it."), (False, "First question?")]   # newest first, quotes stripped
+
+
+def test_importer_keeps_recipients_history_and_her_address(tmp_path):
+    from harness.importers.gmail import import_gmail
+    c = db.connect(tmp_path / "t.db"); db.migrate(c)
+    thread = {"thread_id": "t1", "message_id": "m1", "messages_in_thread": 3, "received_ms": 1790000000000, "from_name": "", "from_email": ME, "to_me_directly": False, "cc_only": False,
+              "subject": "S", "snippet": "s", "body": "b", "labels": [], "last_from_me": True, "bulk": False, "rfc_message_id": "<m1@x>", "references": "",
+              "to_addrs": ["dan@org.ch"], "cc_addrs": [], "history": [{"from_me": False, "from_email": "dan@org.ch", "from_name": "D", "body": "hi"}]}
+    (tmp_path / "gmail_recent.json").write_text(json.dumps({"fetched_at": "x", "me": "Me@ICT4Peace.org", "query": "q", "threads": [thread]}))
+    import_gmail(c, tmp_path)
+    r = c.execute("SELECT to_addrs, history FROM emails").fetchone()
+    assert json.loads(r["to_addrs"]) == ["dan@org.ch"] and json.loads(r["history"])[0]["body"] == "hi"
+    assert c.execute("SELECT value FROM draft_settings WHERE key='my_address'").fetchone()[0] == "me@ict4peace.org"

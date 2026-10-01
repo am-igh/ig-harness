@@ -32,7 +32,7 @@ function EmailDrawer({ e, onClose, onChanged }: { e: Email; onClose: () => void;
     <Shell kicker={`EMAIL${e.org ? " · " + e.org.toUpperCase() : ""}`} title={e.subject} meta={`${e.from_name} · ${Math.round(e.hours_ago)} h ago`} onClose={onClose}>
       <div className="facts">{facts.map(([k, v]) => <><span key={k + "k"}>{k}</span><span key={k + "v"}>{v}</span></>)}</div>
       {e.snippet && <div className="related"><div className="kicker">PREVIEW</div><div className="preview">{e.snippet}</div></div>}
-      {existing !== undefined && <DraftBox initial={existing} startLabel="Draft a reply" generate={(o) => makeReplyDraft(e.id, o)} />}
+      {existing !== undefined && <DraftBox initial={existing} startLabel={e.last_from_me ? "Write a follow-up" : "Draft a reply"} followUp={e.last_from_me} generate={(o) => makeReplyDraft(e.id, o)} />}
       <div className="actions">
         {handled
           ? <button type="button" className="btn-ghost wide" onClick={() => finish(false)}>Reopen (handled {dayMonth(doneDay(e.handled_at!))} {doneTime(e.handled_at!)})</button>

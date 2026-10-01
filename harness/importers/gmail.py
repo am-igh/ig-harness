@@ -23,6 +23,9 @@ def import_gmail(conn: sqlite3.Connection, folder: Path) -> list[Report]:
     people = {r["email"]: r["slug"] for r in conn.execute("SELECT email, slug FROM people WHERE email IS NOT NULL")}
     seen = set()
     with conn:
+        if data.get("me"):                         # her own address: used so a draft is never addressed to herself
+            conn.execute("INSERT INTO draft_settings (key, value, source) VALUES ('my_address', ?, 'learned') "
+                         "ON CONFLICT (key) DO UPDATE SET value=excluded.value", (data["me"].lower(),))
         for t in data["threads"]:
             seen.add(t["thread_id"])
             received = datetime.fromtimestamp(t["received_ms"] / 1000, TZ).isoformat(timespec="seconds")
@@ -31,6 +34,8 @@ def import_gmail(conn: sqlite3.Connection, folder: Path) -> list[Report]:
                 "subject": t["subject"], "received_at": received, "snippet": t["snippet"], "body": t["body"],
                 "direct": int(t["to_me_directly"]), "cc_only": int(t["cc_only"]), "bulk": int(t["bulk"]),
                 "last_from_me": int(t["last_from_me"]), "in_window": 1, "person_slug": people.get(t["from_email"]),
+                "to_addrs": json.dumps(t.get("to_addrs") or []), "cc_addrs": json.dumps(t.get("cc_addrs") or []),
+                "history": json.dumps(t.get("history") or [], ensure_ascii=False),
                 "rfc_message_id": t.get("rfc_message_id") or None, "references_hdr": t.get("references") or None, "reply_to": t.get("reply_to") or None,
             }
             row = conn.execute("SELECT * FROM emails WHERE thread_id = ?", (t["thread_id"],)).fetchone()

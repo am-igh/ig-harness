@@ -258,6 +258,11 @@ def _parse_from(value: str) -> tuple[str, str]:
     return name.strip().strip('"'), addr.lower()
 
 
+def _addresses(value: str) -> list[str]:
+    from email.utils import getaddresses
+    return [a.lower() for _, a in getaddresses([value]) if a]
+
+
 def normalize_thread(thread: dict, me: str) -> dict | None:
     """One inbox thread -> the fields triage needs. Looks at the LAST message of the thread."""
     msgs = thread.get("messages") or []
@@ -276,10 +281,23 @@ def normalize_thread(thread: dict, me: str) -> dict | None:
         "subject": _header(h, "Subject"), "snippet": last.get("snippet", ""), "body": body,
         "labels": last.get("labelIds", []), "last_from_me": addr == me,
         "rfc_message_id": _header(h, "Message-ID").strip(), "references": _header(h, "References").strip(),
+        "to_addrs": _addresses(_header(h, "To")), "cc_addrs": _addresses(_header(h, "Cc")),
+        "history": _history(msgs[:-1], me),
         "reply_to": _parse_from(_header(h, "Reply-To"))[1] if _header(h, "Reply-To") else "",
         "bulk": bool(_header(h, "List-Unsubscribe")) or _header(h, "Precedence").lower() in ("bulk", "list", "junk")
                 or _header(h, "Auto-Submitted").lower().startswith("auto-"),
     }
+
+
+def _history(earlier: list[dict], me: str) -> list[dict]:
+    """The (up to 3) messages before the newest one, newest first: who wrote them and their new text only."""
+    out = []
+    for m in reversed(earlier[-3:]):
+        h = m.get("payload", {}).get("headers", [])
+        sender = _parse_from(_header(h, "From"))[1]
+        out.append({"from_me": sender == me.lower(), "from_email": sender, "from_name": _parse_from(_header(h, "From"))[0],
+                    "body": strip_quoted(_text_of(m.get("payload", {})))[:700]})
+    return out
 
 
 def sync_gmail() -> None:

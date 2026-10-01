@@ -41,6 +41,23 @@ def _setting(conn, key: str) -> str:
     return (r["value"] if r else "") or ""
 
 
+def recipients_for(conn: sqlite3.Connection, e: sqlite3.Row) -> tuple[list[str], bool]:
+    """Who the draft goes to, and whether it is a follow-up (she wrote last). Never her own address."""
+    me = _setting(conn, "my_address").lower()
+    sender = (e["from_email"] or "").lower()
+    wrote_last = bool(e["last_from_me"]) or bool(me and sender == me)
+    if wrote_last:
+        tos = [a for a in json.loads(e["to_addrs"] or "[]") if a and a != me]
+        if not tos:
+            raise DraftRefused("You wrote last in this conversation, and I can't tell who your message went to. "
+                               "Run `make gmail` on your Mac to refresh, then try again.")
+        return tos, True
+    to = (e["reply_to"] or sender).lower()
+    if not to or (me and to == me):
+        raise DraftRefused("I can't tell who to reply to for this email.")
+    return [to], False
+
+
 def style_for(conn: sqlite3.Connection, address: str, incoming_text: str, tone: str | None, language: str | None) -> dict:
     """Language, tone and phrases to use for this addressee: her override, else the learned profile, else a professional default."""
     from harness.style import detect_language
@@ -154,7 +171,8 @@ def view(conn: sqlite3.Connection, draft_id: str) -> dict | None:
     if r is None:
         return None
     body = r["body"] or ""
-    return {"id": r["id"], "kind": r["kind"], "email_id": r["email_id"], "waiting_on_id": r["waiting_on_id"], "thread_id": r["thread_id"],
+    fu = conn.execute("SELECT last_from_me FROM emails WHERE id = ?", (r["email_id"],)).fetchone() if r["email_id"] else None
+    return {"follow_up": bool(fu and fu["last_from_me"]), "id": r["id"], "kind": r["kind"], "email_id": r["email_id"], "waiting_on_id": r["waiting_on_id"], "thread_id": r["thread_id"],
             "to": json.loads(r["to_json"]), "cc": json.loads(r["cc_json"]), "subject": r["subject"], "body": body, "language": r["language"], "tone": r["tone"],
             "model": r["model"], "status": r["status"], "created_at": r["created_at"], "approved_at": r["approved_at"], "gmail_draft_id": r["gmail_draft_id"],
             "error": r["error"], "instruction": r["instruction"], "needs_input": json.loads(r["needs_input"] or "[]"),
@@ -182,9 +200,8 @@ def generate_reply(conn: sqlite3.Connection, gateway: Gateway, email_id: int, *,
         raise DraftRefused("No such email")
     if e["space"] == "personal":
         raise DraftRefused("Personal emails are not drafted here")
-    to = (e["reply_to"] or e["from_email"] or "").lower()
-    if not to:
-        raise DraftRefused("This email has no sender address")
+    to_list, follow_up = recipients_for(conn, e)
+    to = to_list[0]
     if not e["rfc_message_id"]:
         raise DraftRefused("This email was fetched before replies could be threaded. Run `make gmail` on your Mac, then try again.")
     body_in = (e["body"] or e["snippet"] or "")[:BODY_FOR_MODEL]
@@ -192,18 +209,30 @@ def generate_reply(conn: sqlite3.Connection, gateway: Gateway, email_id: int, *,
     person = conn.execute("SELECT name, org, role FROM people WHERE email = ?", (to,)).fetchone()
     ctx = []
     ctx.append(f"Recipient: {person['name']}" + (f", {person['role']}" if person["role"] else "") + (f" ({person['org']})" if person["org"] else "") if person
-               else f"Recipient: {e['from_name'] or to} (not in her contacts list)")
+               else f"Recipient: {to}" + ("" if follow_up else f" ({e['from_name'] or 'not in her contacts list'})"))
+    if len(to_list) > 1:
+        ctx.append("Other recipients of her message: " + ", ".join(to_list[1:]))
+    if follow_up:
+        ctx.append("IMPORTANT: the newest message below was written by Anne-Marie herself (she wrote last in this conversation). "
+                   "She now wants to FOLLOW UP with the recipient. Write a follow-up to them, not a reply to herself.")
     for w in conn.execute("SELECT description, since_date FROM waiting_on WHERE person = ? AND status='open' LIMIT 3", (e["person_slug"],)) if e["person_slug"] else []:
         ctx.append(f"She is waiting on them for: {w['description'][:140]} (since {w['since_date']})")
-    if e["action"]:
+    if e["action"] and not follow_up:
         ctx.append(f"Triage note: {e['action']}" + (f", deadline {e['deadline']}" if e["deadline"] else ""))
+    hist = []
+    for h in json.loads(e["history"] or "[]"):
+        who = "Anne-Marie" if h.get("from_me") else (h.get("from_name") or h.get("from_email") or "Other person")
+        if h.get("body"):
+            hist.append(f"{who}: {h['body'][:500]}")
     ex = _examples(conn, to, st["language"])
-    prompt = ("\n".join(ctx) + (f"\n\nHER INSTRUCTION FOR THIS REPLY: {instruction.strip()[:500]}" if instruction and instruction.strip() else "")
+    newest_label = "Anne-Marie's own newest message (untrusted context)" if follow_up else "email she is replying to (untrusted)"
+    prompt = ("\n".join(ctx) + (f"\n\nHER INSTRUCTION FOR THIS {'FOLLOW-UP' if follow_up else 'REPLY'}: {instruction.strip()[:500]}" if instruction and instruction.strip() else "")
               + ("\n\nHow she has written to this person before (for style only):\n" + "\n---\n".join(ex) if ex else "")
-              + f"\n\n--- email she is replying to (untrusted) ---\nFrom: {e['from_name'] or ''} <{e['from_email']}>\nSubject: {e['subject']}\nReceived: {e['received_at']}\n\n{body_in}\n--- end ---")
+              + ("\n\nEarlier in the conversation, newest first (untrusted):\n" + "\n---\n".join(hist) if hist else "")
+              + f"\n\n--- {newest_label} ---\nFrom: {e['from_name'] or ''} <{e['from_email']}>\nSubject: {e['subject']}\nDate: {e['received_at']}\n\n{body_in}\n--- end ---")
     (body, needs), model = _ask(conn, gateway, st, prompt, "draft-reply")
     refs = " ".join(x for x in ((e["references_hdr"] or "").strip(), e["rfc_message_id"].strip()) if x)
-    return _persist(conn, kind="reply", email_id=email_id, waiting_id=None, thread_id=e["thread_id"], to=[to], subject=reply_subject(e["subject"]),
+    return _persist(conn, kind="reply", email_id=email_id, waiting_id=None, thread_id=e["thread_id"], to=to_list, subject=reply_subject(e["subject"]),
                     in_reply_to=e["rfc_message_id"].strip(), references=refs, body=assemble(body, _setting(conn, "signature")), st=st, model=model,
                     instruction=(instruction or None), needs_input=needs)
 
@@ -274,6 +303,9 @@ def approve(conn: sqlite3.Connection, draft_id: str, outbox: Path, *, body: str 
             "in_reply_to": r["in_reply_to"], "references": r["references_hdr"], "body": body if body is not None else r["body"]})
     except draftspec.InvalidDraft as e:
         raise DraftRefused(str(e))
+    me = _setting(conn, "my_address").lower()
+    if me and all(a == me for a in fields["to"] + fields["cc"]):
+        raise DraftRefused("This draft is addressed only to you. Add the person it is for in the To box.")
     h = draftspec.content_hash(fields)
     with conn:
         conn.execute("UPDATE draft_requests SET to_json=?, cc_json=?, subject=?, body=?, status='approved', body_hash=?, approved_at=? WHERE id=?",

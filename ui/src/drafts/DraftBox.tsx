@@ -15,8 +15,8 @@ function whyLine(d: Draft): string {
 }
 
 /** The draft editor: generate, edit, then "Save to Gmail". Gmail is only touched after the Save click. */
-export default function DraftBox({ initial, generate, startLabel = "Draft a reply", children }: {
-  initial: Draft | null; generate: (o: DraftOpts) => Promise<Draft>; startLabel?: string; children?: React.ReactNode;
+export default function DraftBox({ initial, generate, startLabel = "Draft a reply", followUp = false, children }: {
+  initial: Draft | null; generate: (o: DraftOpts) => Promise<Draft>; startLabel?: string; followUp?: boolean; children?: React.ReactNode;
 }) {
   const [draft, setDraft] = useState<Draft | null>(initial && initial.status !== "cancelled" ? initial : null);
   const [tone, setTone] = useState(""); const [lang, setLang] = useState(""); const [note, setNote] = useState("");
@@ -67,7 +67,8 @@ export default function DraftBox({ initial, generate, startLabel = "Draft a repl
   if (!draft) {
     return (
       <div className="draft-box">
-        <div className="kicker">DRAFT</div>
+        <div className="kicker">{followUp ? "FOLLOW-UP" : "DRAFT"}</div>
+        {followUp && <div className="why">You wrote last in this conversation, so this will be a follow-up to the person you wrote to. Tell it what to say below, for example “ask whether they received it”.</div>}
         {showOpts ? <>{opts}<div className="editor-actions"><button type="button" className="btn-small" onClick={run} disabled={busy}>{busy ? "Writing… (up to a minute)" : "Write the draft"}</button><button type="button" className="btn-ghost" onClick={() => setShowOpts(false)}>Cancel</button></div></>
           : <div className="editor-actions"><button type="button" className="btn-small" onClick={run} disabled={busy}>{busy ? "Writing… (up to a minute)" : startLabel}</button>
               <button type="button" className="link-quiet" onClick={() => setShowOpts(true)}>Choose tone, language or what to say first</button></div>}
@@ -90,7 +91,8 @@ export default function DraftBox({ initial, generate, startLabel = "Draft a repl
   const locked = draft.status === "approved";
   return (
     <div className="draft-box">
-      <div className="kicker">DRAFT · {draft.model}</div>
+      <div className="kicker">{draft.follow_up ? "FOLLOW-UP" : "DRAFT"} · {draft.model}</div>
+      {draft.follow_up && <div className="why">You wrote last in this conversation. This follows up with the people your message went to. Check the To box.</div>}
       <div className="why">{whyLine(draft)}</div>
       {draft.needs_input.length > 0 && <div className="needs-input"><b>Fill in before sending:</b> {draft.needs_input.join(" · ")}</div>}
       {draft.placeholders > 0 && <div className="needs-input">The text still contains [YOUR INPUT …] markers. You can save it and complete it in Gmail, but check it before you send.</div>}

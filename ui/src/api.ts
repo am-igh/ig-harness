@@ -36,7 +36,7 @@ export type Email = {
   id: number; thread_id: string; subject: string; from_name: string; from_email: string; known: boolean;
   org: string | null; role: string | null; why: string | null; urgency: number | null; received_at: string;
   snippet: string | null; hours_ago: number; direct: boolean; status: string;
-  action: string | null; deadline: string | null; user_label: "yes" | "no" | null; task_id: number | null; handled_at: string | null;
+  action: string | null; deadline: string | null; user_label: "yes" | "no" | null; task_id: number | null; handled_at: string | null; last_from_me: boolean;
 };
 export type EmailsResponse = {
   needs_reply: Email[]; not_needing_reply?: Email[]; handled?: Email[];
@@ -108,7 +108,7 @@ export type Draft = {
   status: "draft" | "approved" | "created" | "failed" | "cancelled"; created_at: string; approved_at: string | null;
   gmail_draft_id: string | null; error: string | null; instruction: string | null; needs_input: string[];
   profile: { language?: string; tone?: string; pronoun?: string | null; greeting?: string | null; closing?: string | null; source?: string; n_mine?: number; confidence?: string; default_used?: boolean; overridden?: { tone?: boolean; language?: boolean } };
-  placeholders: number; in_thread: boolean;
+  placeholders: number; in_thread: boolean; follow_up: boolean;
 };
 export type DraftOpts = { tone?: string | null; language?: string | null; instruction?: string | null; thread_id?: string | null; new_message?: boolean };
 async function jj<T>(url: string, init?: RequestInit): Promise<T> {

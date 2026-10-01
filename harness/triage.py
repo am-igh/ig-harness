@@ -201,7 +201,7 @@ def list_emails(conn: sqlite3.Connection, hours: int, now: datetime | None = Non
                 "action": r["action"], "deadline": r["deadline"], "user_label": r["user_label"], "task_id": r["task_id"],
                 "urgency": r["urgency"], "received_at": r["received_at"], "snippet": r["snippet"],
                 "hours_ago": round((now - datetime.fromisoformat(r["received_at"])).total_seconds() / 3600, 1),
-                "direct": bool(r["direct"]), "status": r["triage_status"], "handled_at": r["handled_at"]}
+                "direct": bool(r["direct"]), "status": r["triage_status"], "handled_at": r["handled_at"], "last_from_me": bool(r["last_from_me"])}
     need = [shape(r) for r in conn.execute(base + "AND e.triage_status='done' AND e.needs_reply=1 ORDER BY e.score DESC", (cutoff,))]
     res = {"needs_reply": need,
            "counts": {k: conn.execute("SELECT COUNT(*) FROM emails WHERE in_window=1 AND handled_at IS NULL AND received_at>=? AND triage_status=?", (cutoff, k)).fetchone()[0]
