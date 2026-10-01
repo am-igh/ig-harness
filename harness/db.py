@@ -228,6 +228,34 @@ MIGRATIONS: list[str] = [
         PRIMARY KEY (table_name, item_id, field)
     );
     """,
+    # 9: draft replies. A draft only reaches Gmail after her explicit approval of this exact text (status + hash).
+    """
+    CREATE TABLE draft_requests (
+        id TEXT PRIMARY KEY,                -- uuid
+        kind TEXT NOT NULL DEFAULT 'reply' CHECK (kind IN ('reply','reminder','new')),
+        email_id INTEGER,                   -- the email being answered, if any
+        waiting_on_id INTEGER,              -- the waiting-on item, for reminders
+        thread_id TEXT,
+        to_json TEXT NOT NULL DEFAULT '[]',
+        cc_json TEXT NOT NULL DEFAULT '[]',
+        subject TEXT NOT NULL DEFAULT '',
+        in_reply_to TEXT,
+        references_hdr TEXT,
+        body TEXT NOT NULL DEFAULT '',
+        language TEXT,
+        tone TEXT,
+        model TEXT,
+        status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','approved','created','failed','cancelled')),
+        body_hash TEXT,                     -- hash of the approved fields; the Mac-side worker re-checks it
+        created_at TEXT NOT NULL,
+        approved_at TEXT,
+        gmail_draft_id TEXT,
+        error TEXT,
+        space TEXT NOT NULL DEFAULT 'work',
+        sensitivity TEXT NOT NULL DEFAULT 'S2'
+    );
+    CREATE INDEX idx_draft_requests_email ON draft_requests (email_id);
+    """,
 ]
 
 

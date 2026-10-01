@@ -114,7 +114,7 @@ def login(scope: str = SCOPE, item: str = TOKEN_ITEM) -> None:
         "client_id": c["client_id"], "redirect_uri": redirect, "response_type": "code",
         "scope": scope, "access_type": "offline", "prompt": "consent", "state": state,
         "code_challenge": challenge, "code_challenge_method": "S256"})
-    print("Opening your browser to approve READ-ONLY access...")
+    print(f"Opening your browser to approve this access: {scope.rsplit('/', 1)[-1]}")
     webbrowser.open(url)
     threading.Thread(target=srv.handle_request, daemon=True).start()
     for _ in range(300):

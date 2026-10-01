@@ -18,6 +18,10 @@ services:
       - ./tests:/app/tests
       - ./pytest.ini:/app/pytest.ini
       - ./tools:/app/tools
+      # read-only, so the static no-send scans in tests/ can see every part of the code base
+      - ./worker:/app/worker:ro
+      - ./scripts:/app/scripts:ro
+      - ./ui/src:/app/ui/src:ro
       # Her spreadsheets, mounted READ-ONLY. Paths come from .env (see .env.example).
       - ${SUIVI_DIR:-./tests/fixtures/suivi}:/sources/suivi:ro
       - ${PROJETS_DIR:-./tests/fixtures/projets}:/sources/projets:ro
