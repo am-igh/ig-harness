@@ -1,12 +1,12 @@
 export type Item = {
   key: string; type: "task" | "deadline" | "waiting_on" | "email"; id: number; title: string;
   code: string | null; weight: "major" | "hard" | "soft" | "waiting"; person: string | null;
-  personal: boolean; due: string | null; days_overdue: number; done: boolean; done_at: string | null;
+  personal: boolean; due: string | null; days_overdue: number; done: boolean; done_at: string | null; masked: boolean;
   edited: null | { title: string | null; due: string | null; title_changed: boolean; due_changed: boolean };
 };
 export type Mark = {
   id: number; title: string; due: string; importance: "major" | "normal"; kind: string;
-  code: string | null; personal: boolean; warning: string | null;
+  code: string | null; personal: boolean; masked: boolean; warning: string | null;
 };
 export type CalEvent = { id: number; title: string; start: string; end: string | null; all_day: boolean };
 export type Today = {
@@ -19,7 +19,7 @@ export type DeadlineDetail = {
   status: string; personal: boolean; source: string; days_left: number; warn_d14: string; warn_d3: string;
   related: { type: string; label: string; meta: string }[];
 };
-export type DoneItem = { key: string; type: Item["type"]; id: number; title: string; done_at: string; personal: boolean; reopenable: boolean; via: string | null };
+export type DoneItem = { key: string; type: Item["type"]; id: number; title: string; done_at: string; personal: boolean; masked: boolean; reopenable: boolean; via: string | null };
 
 async function j<T>(url: string, init?: RequestInit): Promise<T> {
   const r = await fetch(url, init);
@@ -82,3 +82,6 @@ export const selectModel = (job: string, provider: string, model: string) =>
 export const editItem = (it: Pick<Item, "type" | "id">, patch: { title?: string; due?: string | null; reset?: boolean }) =>
   fetch(`/api/items/${it.type}/${it.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patch) })
     .then(async (r) => { if (!r.ok) throw new Error((await r.json().catch(() => ({ detail: "Could not save" }))).detail); return r.json(); });
+
+export type Revealed = { title: string; code: string | null; person: string | null };
+export const reveal = (it: Pick<Item, "type" | "id">) => j<Revealed>(`/api/items/${it.type}/${it.id}/reveal`);

@@ -8,7 +8,7 @@ from datetime import date
 
 from harness.importers.common import DUE_COL, TITLE_COL
 
-TABLES = {"task": "tasks", "deadline": "deadlines", "waiting_on": "waiting_on"}
+TABLES = {"task": "tasks", "deadline": "deadlines", "waiting_on": "waiting_on"}   # ("email" is handled separately where needed)
 IMPORTED = ("suivi", "registre")
 MAX_TITLE = 300
 
@@ -79,3 +79,15 @@ def overrides_for(conn: sqlite3.Connection, table: str) -> dict[int, dict]:
     for r in conn.execute("SELECT item_id, field, source_value FROM item_overrides WHERE table_name=?", (table,)):
         out.setdefault(r["item_id"], {})[r["field"]] = r["source_value"]
     return out
+
+
+def reveal(conn: sqlite3.Connection, item_type: str, item_id: int) -> dict | None:
+    """The details of one item, for when she clicks a masked (personal) one. Nothing else sends these."""
+    if item_type == "email":
+        r = conn.execute("SELECT subject AS title, NULL AS code, from_name AS person FROM emails WHERE id = ?", (item_id,)).fetchone()
+    else:
+        table = TABLES[item_type]
+        tcol = TITLE_COL[table]
+        extra = "project_code AS code, NULL AS person" if table != "waiting_on" else "NULL AS code, person"
+        r = conn.execute(f"SELECT {tcol} AS title, {extra} FROM {table} WHERE id = ?", (item_id,)).fetchone()
+    return None if r is None else {"title": r["title"], "code": r["code"], "person": r["person"]}

@@ -3,6 +3,7 @@ import { type Item, type Today, editItem, getToday, setDone } from "../api";
 import { dayShort, doneTime, dueLabel, timeOf } from "../format";
 import EmailList from "../email/EmailList";
 import Drawer, { type Panel } from "./Drawer";
+import { useReveal } from "./useReveal";
 import Lake from "./Lake";
 
 const WIDGETS = [
@@ -55,6 +56,12 @@ function Editor({ it, onClose, onSaved }: { it: Item; onClose: () => void; onSav
 function Row({ it, today, onToggle, fresh, doneRow, onEdited }: { it: Item; today: string; onToggle: (it: Item) => void; fresh: boolean; doneRow?: boolean; onEdited?: () => void }) {
   const over = it.days_overdue > 0 && !it.done;
   const [editing, setEditing] = useState(false);
+  const { shown, show, hide } = useReveal(it);
+  const [editItemCopy, setEditItemCopy] = useState<Item>(it);
+  const startEdit = async () => {
+    if (it.masked) { const r = await show(); setEditItemCopy({ ...it, title: r.title }); } else setEditItemCopy(it);
+    setEditing(true);
+  };
   return (
     <div className={`card ${it.done ? "is-done" : over ? "is-over" : ""} ${fresh ? "glow" : ""}`}>
       <button type="button" className={`chk ${it.done ? "on" : ""}`} onClick={() => onToggle(it)}
@@ -62,13 +69,19 @@ function Row({ it, today, onToggle, fresh, doneRow, onEdited }: { it: Item; toda
         {it.done && <svg className="popin" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>}
       </button>
       <div className="card-main">
-        {editing && onEdited ? <Editor it={it} onClose={() => setEditing(false)} onSaved={onEdited} /> : (
+        {editing && onEdited ? <Editor it={editItemCopy} onClose={() => { setEditing(false); hide(); }} onSaved={onEdited} /> : (
           <>
-            <div className={`card-title ${it.done ? "struck" : ""}`}>{it.title}</div>
+            {it.masked && !shown
+              ? <button type="button" className="masked-title" onClick={show} title="Click to show the details">🔒 {it.title} <span>show details</span></button>
+              : <div className={`card-title ${it.done ? "struck" : ""}`}>
+                  {shown ? shown.title : it.title}
+                  {shown && <button type="button" className="link-quiet inline" onClick={hide}>hide</button>}
+                </div>}
             <div className="card-meta">
               <span className={`chip chip-${it.weight}`}>{it.weight === "waiting" ? "waiting on" : it.weight}</span>
               {it.person && <span className="meta-small">{it.person}</span>}
-              {it.code && <span className="mono meta-small">{it.code}</span>}
+              {(shown?.code ?? it.code) && <span className="mono meta-small">{shown?.code ?? it.code}</span>}
+              {shown?.person && <span className="meta-small">{shown.person}</span>}
               {it.personal && <span className="chip chip-personal">personal</span>}
               {it.edited && <span className="chip chip-edited" title="You changed this here. Open the editor to see the original.">edited</span>}
               {doneRow && it.done_at
@@ -79,7 +92,7 @@ function Row({ it, today, onToggle, fresh, doneRow, onEdited }: { it: Item; toda
         )}
       </div>
       {!doneRow && !it.done && onEdited && !editing && (
-        <button type="button" className="edit-btn" onClick={() => setEditing(true)} aria-label={`Edit: ${it.title}`} title="Edit title or date">✎</button>
+        <button type="button" className="edit-btn" onClick={startEdit} aria-label={`Edit: ${it.title}`} title="Edit title or date">✎</button>
       )}
     </div>
   );

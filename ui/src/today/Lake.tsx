@@ -127,7 +127,7 @@ export default function Lake({ data, doneCount, celebrate, onOpenDone, onOpenDea
             <button type="button" className="mark" onClick={() => onOpenDeadline(m.id)} title={m.title}
               aria-label={`Open deadline: ${m.title}, ${dayMonth(m.due)}`}
               style={{ left: x - 70, top, height: 160 - top + size / 2 }}>
-              <span className="mk-label">{m.title.length > 24 ? m.title.slice(0, 23) + "…" : m.title}</span>
+              <span className="mk-label">{m.masked ? "🔒 " : ""}{m.title.length > 24 ? m.title.slice(0, 23) + "…" : m.title}</span>
               <span className="mk-line" />
               <span className="mk-dot" style={{ width: size, height: size, background: dotColor(m) }} />
             </button>

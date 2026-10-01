@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { type DeadlineDetail, type DoneItem, getDeadline, getDone, setDone } from "../api";
 import { dayFull, dayHeading, dayShort, doneDay, doneTime } from "../format";
+import { useReveal } from "./useReveal";
 
 export type Panel = { kind: "deadline"; id: number } | { kind: "done" } | null;
 
@@ -89,18 +90,29 @@ function DoneDrawer({ today, onClose, onChanged }: { today: string; onClose: () 
         <div key={day} className="done-group">
           <div className="kicker">{dayHeading(day, today).toUpperCase()}</div>
           {rows.map((i) => (
-            <div key={i.key + i.done_at} className="done-row">
-              <span className="mono done-time">{doneTime(i.done_at) || "—"}</span>
-              <span className="done-title">{i.title}{i.personal && <em> · personal</em>}</span>
-              <span className="mono rel-type">{TYPE_LABEL[i.type] ?? i.type}</span>
-              {i.reopenable
-                ? <button type="button" className="btn-ghost" onClick={() => reopen(i)}>Reopen</button>
-                : <small title="Closed in Suivi; reopen it there">{i.via ? `via ${i.via}` : ""}</small>}
-            </div>
+            <DoneRow key={i.key + i.done_at} i={i} onReopen={reopen} />
           ))}
         </div>
       ))}
     </Shell>
+  );
+}
+
+function DoneRow({ i, onReopen }: { i: DoneItem; onReopen: (i: DoneItem) => void }) {
+  const { shown, show, hide } = useReveal(i);
+  return (
+            <div className="done-row">
+              <span className="mono done-time">{doneTime(i.done_at) || "—"}</span>
+              <span className="done-title">
+                {i.masked && !shown
+                  ? <button type="button" className="masked-title" onClick={show} title="Click to show the details">🔒 {i.title} <span>show details</span></button>
+                  : <>{shown ? shown.title : i.title}{shown && <button type="button" className="link-quiet inline" onClick={hide}>hide</button>}</>}
+              </span>
+              <span className="mono rel-type">{TYPE_LABEL[i.type] ?? i.type}</span>
+              {i.reopenable
+                ? <button type="button" className="btn-ghost" onClick={() => onReopen(i)}>Reopen</button>
+                : <small title="Closed in Suivi; reopen it there">{i.via ? `via ${i.via}` : ""}</small>}
+            </div>
   );
 }
 

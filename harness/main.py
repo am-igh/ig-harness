@@ -329,3 +329,15 @@ def edit_item_endpoint(item_type: str, item_id: int, body: EditIn) -> dict:
     if not found:
         raise HTTPException(404, "No such item")
     return {"ok": True}
+
+
+@app.get("/api/items/{item_type}/{item_id}/reveal")
+def reveal_item(item_type: str, item_id: int) -> dict:
+    """Details of a masked (personal) item, shown only because she clicked it."""
+    from harness import items
+    if item_type not in (*items.TABLES, "email"):
+        raise HTTPException(404, "Unknown item type")
+    d = _with_conn(lambda c: items.reveal(c, item_type, item_id))
+    if d is None:
+        raise HTTPException(404, "No such item")
+    return d
