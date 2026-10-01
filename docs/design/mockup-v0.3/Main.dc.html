@@ -1,0 +1,710 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>IG Harness · Today</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&amp;family=Public+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Public Sans',system-ui,sans-serif;background:#F4F5F8;color:#1A2233}
+a{color:#4F5FA8}a:hover{color:#7D147D}
+button,textarea,input{font-family:inherit}
+.row-btn{transition:background-color .15s ease,border-color .15s ease}
+.row-btn:hover{background:#F5F6FC;border-color:#BFC7EA}
+.tile{transition:border-color .15s ease,transform .15s ease}
+.tile:hover{border-color:#6A7BC1;transform:translateY(-1px)}
+.mark:hover .mk-label{text-decoration:underline}
+.tab:hover{color:#1F3864}
+.chk{transition:transform .15s ease,background-color .2s ease}
+.chk:hover{transform:scale(1.08)}
+@keyframes pop{0%{transform:scale(.4);opacity:0}60%{transform:scale(1.15);opacity:1}100%{transform:scale(1);opacity:1}}
+@keyframes rise{0%{transform:translateY(0) scale(1);opacity:1}100%{transform:translateY(-90px) scale(.5);opacity:0}}
+@keyframes glow{0%{box-shadow:0 0 0 0 rgba(125,20,125,.4)}100%{box-shadow:0 0 0 14px rgba(125,20,125,0)}}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(161,38,28,.5)}100%{box-shadow:0 0 0 10px rgba(161,38,28,0)}}
+@keyframes slide{0%{transform:translateX(40px);opacity:0}100%{transform:translateX(0);opacity:1}}
+@keyframes fade{0%{opacity:0;transform:translateY(8px)}100%{opacity:1;transform:translateY(0)}}
+@keyframes surge{0%{transform:scaleY(1)}35%{transform:scaleY(1.35)}100%{transform:scaleY(1)}}
+@keyframes shimmer{0%,100%{opacity:.55}50%{opacity:.85}}
+.popin{animation:pop .45s ease-out both}
+.spark{animation:rise 1.2s ease-out both}
+.glow{animation:glow 1s ease-out 2}
+.pulse{animation:pulse 1.2s ease-out infinite}
+.slide{animation:slide .25s ease-out both}
+.fade{animation:fade .25s ease-out both}
+.surge{animation:surge 1.1s ease-out both}
+.mist{animation:shimmer 3.2s ease-in-out infinite}
+</style>
+</helmet>
+
+<div style="width: 1440px; height: 1000px; position: relative; overflow: hidden; background: #F4F5F8; display: flex; flex-direction: column">
+
+<header style="height: 72px; flex-shrink: 0; background: #FFFFFF; border-bottom: 1px solid #E0E3EA; display: flex; align-items: center; gap: 20px; padding: 0 32px; box-sizing: border-box">
+<a href="Main.dc.html" aria-label="IG Harness home" style="display: flex; align-items: center; gap: 14px; text-decoration: none">
+<img src="/_blob/4d81491e391c98c6fd97dd63f15501e2" alt="ICT for Peace Foundation" style="height: 34px; width: 155px">
+<span style="width: 1px; height: 30px; background: #D5D9E2"></span>
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; font-weight: 700; color: #1F3864">IG Harness</span><span style="font-size: 10px; font-weight: 600; letter-spacing: .12em; color: #4B5566">GENÈVE INTERNATIONALE</span></span>
+</a>
+<nav aria-label="Sections" style="display: flex; gap: 4px; height: 72px; margin-left: 28px">
+<a href="Main.dc.html" class="tab" aria-current="page" style="display: flex; align-items: center; gap: 8px; padding: 0 16px; height: 72px; box-sizing: border-box; text-decoration: none; font-size: 14px; font-weight: 700; color: #1F3864; border-top: 3px solid transparent; border-bottom: 3px solid #7D147D">Today</a>
+<a href="Inbox.dc.html" class="tab"  style="display: flex; align-items: center; gap: 8px; padding: 0 16px; height: 72px; box-sizing: border-box; text-decoration: none; font-size: 14px; font-weight: 500; color: #4B5566; border-top: 3px solid transparent; border-bottom: 3px solid transparent">Inbox <span style="font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px; background: #E8A300; color: #2B1F00">5</span></a>
+<a href="Projects.dc.html" class="tab"  style="display: flex; align-items: center; gap: 8px; padding: 0 16px; height: 72px; box-sizing: border-box; text-decoration: none; font-size: 14px; font-weight: 500; color: #4B5566; border-top: 3px solid transparent; border-bottom: 3px solid transparent">Projects &amp; finance</a>
+<a href="Geneva.dc.html" class="tab"  style="display: flex; align-items: center; gap: 8px; padding: 0 16px; height: 72px; box-sizing: border-box; text-decoration: none; font-size: 14px; font-weight: 500; color: #4B5566; border-top: 3px solid transparent; border-bottom: 3px solid transparent">Geneva</a>
+</nav>
+<div style="flex-grow: 1"></div>
+<div style="height: 36px; display: flex; align-items: center; gap: 8px; padding: 0 12px; background: #F6F0F7; border-radius: 10px; font-size: 12px; font-weight: 600; color: #5B2A4E">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5B2A4E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
+Drafts only · never sent automatically
+</div>
+<button type="button" style="height: 36px; display: flex; align-items: center; gap: 8px; padding: 0 12px; background: #FFFFFF; border: 1px solid #E0E3EA; border-radius: 10px; font-size: 12px; color: #1A2233; cursor: pointer">
+<span style="width: 8px; height: 8px; border-radius: 4px; background: #7FA000"></span>Local model
+</button>
+</header>
+
+
+<section aria-label="Deadlines ahead" style="height: 220px; flex-shrink: 0; position: relative; background: #172B4D; color: #FFFFFF">
+<svg width="1440" height="220" viewBox="0 0 1440 220" style="position: absolute; left: 0; top: 0" aria-hidden="true">
+<path d="M0 138 C 150 112, 300 126, 460 108 S 780 88, 980 112 S 1260 98, 1440 118 L1440 160 L0 160 Z" fill="#1E3660"></path>
+<path d="M0 150 C 200 136, 420 146, 640 134 S 1060 128, 1440 142 L1440 160 L0 160 Z" fill="#223C69"></path>
+<rect x="0" y="160" width="1440" height="60" fill="#12234A"></rect>
+<path d="M0 178 C 60 174, 120 182, 180 178 S 300 174, 360 178 S 480 182, 540 178 S 660 174, 720 178 S 840 182, 900 178 S 1020 174, 1080 178 S 1200 182, 1260 178 S 1380 174, 1440 178" fill="none" stroke="#6A7BC1" stroke-opacity=".28" stroke-width="1.5"></path>
+<path d="M0 196 C 80 192, 160 200, 240 196 S 400 192, 480 196 S 640 200, 720 196 S 880 192, 960 196 S 1120 200, 1200 196 S 1360 192, 1440 196" fill="none" stroke="#6A7BC1" stroke-opacity=".18" stroke-width="1.5"></path>
+<line x1="0" y1="160" x2="1440" y2="160" stroke="#8F9DD6" stroke-opacity=".75" stroke-width="2"></line>
+<g class="{{jetClass}}" style="transform-origin: 300px 160px">
+<ellipse cx="300" cy="160" rx="30" ry="6" fill="#FFFFFF" fill-opacity=".18"></ellipse>
+<path class="mist" d="{{jetMist}}" fill="none" stroke="#FFFFFF" stroke-opacity=".22" stroke-width="12" stroke-linecap="round"></path>
+<path d="{{jetPlume2}}" fill="none" stroke="#FFFFFF" stroke-opacity=".38" stroke-width="8" stroke-linecap="round"></path>
+<path d="{{jetPlume1}}" fill="none" stroke="#FFFFFF" stroke-opacity=".6" stroke-width="5" stroke-linecap="round"></path>
+<path d="{{jetColumn}}" fill="#FFFFFF" fill-opacity=".93"></path>
+<sc-for list="{{drops}}" as="dp" hint-placeholder-count="5">
+<circle cx="{{dp.x}}" cy="{{dp.y}}" r="{{dp.r}}" fill="#DDE3F6" fill-opacity=".8"></circle>
+</sc-for>
+<ellipse cx="300" cy="160" rx="16" ry="4" fill="#FFFFFF" fill-opacity=".7"></ellipse>
+</g>
+<line x1="288" y1="170" x2="312" y2="170" stroke="#FFFFFF" stroke-opacity=".35" stroke-width="2" stroke-linecap="round"></line>
+<line x1="284" y1="182" x2="316" y2="182" stroke="#FFFFFF" stroke-opacity=".18" stroke-width="2" stroke-linecap="round"></line>
+</svg>
+
+<div style="position: absolute; left: 32px; top: 22px; width: 236px; display: flex; flex-direction: column; gap: 4px">
+<div style="font-family: 'Source Serif 4', Georgia, serif; font-size: 27px; font-weight: 600; line-height: 1.15">Bonjour, Anne-Marie</div>
+<div style="font-size: 13px; color: #C5CEE4">Wednesday 30 September · 17:53</div>
+</div>
+<button type="button" onClick="{{openDone}}" style="position: absolute; left: 32px; top: 98px; cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 8px 14px 8px 10px; border-radius: 12px; border: 1px solid rgba(255,255,255,.22); background: rgba(255,255,255,.07); color: #FFFFFF; text-align: left">
+<span style="width: 34px; height: 34px; border-radius: 17px; background: #BAD403; color: #1F2A00; font-family: 'Source Serif 4', Georgia, serif; font-size: 17px; font-weight: 600; display: flex; align-items: center; justify-content: center">{{doneCount}}</span>
+<span style="display: flex; flex-direction: column; gap: 1px"><span style="font-size: 13px; font-weight: 700">done this week</span><span style="font-size: 11px; color: #C5CEE4">the jet rises with each one</span></span>
+</button>
+<sc-if value="{{celebrate}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; left: 290px; top: 40px; display: flex; gap: 8px">
+<span class="spark" style="width: 8px; height: 8px; border-radius: 4px; background: #7D147D"></span>
+<span class="spark" style="width: 7px; height: 7px; border-radius: 4px; background: #E8A300; animation-delay: .08s"></span>
+<span class="spark" style="width: 8px; height: 8px; border-radius: 4px; background: #BAD403; animation-delay: .16s"></span>
+<span class="spark" style="width: 6px; height: 6px; border-radius: 3px; background: #6A7BC1; animation-delay: .04s"></span>
+<span class="spark" style="width: 6px; height: 6px; border-radius: 3px; background: #86858A; animation-delay: .12s"></span>
+</div>
+</sc-if>
+
+<div style="position: absolute; left: 340px; top: 22px; display: flex; align-items: center; gap: 16px">
+<span style="font-size: 11px; font-weight: 700; letter-spacing: .14em; color: #AEB9E8">DEADLINES AHEAD · 30 SEP → 15 NOV</span>
+<span style="display: flex; align-items: center; gap: 5px; font-size: 11px; color: #C5CEE4"><span style="width: 9px; height: 9px; border-radius: 5px; background: #E8A300"></span>major</span>
+<span style="display: flex; align-items: center; gap: 5px; font-size: 11px; color: #C5CEE4"><span style="width: 9px; height: 9px; border-radius: 5px; background: #AEB9E8"></span>fixed date</span>
+<span style="display: flex; align-items: center; gap: 5px; font-size: 11px; color: #C5CEE4"><span style="width: 9px; height: 9px; border-radius: 5px; background: #B8BCC6"></span>soft</span>
+<span style="font-size: 11px; color: #C5CEE4">· ticks are D-14 / D-3 warnings · click any date</span>
+</div>
+<a href="Geneva.dc.html" style="position: absolute; right: 32px; top: 20px; display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 10px; background: rgba(106,123,193,.22); color: #FFFFFF; font-size: 12px; text-decoration: none">
+<span style="font-weight: 700; color: #AEB9E8">Next in Geneva</span>Thu 1 · 15:00 · GPF alignment call
+<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg>
+</a>
+
+<sc-for list="{{ticks}}" as="t" hint-placeholder-count="3">
+<div style="{{t.pos}}"></div>
+</sc-for>
+<sc-for list="{{marks}}" as="m" hint-placeholder-count="7">
+<button type="button" class="mark" onClick="{{m.open}}" aria-label="{{m.aria}}" style="{{m.pos}}">
+<span class="mk-label" style="font-size: 12px; font-weight: 700; color: #FFFFFF; white-space: nowrap">{{m.label}}</span>
+<span style="width: 1px; flex-grow: 1; background: rgba(174,185,232,.45)"></span>
+<span style="{{m.dot}}"></span>
+</button>
+<div style="{{m.datePos}}">{{m.date}}</div>
+</sc-for>
+<div style="position: absolute; left: 270px; top: 190px; width: 60px; text-align: center; font-size: 11px; font-weight: 700; color: #FFFFFF">Today</div>
+</section>
+
+<div style="flex-grow: 1; min-height: 0; display: flex; flex-direction: column; gap: 16px; padding: 20px 32px 20px; box-sizing: border-box">
+
+<div style="flex-grow: 1; min-height: 0; display: flex; gap: 20px">
+
+<section style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 10px; background: #FFFFFF; border-radius: 16px; padding: 20px; border: 1px solid #E0E3EA">
+<div style="display: flex; align-items: baseline; justify-content: space-between">
+<h2 style="margin: 0; font-family: 'Source Serif 4', Georgia, serif; font-size: 21px; font-weight: 600; color: #1F3864">Today &amp; overdue</h2>
+<span style="font-size: 13px; color: #4B5566">{{openCount}} open</span>
+</div>
+<div style="font-size: 12px; color: #4B5566; margin-top: -4px">What you owe. Tick it and the jet rises.</div>
+<sc-for list="{{today}}" as="item" hint-placeholder-count="5">
+<div class="{{item.cardClass}}" style="{{item.cardStyle}}">
+<button type="button" class="chk" aria-label="{{item.ariaLabel}}" onClick="{{item.toggle}}" style="{{item.chkStyle}}">
+<sc-if value="{{item.done}}" hint-placeholder-val="{{false}}">
+<svg class="popin" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>
+</sc-if>
+</button>
+<div style="display: flex; flex-direction: column; gap: 5px; flex-grow: 1; min-width: 0">
+<div style="{{item.titleStyle}}">{{item.title}}</div>
+<div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap">
+<span style="{{item.chipStyle}}">{{item.weight}}</span>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: #4B5566">{{item.code}}</span>
+<span style="{{item.dueStyle}}">{{item.due}}</span>
+</div>
+</div>
+</div>
+</sc-for>
+</section>
+
+<section style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 10px; background: #FFFFFF; border-radius: 16px; padding: 20px; border: 1px solid #E0E3EA">
+<div style="display: flex; align-items: center; justify-content: space-between">
+<h2 style="margin: 0; font-family: 'Source Serif 4', Georgia, serif; font-size: 21px; font-weight: 600; color: #1F3864">Emails needing you</h2>
+<div role="group" aria-label="Time window" style="display: flex; gap: 2px; padding: 2px; background: #EEF0F5; border-radius: 8px">
+<sc-for list="{{ranges}}" as="r" hint-placeholder-count="3">
+<button type="button" onClick="{{r.pick}}" aria-pressed="{{r.on}}" style="{{r.style}}">{{r.label}}</button>
+</sc-for>
+</div>
+</div>
+<div style="font-size: 12px; color: #4B5566; margin-top: -4px">{{emailSub}}</div>
+<sc-for list="{{emails}}" as="e" hint-placeholder-count="5">
+<button type="button" class="row-btn fade" onClick="{{e.open}}" style="text-align: left; cursor: pointer; display: flex; gap: 12px; align-items: center; padding: 10px 12px; border-radius: 12px; background: #FFFFFF; border: 1px solid #E6E8EF; width: 100%; box-sizing: border-box">
+<div style="width: 34px; height: 34px; border-radius: 17px; background: #E6E9F6; color: #34407A; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0">{{e.initials}}</div>
+<div style="display: flex; flex-direction: column; gap: 3px; min-width: 0; flex-grow: 1">
+<div style="font-size: 13px; font-weight: 700; color: #1A2233">{{e.subject}}</div>
+<div style="display: flex; gap: 8px; align-items: center; font-size: 12px; color: #4B5566"><span>{{e.from}}</span><span style="font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 999px; background: #FDF1D6; color: #5A4000">{{e.why}}</span></div>
+</div>
+<span style="font-size: 11px; color: #4B5566; white-space: nowrap">{{e.ago}}</span>
+</button>
+</sc-for>
+<a href="Inbox.dc.html" style="margin-top: auto; display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; background: #FFF8E8; border: 1px solid #F3DDA6; text-decoration: none; color: #3A2A00">
+<span style="width: 28px; height: 28px; border-radius: 14px; background: #E8A300; color: #2B1F00; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0">2</span>
+<span style="display: flex; flex-direction: column; gap: 1px; flex-grow: 1"><span style="font-size: 13px; font-weight: 700">Reminders ready to review</span><span style="font-size: 11px; color: #5A4000">Two people have owed you something for 7+ days</span></span>
+<span style="font-size: 12px; font-weight: 700">Inbox →</span>
+</a>
+</section>
+
+<aside aria-label="Widgets" style="width: 312px; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px">
+<sc-for list="{{tiles}}" as="w" hint-placeholder-count="4">
+<button type="button" class="tile" onClick="{{w.open}}" aria-label="{{w.aria}}" style="text-align: left; cursor: pointer; background: #FFFFFF; border: 1px solid #E0E3EA; border-radius: 16px; padding: 14px; display: flex; gap: 14px; align-items: center; color: #1A2233; box-sizing: border-box; height: 118px; width: 100%">
+<div style="width: 76px; height: 76px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-radius: 12px; background: #F5F6FB">
+<sc-if value="{{w.isRing}}" hint-placeholder-val="{{false}}">
+<div style="{{w.ringStyle}}"><div style="width: 44px; height: 44px; border-radius: 22px; background: #F5F6FB"></div></div>
+</sc-if>
+<sc-if value="{{w.isBars}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; align-items: flex-end; gap: 5px; height: 50px">
+<sc-for list="{{w.bars}}" as="b" hint-placeholder-count="5">
+<div style="{{b.style}}"></div>
+</sc-for>
+</div>
+</sc-if>
+<sc-if value="{{w.isMeter}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 7px; width: 56px">
+<sc-for list="{{w.meters}}" as="mt" hint-placeholder-count="3">
+<div style="height: 7px; border-radius: 4px; background: #E0E4F0; overflow: hidden"><div style="{{mt.fill}}"></div></div>
+</sc-for>
+</div>
+</sc-if>
+<sc-if value="{{w.isNumber}}" hint-placeholder-val="{{false}}">
+<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#4F5FA8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{w.ic}}"></path></svg>
+</sc-if>
+</div>
+<div style="display: flex; flex-direction: column; gap: 2px; min-width: 0; flex-grow: 1">
+<span style="font-size: 12px; font-weight: 700; color: #1F3864">{{w.title}}</span>
+<span style="font-family: 'Source Serif 4', Georgia, serif; font-size: 24px; font-weight: 600; color: #1A2233; line-height: 1.15">{{w.headline}}</span>
+<span style="font-size: 11px; color: #4B5566; line-height: 1.35">{{w.sub}}</span>
+</div>
+</button>
+</sc-for>
+<button type="button" onClick="{{openGallery}}" style="cursor: pointer; height: 40px; border-radius: 12px; border: 1.5px dashed #AEB6CF; background: transparent; color: #1F3864; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1F3864" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><path d="M17.5 14v7M14 17.5h7"></path></svg>
+Choose widgets · {{widgetCountLabel}}
+</button>
+</aside>
+
+</div>
+
+<section aria-label="Harness chat" style="height: 64px; flex-shrink: 0; box-sizing: border-box; background: #FFFFFF; border: 1.5px solid #1F3864; border-radius: 16px; padding: 0 10px 0 18px; display: flex; align-items: center; gap: 10px">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7D147D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"></path></svg>
+<label style="display: flex; flex-grow: 1">
+<span style="position: absolute; width: 1px; height: 1px; overflow: hidden">Message the harness</span>
+<input type="text" placeholder="Ask, capture or instruct: “log 2 h on GPF”, “what is slipping?”, or drop a receipt…" style="flex-grow: 1; border: none; outline: none; font-size: 14px; color: #1A2233; background: transparent">
+</label>
+<button type="button" onClick="{{toastAttach}}" aria-label="Attach file" style="cursor: pointer; height: 40px; display: flex; align-items: center; gap: 6px; padding: 0 12px; border-radius: 10px; border: 1px solid #E0E3EA; background: #FFFFFF; font-size: 12px; color: #1A2233">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1F3864" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5l-8.6 8.6a5 5 0 0 1-7.1-7.1l8.6-8.6a3.3 3.3 0 0 1 4.7 4.7l-8.6 8.6a1.7 1.7 0 0 1-2.4-2.4l7.9-7.9"></path></svg>Attach</button>
+<button type="button" onClick="{{toastScan}}" aria-label="Scan document" style="cursor: pointer; height: 40px; display: flex; align-items: center; gap: 6px; padding: 0 12px; border-radius: 10px; border: 1px solid #E0E3EA; background: #FFFFFF; font-size: 12px; color: #1A2233">
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#1F3864" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M4 12h16"></path></svg>Scan</button>
+<button type="button" onClick="{{toggleMic}}" aria-pressed="{{listening}}" style="{{micStyle}}">
+<span class="{{micDotClass}}" style="{{micDot}}"></span>
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0M12 18v3"></path></svg>{{micLabel}}</button>
+<button type="button" style="cursor: pointer; height: 44px; padding: 0 20px; border-radius: 10px; border: none; background: #1F3864; color: #FFFFFF; font-size: 13px; font-weight: 600">Send</button>
+</section>
+
+</div>
+
+<sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
+<div class="fade" style="position: absolute; left: 50%; bottom: 110px; transform: translateX(-50%); background: #172B4D; color: #FFFFFF; font-size: 13px; padding: 10px 16px; border-radius: 10px; box-shadow: 0 8px 24px rgba(23,43,77,.25); z-index: 5">{{toast}}</div>
+</sc-if>
+
+<sc-if value="{{anyPanel}}" hint-placeholder-val="{{false}}">
+<button type="button" aria-label="Close panel" onClick="{{close}}" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; border: none; padding: 0; background: rgba(23,43,77,.4); cursor: default"></button>
+</sc-if>
+
+<sc-if value="{{isDrawer}}" hint-placeholder-val="{{false}}">
+<aside class="slide" style="position: absolute; right: 0; top: 0; bottom: 0; width: 540px; background: #FFFFFF; box-shadow: -12px 0 32px rgba(23,43,77,.2); display: flex; flex-direction: column; overflow: auto">
+<div style="background: #172B4D; color: #FFFFFF; padding: 22px 24px 20px; display: flex; flex-direction: column; gap: 6px; flex-shrink: 0">
+<div style="display: flex; align-items: center; justify-content: space-between">
+<span style="font-size: 11px; font-weight: 700; letter-spacing: .12em; color: #AEB9E8">{{d.kicker}}</span>
+<button type="button" aria-label="Close" onClick="{{close}}" style="cursor: pointer; width: 36px; height: 36px; border-radius: 10px; border: 1px solid rgba(255,255,255,.25); background: transparent; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+</div>
+<div style="font-family: 'Source Serif 4', Georgia, serif; font-size: 24px; font-weight: 600; line-height: 1.2">{{d.title}}</div>
+<div style="font-size: 13px; color: #C9D1E6">{{d.meta}}</div>
+</div>
+<div style="padding: 20px 24px; display: flex; flex-direction: column; gap: 18px">
+
+<sc-if value="{{d.hasFacts}}" hint-placeholder-val="{{true}}">
+<div style="display: grid; grid-template-columns: 124px minmax(0, 1fr); gap: 8px 12px; font-size: 13px">
+<sc-for list="{{d.facts}}" as="f" hint-placeholder-count="4">
+<span style="color: #4B5566">{{f.k}}</span><span style="color: #1A2233; font-weight: 500">{{f.v}}</span>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{d.hasContext}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div style="font-size: 11px; font-weight: 700; letter-spacing: .1em; color: #4F5FA8">{{d.contextLabel}}</div>
+<div style="font-size: 14px; line-height: 1.5; color: #1A2233">{{d.context}}</div>
+</div>
+</sc-if>
+
+<sc-if value="{{d.hasPrep}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 11px; font-weight: 700; letter-spacing: .1em; color: #4F5FA8">{{d.prepLabel}}</div>
+<sc-for list="{{d.prep}}" as="pp" hint-placeholder-count="3">
+<div style="display: flex; align-items: center; gap: 10px; font-size: 13px; color: #1A2233"><span style="{{pp.dot}}"></span><span style="flex-grow: 1">{{pp.label}}</span><span style="font-size: 11px; color: #4B5566">{{pp.state}}</span></div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{d.hasRelated}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 11px; font-weight: 700; letter-spacing: .1em; color: #4F5FA8">RELATED</div>
+<sc-for list="{{d.related}}" as="rl" hint-placeholder-count="2">
+<div style="display: flex; gap: 10px; align-items: center; padding: 10px 12px; border: 1px solid #E3E6EE; border-radius: 10px">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 500; color: #FFFFFF; background: #1F3864; padding: 2px 6px; border-radius: 4px">{{rl.type}}</span>
+<span style="font-size: 13px; color: #1A2233; flex-grow: 1">{{rl.label}}</span>
+<span style="font-size: 11px; color: #4B5566">{{rl.meta}}</span>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{d.hasDrafts}}" hint-placeholder-val="{{false}}">
+<sc-for list="{{d.drafts}}" as="df" hint-placeholder-count="1">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: baseline; justify-content: space-between; gap: 8px">
+<div style="font-size: 11px; font-weight: 700; letter-spacing: .1em; color: #4F5FA8">{{df.label}}</div>
+<span style="font-size: 11px; color: #4B5566">{{df.note}}</span>
+</div>
+<label style="display: flex">
+<span style="position: absolute; width: 1px; height: 1px; overflow: hidden">Draft text</span>
+<textarea style="width: 100%; height: 200px; box-sizing: border-box; resize: vertical; padding: 12px 14px; border: 1px solid #C9CFE6; border-radius: 10px; font-size: 13px; line-height: 1.5; color: #1A2233; background: #FBFBFE">{{df.text}}</textarea>
+</label>
+</div>
+</sc-for>
+<div style="display: flex; gap: 8px; align-items: flex-start; padding: 10px 12px; background: #F6F0F7; border-radius: 10px; font-size: 12px; line-height: 1.45; color: #3F1E37">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5B2A4E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 1px"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
+<span>The harness can only create drafts. It has no permission to send; you send from Gmail, after your own edits.</span>
+</div>
+</sc-if>
+
+<sc-if value="{{d.hasList}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<sc-for list="{{d.list}}" as="li" hint-placeholder-count="6">
+<div class="{{li.cls}}" style="display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 10px; background: #F7F8FB; font-size: 13px; color: #1A2233">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7D147D" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>
+<span style="flex-grow: 1">{{li.label}}</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #4B5566">{{li.meta}}</span>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<div style="display: flex; gap: 8px; flex-wrap: wrap; padding-top: 4px">
+<sc-for list="{{d.actions}}" as="ac" hint-placeholder-count="3">
+<button type="button" onClick="{{ac.run}}" style="{{ac.style}}">{{ac.label}}</button>
+</sc-for>
+</div>
+
+</div>
+</aside>
+</sc-if>
+
+
+<sc-if value="{{isWidget}}" hint-placeholder-val="{{false}}">
+<div class="fade" style="position: absolute; left: 200px; top: 120px; width: 1040px; background: #FFFFFF; border-radius: 20px; box-shadow: 0 24px 60px rgba(23,43,77,.3); overflow: hidden">
+<div style="background: #172B4D; color: #FFFFFF; padding: 20px 28px; display: flex; align-items: center; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 4px; flex-grow: 1">
+<span style="font-size: 11px; font-weight: 700; letter-spacing: .12em; color: #AEB9E8">WIDGET · {{mw.group}}</span>
+<span style="font-family: 'Source Serif 4', Georgia, serif; font-size: 26px; font-weight: 600">{{mw.title}}</span>
+</div>
+<button type="button" aria-label="Close" onClick="{{close}}" style="cursor: pointer; width: 40px; height: 40px; border-radius: 10px; border: 1px solid rgba(255,255,255,.25); background: transparent; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+</div>
+<div style="display: flex; gap: 32px; padding: 28px">
+<div style="width: 420px; flex-shrink: 0; height: 260px; background: #F5F6FB; border-radius: 16px; display: flex; align-items: center; justify-content: center">
+<sc-if value="{{mw.isRing}}" hint-placeholder-val="{{false}}">
+<div style="{{mw.bigRingStyle}}"><div style="width: 136px; height: 136px; border-radius: 68px; background: #F5F6FB; display: flex; align-items: center; justify-content: center"><span style="font-family: 'Source Serif 4', Georgia, serif; font-size: 40px; font-weight: 600; color: #7D147D">{{mw.headline}}</span></div></div>
+</sc-if>
+<sc-if value="{{mw.isBars}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; align-items: flex-end; gap: 22px; height: 200px">
+<sc-for list="{{mw.bigBars}}" as="bb" hint-placeholder-count="5">
+<div style="display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="font-size: 12px; font-weight: 600; color: #1F3864">{{bb.v}}</span><div style="{{bb.style}}"></div><span style="font-size: 12px; color: #4B5566">{{bb.label}}</span></div>
+</sc-for>
+</div>
+</sc-if>
+<sc-if value="{{mw.isMeter}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 18px; width: 340px">
+<sc-for list="{{mw.meters}}" as="bm" hint-placeholder-count="3">
+<div style="display: flex; flex-direction: column; gap: 6px"><div style="display: flex; justify-content: space-between; font-size: 13px"><span style="font-weight: 600; color: #1A2233">{{bm.label}}</span><span style="color: #4B5566">{{bm.val}}</span></div><div style="height: 12px; border-radius: 6px; background: #E0E4F0; overflow: hidden"><div style="{{bm.fill}}"></div></div></div>
+</sc-for>
+</div>
+</sc-if>
+<sc-if value="{{mw.isNumber}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="font-family: 'Source Serif 4', Georgia, serif; font-size: 72px; font-weight: 600; color: #1F3864; line-height: 1">{{mw.headline}}</span><span style="font-size: 15px; color: #4B5566">{{mw.unit}}</span></div>
+</sc-if>
+</div>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 14px">
+<div style="font-size: 15px; line-height: 1.5; color: #1A2233">{{mw.explain}}</div>
+<div style="display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 8px 12px; font-size: 13px; padding: 14px 16px; border: 1px solid #E3E6EE; border-radius: 12px">
+<sc-for list="{{mw.rows}}" as="wr" hint-placeholder-count="3">
+<span style="color: #4B5566">{{wr.k}}</span><span style="color: #1A2233; font-weight: 600">{{wr.v}}</span>
+</sc-for>
+</div>
+<div style="font-size: 12px; color: #4B5566"><span style="font-weight: 700">Data source:</span> {{mw.source}}</div>
+<div style="display: flex; gap: 8px; margin-top: auto">
+<a href="Projects.dc.html" style="height: 40px; padding: 0 16px; border-radius: 10px; background: #1F3864; color: #FFFFFF; font-size: 13px; font-weight: 600; display: flex; align-items: center; text-decoration: none">Open in Projects &amp; finance</a>
+<button type="button" onClick="{{mw.remove}}" style="cursor: pointer; height: 40px; padding: 0 16px; border-radius: 10px; border: 1px solid #DDE1EA; background: #FFFFFF; color: #1A2233; font-size: 13px">Remove from Today</button>
+</div>
+</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{isGallery}}" hint-placeholder-val="{{false}}">
+<div class="fade" style="position: absolute; left: 200px; top: 120px; width: 1040px; background: #FFFFFF; border-radius: 20px; box-shadow: 0 24px 60px rgba(23,43,77,.3); overflow: hidden">
+<div style="background: #172B4D; color: #FFFFFF; padding: 20px 28px; display: flex; align-items: center; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 4px; flex-grow: 1">
+<span style="font-size: 11px; font-weight: 700; letter-spacing: .12em; color: #AEB9E8">{{widgetCountLabel}}</span>
+<span style="font-family: 'Source Serif 4', Georgia, serif; font-size: 26px; font-weight: 600">Choose the widgets on Today</span>
+</div>
+<button type="button" aria-label="Close" onClick="{{close}}" style="cursor: pointer; width: 40px; height: 40px; border-radius: 10px; border: 1px solid rgba(255,255,255,.25); background: transparent; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+</div>
+<div style="padding: 24px 28px 28px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px">
+<sc-for list="{{gallery}}" as="gl" hint-placeholder-count="12">
+<div style="{{gl.cardStyle}}">
+<div style="display: flex; flex-direction: column; gap: 3px; flex-grow: 1; min-width: 0">
+<span style="font-size: 14px; font-weight: 700; color: #1F3864">{{gl.title}}</span>
+<span style="font-size: 12px; color: #4B5566; line-height: 1.35">{{gl.sub}}</span>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #4B5566">{{gl.group}}</span>
+</div>
+<button type="button" onClick="{{gl.toggle}}" disabled="{{gl.disabled}}" style="{{gl.btnStyle}}">{{gl.btn}}</button>
+</div>
+</sc-for>
+</div>
+</div>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { done: {}, celebrate: false, last: null, panel: null, range: 72, widgets: ['audit', 'hours', 'burn', 'scan'], listening: false, toast: '' };
+  }
+  toggle(id) {
+    const done = Object.assign({}, this.state.done);
+    const was = !!done[id];
+    done[id] = !was;
+    this.setState({ done: done, celebrate: !was, last: !was ? id : null });
+    if (!was) {
+      clearTimeout(this._t);
+      this._t = setTimeout(() => this.setState({ celebrate: false }), 1300);
+    }
+  }
+  say(msg) {
+    this.setState({ toast: msg });
+    clearTimeout(this._toast);
+    this._toast = setTimeout(() => this.setState({ toast: '' }), 2600);
+  }
+  componentWillUnmount() { clearTimeout(this._t); clearTimeout(this._toast); }
+  chip(w) {
+    const base = 'font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; letter-spacing: .03em;';
+    if (w === 'major') return base + ' background: #7D147D; color: #FFFFFF';
+    if (w === 'hard') return base + ' background: #1F3864; color: #FFFFFF';
+    return base + ' background: #E6E9F6; color: #34407A';
+  }
+  btn(primary) {
+    return primary
+      ? 'cursor: pointer; height: 40px; padding: 0 16px; border-radius: 10px; border: none; background: #1F3864; color: #FFFFFF; font-size: 13px; font-weight: 600'
+      : 'cursor: pointer; height: 40px; padding: 0 14px; border-radius: 10px; border: 1px solid #DDE1EA; background: #FFFFFF; color: #1A2233; font-size: 13px';
+  }
+  acts(list) {
+    return list.map((a, i) => ({ label: a[0], style: this.btn(i === 0), run: () => this.say(a[1]) }));
+  }
+  dot(state) {
+    const c = state === 'done' ? '#7FA000' : (state === 'waiting' ? '#E8A300' : '#B7BCC8');
+    return 'width: 10px; height: 10px; border-radius: 5px; flex-shrink: 0; background: ' + c;
+  }
+  kv(a) { return a.map((f) => ({ k: f[0], v: f[1] })); }
+  blank() {
+    return { kicker: '', title: '', meta: '', facts: [], hasFacts: false, context: '', hasContext: false, contextLabel: 'CONTEXT', prep: [], hasPrep: false, prepLabel: 'PREP', related: [], hasRelated: false, drafts: [], hasDrafts: false, list: [], hasList: false, actions: [] };
+  }
+  emailsData() {
+    return [
+      { id: 'e1', initials: 'KO', from: 'Kevin Osborne · Globethics', subject: 'FAGI: letters of support by Friday?', h: 5, why: 'Asks you for something', code: 'FAGI', lang: 'EN', need: true,
+        summary: 'Kevin asks whether the letter-of-support templates can reach him by Friday, so partners have time to sign before submission. This matches an overdue item on your Today list.',
+        draft: 'Dear Kevin,\n\nThank you for the reminder, and apologies for the delay on my side. I will send the letter-of-support templates by Thursday evening, so partners have Friday to sign.\n\n[Anything to add on Pilot 2]\n\nBest regards,\nAnne-Marie' },
+      { id: 'e2', initials: 'YC', from: 'Youssouf · SPTS', subject: 'Bilan intermédiaire : deux questions', h: 20, why: 'Questions from your fiduciary', code: 'AUDIT', lang: 'FR', need: true,
+        summary: 'Youssouf a relu le bilan intermédiaire et pose deux questions. Le brouillon reprend le français et le vouvoiement.',
+        draft: 'Bonjour Youssouf,\n\nMerci pour votre relecture attentive. Concernant vos deux questions :\n\n1. [réponse]\n2. [réponse]\n\nJe reste à votre disposition pour en discuter.\n\nMeilleures salutations,\nAnne-Marie Buzatu' },
+      { id: 'e3', initials: 'MN', from: 'Mark Nitzberg · IASEAI', subject: 'IASEAI’27 workshop proposals close 5 Oct', h: 30, why: 'Deadline in 5 days', code: 'IASEAI', lang: 'EN', need: false,
+        summary: 'Reminder to affiliates that workshop proposals close on 5 October. Your proposal still needs Daniel’s views.',
+        draft: 'Dear Mark,\n\nThank you for the reminder. ICT4Peace will submit its workshop proposal ahead of the 5 October deadline.\n\n[Optional: one line on the theme]\n\nBest regards,\nAnne-Marie' },
+      { id: 'e4', initials: 'GP', from: 'Geneva Peace Forum team', subject: 'Speaker logistics and final run of show', h: 44, why: 'Closes a task due today', code: 'GPF', lang: 'EN', need: true,
+        summary: 'The organisers share speaker logistics and ask for the final run of show for your panel. Replying closes today’s GPF task.',
+        draft: 'Dear GPF team,\n\nMany thanks. Please find attached the run of show for our panel. [Attach file]\n\nPanellists: [names, confirmed]\n\nBest regards,\nAnne-Marie Buzatu\nICT4Peace Foundation' },
+      { id: 'e5', initials: 'CA', from: 'CAGI', subject: 'Confirmation du rendez-vous du 7 octobre', h: 62, why: 'Reply expected', code: 'ADMIN', lang: 'FR', need: true,
+        summary: 'CAGI confirme le rendez-vous du 7 octobre à 11 h et demande une confirmation de votre part.',
+        draft: 'Madame, Monsieur,\n\nJe vous remercie de votre message et vous confirme ma présence le mercredi 7 octobre à 11 h.\n\nAvec mes meilleures salutations,\nAnne-Marie Buzatu\nDirectrice exécutive, ICT4Peace Foundation' }
+    ];
+  }
+  emailPanel(e) {
+    return Object.assign(this.blank(), { kicker: 'EMAIL · ' + e.code, title: e.subject, meta: e.from + ' · received ' + e.h + ' h ago',
+      facts: this.kv([['Why flagged', e.why], ['Language', e.lang === 'FR' ? 'French, formal (vous)' : 'English']]), hasFacts: true,
+      context: e.summary, hasContext: true, contextLabel: 'SUMMARY',
+      drafts: [{ label: 'SUGGESTED REPLY', note: 'Matches the sender’s language and tone', text: e.draft }], hasDrafts: true,
+      actions: this.acts([['Save to Gmail drafts', 'Saved to Gmail drafts. Not sent.'], ['Make it warmer', 'Draft rewritten in a warmer tone (mockup).'], ['Shorter', 'Draft shortened (mockup).'], ['Open in Gmail', 'Would open the thread in Gmail.']]) });
+  }
+  rangeButtons(dark) {
+    return [24, 48, 72].map((r) => ({
+      label: r + ' h', on: this.state.range === r, pick: () => this.setState({ range: r }),
+      style: 'cursor: pointer; border: none; border-radius: 6px; padding: 4px 9px; font-size: 11px; font-weight: 700; ' + (this.state.range === r ? 'background: #1F3864; color: #FFFFFF' : 'background: transparent; color: #4B5566')
+    }));
+  }
+
+  renderVals() {
+    const S = this.state;
+    const open = (kind, id) => () => this.setState({ panel: { kind: kind, id: id } });
+    const close = () => this.setState({ panel: null });
+
+    /* Today */
+    const src = [
+      { id: 'gpf', title: 'Send panellists the slot and run of show', code: 'GPF', weight: 'hard', due: 'due today', over: false },
+      { id: 'fagi', title: 'Letter-of-support templates to Kevin', code: 'FAGI', weight: 'soft', due: '5 days overdue', over: true },
+      { id: 'hack', title: 'Geneva Hack post on ICT4Peace social media', code: 'HACK', weight: 'soft', due: '5 days overdue', over: true },
+      { id: 'tax', title: 'Swiss tax papers to Youssouf', code: 'TAX · P', weight: 'hard', due: '40 days overdue', over: true },
+      { id: 'rtg', title: 'Decide on a Road to Geneva pre-event', code: 'RTG', weight: 'soft', due: 'due today', over: false }
+    ];
+    const today = src.map((it) => {
+      const dn = !!S.done[it.id];
+      const fresh = dn && S.last === it.id && S.celebrate;
+      return Object.assign({}, it, {
+        done: dn,
+        toggle: () => this.toggle(it.id),
+        ariaLabel: (dn ? 'Mark not done: ' : 'Mark done: ') + it.title,
+        cardClass: fresh ? 'glow' : '',
+        cardStyle: 'display: flex; gap: 14px; align-items: flex-start; padding: 13px 14px; border-radius: 12px; transition: background-color .3s ease, opacity .3s ease; ' + (dn ? 'background: #F6F0F7; opacity: .7; border: 1px solid #E8DCEA' : (it.over ? 'background: #FFFFFF; border: 1px solid #EBCBC6' : 'background: #FFFFFF; border: 1px solid #E6E8EF')),
+        chkStyle: 'width: 28px; height: 28px; flex-shrink: 0; border-radius: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; ' + (dn ? 'background: #7D147D; border: 2px solid #7D147D' : 'background: #FFFFFF; border: 2px solid #8A91A3'),
+        titleStyle: 'font-size: 14px; font-weight: 600; color: #1A2233; ' + (dn ? 'text-decoration: line-through; text-decoration-color: #7D147D' : ''),
+        chipStyle: this.chip(it.weight),
+        dueStyle: 'font-size: 12px; font-weight: 600; ' + (it.over && !dn ? 'color: #A1261C' : 'color: #4B5566')
+      });
+    });
+    const base = [['Interim balance sheet to SPTS', 'Mon'], ['Project-codes file to SPTS', 'Mon'], ['Gablinger reports sent', 'Tue'], ['CAGI meeting confirmed', 'Tue'], ['AfP panel accepted', 'Tue'], ['AWG vote cast', 'Wed'], ['Red-lines note to Julia', 'Wed']];
+    const newly = src.filter((it) => S.done[it.id]).map((it) => ({ label: it.title, meta: 'just now', cls: 'popin' }));
+    const doneList = newly.concat(base.map((b) => ({ label: b[0], meta: b[1], cls: '' })));
+    const openCount = src.length - newly.length;
+
+    /* Jet: height grows with done count */
+    const n = doneList.length;
+    const T = Math.max(14, 160 - (44 + n * 8));
+    const jetColumn = 'M295 160 L298.6 ' + (T + 6) + ' Q300 ' + T + ' 301.4 ' + (T + 6) + ' L305 160 Z';
+    const jetPlume1 = 'M300 ' + (T + 2) + ' C 304 ' + (T - 10) + ', 318 ' + (T - 6) + ', 324 ' + (T + 22);
+    const jetPlume2 = 'M301 ' + (T + 8) + ' C 308 ' + (T + 2) + ', 322 ' + (T + 12) + ', 330 ' + (T + 48);
+    const jetMist = 'M302 ' + (T + 20) + ' C 312 ' + (T + 24) + ', 326 ' + (T + 46) + ', 334 ' + (T + 84);
+    const drops = [[318, 34, 1.6], [326, 58, 1.3], [312, 20, 1.2], [332, 74, 1.1], [339, 96, 1]].map((p) => ({ x: p[0], y: Math.min(156, T + p[1]), r: p[2] }));
+
+    /* Emails */
+    const allEmails = this.emailsData();
+    const emails = allEmails.filter((e) => e.h <= S.range).map((e) => Object.assign({}, e, { ago: e.h + ' h', open: open('email', e.id) }));
+    const emailSub = emails.length + ' in the last ' + S.range + ' hours. Click one for a suggested reply.';
+
+    /* Deadlines */
+    const DL = {
+      iaseai: { label: 'IASEAI proposal', date: '5 Oct', day: 5, w: 'major', lane: 0, code: 'IASEAI',
+        facts: [['Deadline', 'Monday 5 October, end of day'], ['Project', 'IASEAI · affiliate'], ['People', 'Daniel Stauffacher (views requested)'], ['Warnings', 'D-3 on 2 Oct']],
+        context: 'ICT4Peace’s affiliate workshop proposal for IASEAI’27. Mark Nitzberg’s reminder arrived 30 hours ago; Daniel’s views are still outstanding.',
+        prep: [['Outline drafted', 'done'], ['Daniel’s views', 'waiting'], ['Final text and submission form', 'todo']],
+        related: [['EMAIL', 'IASEAI’27 workshop proposals close 5 Oct', '30 h']],
+        actions: [['Draft the proposal with me', 'Chat would open with the outline loaded.'], ['Nudge Daniel', 'Reminder to Daniel saved as a draft (mockup).']] },
+      mission: { label: 'Chinese Mission', date: '9 Oct', day: 9, w: 'hard', lane: 1, code: 'DIPLO',
+        facts: [['When', 'Friday 9 October, 11:30'], ['With', 'Daniel Stauffacher'], ['Where', '[Location from invite]'], ['Depends on', 'Briefing note due Wed 7']],
+        context: 'Diplomatic meeting with Daniel. The briefing note two days earlier is the preparation step, so he has time to review.',
+        prep: [['Briefing note (due Wed 7)', 'todo'], ['Agree talking points with Daniel', 'todo']],
+        related: [['TASK', 'Briefing note: Chinese Mission', 'Wed 7']],
+        actions: [['Assemble a first briefing draft', 'First draft would be built from your files (mockup).'], ['Add travel time', 'Travel buffer added (mockup).']] },
+      gpf: { label: 'Geneva Peace Forum', date: '12–15 Oct', day: 12, w: 'hard', lane: 0, code: 'GPF',
+        facts: [['When', '12–15 October'], ['Where', 'CICG, Geneva'], ['Your role', 'Moderating the ICT4Peace panel'], ['Linked', 'Globethics workshop']],
+        context: 'Your panel at the Forum. The run of show is due to panellists today, and the Globethics alignment call is tomorrow at 15:00.',
+        prep: [['Run of show to panellists', 'todo'], ['Alignment call, Thu 1 Oct', 'todo'], ['Moderator notes', 'todo']],
+        related: [['EMAIL', 'Speaker logistics and final run of show', '44 h'], ['TASK', 'Send panellists the slot and run of show', 'today']],
+        actions: [['Draft the run of show', 'Run of show would be drafted (mockup).'], ['Open GPF folder', 'Would open the GPF folder.']] },
+      tax: { label: 'ASF + US tax', date: '15 Oct', day: 15, w: 'major', lane: 1, code: 'ASF · TAX',
+        facts: [['Deadline', 'Thursday 15 October'], ['Type', 'Personal'], ['Blocker', 'Swiss papers to Youssouf, 40 days overdue'], ['Warnings', 'D-14 on 1 Oct']],
+        context: 'The extended US deadline and the ASF filing fall on the same day. The overdue Swiss papers to Youssouf are the first domino.',
+        prep: [['Swiss tax papers to Youssouf', 'todo'], ['US return figures', 'todo'], ['ASF filing', 'todo']],
+        related: [['TASK', 'Swiss tax papers to Youssouf', 'overdue']],
+        actions: [['Open tax checklist', 'Would open the tax checklist.'], ['Block 2 hours this week', 'Focus block proposed for Thursday (mockup).']] },
+      afp: { label: 'AfP panel', date: '21 Oct', day: 21, w: 'hard', lane: 0, code: 'AFP',
+        facts: [['When', 'Wednesday 21 October'], ['Status', 'Accepted this week'], ['Your role', '[Role]'], ['Organiser', '[Organiser]']],
+        context: 'Panel you accepted on Tuesday. The harness will propose talking points a week before.',
+        prep: [['Talking points', 'todo'], ['Bio and photo to organiser', 'todo']],
+        related: [],
+        actions: [['Send bio', 'Your approved short bio would be attached to a draft (mockup).']] },
+      course: { label: 'Course launch', date: '29 Oct', day: 29, w: 'major', lane: 1, code: 'MDH',
+        facts: [['When', 'Thursday 29 October'], ['Project', 'MDH · online course for diplomats'], ['Funder', 'Gablinger Foundation'], ['Warnings', 'D-14 on 15 Oct']],
+        context: 'Launch of the harmful-information course. The funder report follows the launch, so hours and costs need to be current.',
+        prep: [['Module QA', 'todo'], ['Launch announcement', 'todo'], ['Participant list', 'todo']],
+        related: [['PROJECT', 'MDH on Projects & finance', 'open']],
+        actions: [['Open MDH project', 'Would open the MDH project on Projects & finance.']] },
+      dec: { label: 'IASEAI decisions', date: '6 Nov', day: 37, w: 'soft', lane: 0, code: 'IASEAI',
+        facts: [['When', 'Friday 6 November'], ['Type', 'Expected from IASEAI'], ['Depends on', 'Proposal submitted by 5 Oct']],
+        context: 'IASEAI is expected to decide on workshop proposals. Nothing to do until then.',
+        prep: [], related: [],
+        actions: [['Remind me on the day', 'Reminder set (mockup).']] }
+    };
+    const px = (d) => Math.round(300 + d * 23.5);
+    const col = (w) => (w === 'major' ? '#E8A300' : (w === 'soft' ? '#B8BCC6' : '#AEB9E8'));
+    const marks = Object.keys(DL).map((k) => {
+      const m = DL[k];
+      const x = px(m.day);
+      const lane = m.lane ? 96 : 60;
+      const size = m.w === 'major' ? 16 : 12;
+      return {
+        label: m.label, date: m.date, aria: 'Open deadline: ' + m.label + ', ' + m.date, open: open('deadline', k),
+        pos: 'position: absolute; left: ' + (x - 70) + 'px; top: ' + lane + 'px; width: 140px; height: ' + (160 - lane + size / 2) + 'px; display: flex; flex-direction: column; align-items: center; gap: 4px; background: transparent; border: none; padding: 0; cursor: pointer',
+        dot: 'width: ' + size + 'px; height: ' + size + 'px; box-sizing: border-box; border-radius: 999px; border: 3px solid #172B4D; flex-shrink: 0; background: ' + col(m.w),
+        datePos: 'position: absolute; left: ' + (x - 40) + 'px; top: 170px; width: 80px; text-align: center; font-family: \'IBM Plex Mono\', monospace; font-size: 10px; color: #C5CEE4'
+      };
+    });
+    const tick = (d) => ({ pos: 'position: absolute; left: ' + px(d) + 'px; top: 154px; width: 2px; height: 12px; background: #E8A300' });
+    const ticks = [tick(1), tick(2), tick(9)];
+
+    /* Widgets */
+    const hoursVals = [3.5, 6, 4, 5.5, 1.5];
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+    const WD = {
+      audit: { title: 'Audit readiness', group: 'FINANCE', kind: 'ring', pct: 100, headline: '100%', sub: 'Every payment to 31.08 has its document',
+        explain: 'Checks every debit on the bank statements against a receipt filed under the naming convention. Anything unmatched shows here long before the auditors see it.',
+        rows: [['Period checked', '1 Jan – 31 Aug 2026'], ['Unmatched payments', '0'], ['Next statement', 'September, upload due 5 Oct']], source: 'controle_justificatifs.py on the bank statements' },
+      hours: { title: 'Hours this week', group: 'PROJECTS', kind: 'bars', headline: '20.5 h', sub: 'Friday pass at 16:30 fills the gaps',
+        explain: 'Hours come from [CODE] tags in your calendar. On Friday the harness proposes the missing rows with evidence, for you to confirm.',
+        rows: [['Tagged in calendar', '16.0 h'], ['Proposed by Friday pass', '4.5 h'], ['Rows without evidence', '0']], source: 'Calendar tags → hours.csv' },
+      burn: { title: 'Budget burn', group: 'PROJECTS', kind: 'meter', headline: 'MDH 62%', meters: [['MDH', 62], ['SOV', 35], ['TK', 100]], sub: 'Highest open mandate',
+        explain: 'Spend and hours valued at the contract rate, against each mandate’s approved budget. Turns purple above 85 %.',
+        rows: [['Mandates tracked', '3'], ['Above 85 %', 'TK (closed)'], ['Next variance review', '7 Oct quarterly close']], source: 'Registre_Projets.xlsx · costs.csv · hours.csv' },
+      scan: { ic: 'M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M4 12h16', title: 'Scan inbox', group: 'CAPTURE', kind: 'number', headline: '3', unit: 'to confirm', sub: 'Filed automatically; 3 need a project code',
+        explain: 'Anything you scan lands in one folder. The harness reads it, renames it per the convention and files it, and asks only when unsure.',
+        rows: [['Filed this week', '11'], ['Need a project code', '3'], ['Duplicates caught', '1']], source: 'Scan-to-folder inbox' },
+      bank: { ic: 'M3 10l9-6 9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18', title: 'Bank upload', group: 'FINANCE', kind: 'number', headline: '5 Oct', unit: 'due', sub: 'September statement, then reconciliation',
+        explain: 'Upload the monthly statement; code reads it and the AI compares it with what was logged.', rows: [['Last upload', 'August statement'], ['Reconciled to', '31 Aug']], source: 'Bank statement PDFs' },
+      streak: { ic: 'M12 3c2 4 6 5 6 10a6 6 0 0 1-12 0c0-3 2-4 2-6 2 1 3 2 4 4 1-3 0-6 0-8z', title: 'Capture streak', group: 'HABITS', kind: 'number', headline: '4 / 5', unit: 'days', sub: 'A missed day never resets it',
+        explain: 'Counts the days this week you captured something.', rows: [['This week', '4 of 5'], ['Last week', '3 of 5']], source: 'Journal' },
+      reply: { ic: 'M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z', title: 'Reply time', group: 'EMAIL', kind: 'number', headline: '1.8 d', unit: 'average', sub: 'To funders and partners',
+        explain: 'Average time to reply to emails the harness marked important.', rows: [['Funders', '1.2 d'], ['Partners', '2.1 d']], source: 'Gmail (read-only)' },
+      funder: { ic: 'M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8l-5-5zM14 3v5h5M8 13h8M8 17h5', title: 'Funder reports', group: 'PROJECTS', kind: 'number', headline: '3', unit: 'in 90 days', sub: 'With D-45 and D-14 warnings',
+        explain: 'Reporting deadlines from each contract, written into the calendar at signature.', rows: [['Next', '[funder, date]']], source: 'Registre_Projets.xlsx' },
+      cash: { ic: 'M3 7h18v10H3zM12 12m-2.5 0a2.5 2.5 0 1 0 5 0a2.5 2.5 0 1 0 -5 0M6 10v4M18 10v4', title: 'Cash runway', group: 'FINANCE', kind: 'number', headline: '[n] mo', unit: 'months', sub: 'At current monthly spend',
+        explain: 'Cash on hand divided by average monthly outflow.', rows: [['Based on', 'Last 6 months']], source: 'Bank statements' },
+      expenses: { ic: 'M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6M9 16h3', title: 'Notes de frais', group: 'FINANCE', kind: 'number', headline: '2', unit: 'to submit', sub: 'Trip receipts not yet claimed',
+        explain: 'Receipts captured on trips that are not yet in an expense claim.', rows: [['Oldest', '[date]']], source: 'Scan inbox · receipts' },
+      tax: { ic: 'M4 6h16v14H4zM4 10h16M8 3v5M16 3v5', title: 'Personal tax', group: 'PERSONAL', kind: 'number', headline: '15 Oct', unit: 'next', sub: 'US and Swiss deadlines',
+        explain: 'Your personal US and Swiss filing dates in one place.', rows: [['Next', 'ASF + US return, 15 Oct']], source: 'Tax folder' },
+      events: { ic: 'M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11zM12 10m-2.5 0a2.5 2.5 0 1 0 5 0a2.5 2.5 0 1 0 -5 0', title: 'Geneva RSVPs', group: 'GENEVA', kind: 'number', headline: '2', unit: 'pending', sub: 'Invitations awaiting a reply',
+        explain: 'IG events you were invited to but have not answered.', rows: [['Oldest', 'CMN quarterly meeting']], source: 'Calendar · IG newsletters' }
+    };
+    const order = ['audit', 'hours', 'burn', 'scan', 'bank', 'streak', 'reply', 'funder', 'cash', 'expenses', 'tax', 'events'];
+    const viz = (id) => {
+      const w = WD[id];
+      const pct = w.pct || 0;
+      return Object.assign({}, w, {
+        id: id, isRing: w.kind === 'ring', isBars: w.kind === 'bars', isMeter: w.kind === 'meter', isNumber: w.kind === 'number',
+        ringStyle: 'width: 64px; height: 64px; border-radius: 32px; display: flex; align-items: center; justify-content: center; background: conic-gradient(#7D147D 0% ' + pct + '%, #E3DDEA ' + pct + '% 100%)',
+        bigRingStyle: 'width: 180px; height: 180px; border-radius: 90px; display: flex; align-items: center; justify-content: center; background: conic-gradient(#7D147D 0% ' + pct + '%, #E3DDEA ' + pct + '% 100%)',
+        meters: (w.meters || []).map((m) => ({ label: m[0], val: m[1] + '%', fill: 'height: 100%; width: ' + m[1] + '%; border-radius: 6px; background: ' + (m[1] > 85 ? '#7D147D' : '#6A7BC1') })),
+        bars: w.kind === 'bars' ? hoursVals.map((v, i) => ({ style: 'width: 8px; border-radius: 3px; height: ' + Math.round(v / 8 * 50) + 'px; background: ' + (i === 4 ? '#E8A300' : '#1F3864') })) : [],
+        bigBars: w.kind === 'bars' ? hoursVals.map((v, i) => ({ label: days[i], v: v + ' h', style: 'width: 36px; border-radius: 6px; height: ' + Math.round(v / 8 * 150) + 'px; background: ' + (i === 4 ? '#E8A300' : '#1F3864') })) : [],
+        rows: (w.rows || []).map((r) => ({ k: r[0], v: r[1] })),
+        aria: 'Open widget: ' + w.title, open: open('widget', id),
+        remove: () => this.setState({ widgets: S.widgets.filter((x) => x !== id), panel: null })
+      });
+    };
+    const MAX = 4;
+    const tiles = S.widgets.map(viz);
+    const full = S.widgets.length >= MAX;
+    const gallery = order.map((id) => {
+      const on = S.widgets.indexOf(id) >= 0;
+      const dis = !on && full;
+      return {
+        title: WD[id].title, sub: WD[id].sub, group: WD[id].group, btn: on ? 'On Today' : (dis ? 'Slots full' : 'Add'), disabled: dis,
+        cardStyle: 'display: flex; gap: 12px; align-items: center; padding: 14px 16px; border-radius: 14px; border: 1px solid ' + (on ? '#6A7BC1' : '#E0E3EA') + '; background: ' + (on ? '#F5F6FC' : '#FFFFFF'),
+        btnStyle: 'flex-shrink: 0; min-width: 96px; height: 36px; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: ' + (dis ? 'not-allowed' : 'pointer') + '; ' + (on ? 'border: none; background: #1F3864; color: #FFFFFF' : (dis ? 'border: 1px solid #E0E3EA; background: #F4F5F8; color: #6B7280' : 'border: 1px solid #1F3864; background: #FFFFFF; color: #1F3864')),
+        toggle: () => this.setState({ widgets: on ? S.widgets.filter((x) => x !== id) : (full ? S.widgets : S.widgets.concat([id])) })
+      };
+    });
+
+    /* Panels */
+    const P = S.panel;
+    let d = this.blank();
+    let mw = viz('audit');
+    if (P && P.kind === 'email') {
+      d = this.emailPanel(allEmails.filter((x) => x.id === P.id)[0]);
+    } else if (P && P.kind === 'deadline') {
+      const m = DL[P.id];
+      d = Object.assign(this.blank(), { kicker: 'DEADLINE · ' + m.code, title: m.label, meta: m.date,
+        facts: this.kv(m.facts), hasFacts: true, context: m.context, hasContext: true, contextLabel: 'WHY IT MATTERS',
+        prep: m.prep.map((p) => ({ label: p[0], state: p[1] === 'done' ? 'done' : (p[1] === 'waiting' ? 'waiting' : 'to do'), dot: this.dot(p[1]) })), hasPrep: m.prep.length > 0, prepLabel: 'PREPARATION',
+        related: m.related.map((r) => ({ type: r[0], label: r[1], meta: r[2] })), hasRelated: m.related.length > 0,
+        actions: this.acts(m.actions) });
+    } else if (P && P.kind === 'done') {
+      d = Object.assign(this.blank(), { kicker: 'DONE THIS WEEK', title: n + ' things off your plate', meta: 'Capture streak: 4 of 5 days. A missed day never resets it.',
+        list: doneList, hasList: true, actions: this.acts([['Add to the weekly journal', 'Added to the journal (mockup).']]) });
+    } else if (P && P.kind === 'widget') {
+      mw = viz(P.id);
+    }
+    const L = S.listening;
+    return {
+      today: today, openCount: String(openCount), doneCount: String(n), celebrate: S.celebrate,
+      jetClass: S.celebrate ? 'surge' : '', jetColumn: jetColumn, jetPlume1: jetPlume1, jetPlume2: jetPlume2, jetMist: jetMist, drops: drops,
+      emails: emails, emailSub: emailSub, ranges: this.rangeButtons(),
+      marks: marks, ticks: ticks,
+      tiles: tiles, gallery: gallery, widgetCountLabel: S.widgets.length + ' of ' + MAX, openGallery: open('gallery', null), openDone: open('done', null),
+      anyPanel: !!P, isDrawer: !!P && ['email', 'deadline', 'done'].indexOf(P.kind) >= 0, isWidget: !!P && P.kind === 'widget', isGallery: !!P && P.kind === 'gallery',
+      d: d, mw: mw, close: close, toast: S.toast,
+      listening: L, toggleMic: () => this.setState({ listening: !L }),
+      micLabel: L ? 'Listening…' : 'Dictate',
+      micStyle: 'cursor: pointer; height: 40px; display: flex; align-items: center; gap: 6px; padding: 0 12px; border-radius: 10px; font-size: 12px; ' + (L ? 'border: 1px solid #A1261C; background: #FBEDEB; color: #7A1C14' : 'border: 1px solid #E0E3EA; background: #FFFFFF; color: #1A2233'),
+      micDot: L ? 'width: 8px; height: 8px; border-radius: 4px; background: #A1261C' : 'display: none', micDotClass: L ? 'pulse' : '',
+      toastAttach: () => this.say('Would open a file picker; the file is filed and logged.'),
+      toastScan: () => this.say('Would start your scanner; the scan lands in the scan inbox.')
+    };
+  }
+}
+</script>
+</body>
+</html>

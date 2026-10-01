@@ -1,0 +1,43 @@
+# --- Secrets: never commit ---
+.env
+.env.*
+*.key
+*.pem
+*token*.json
+credentials*.json
+client_secret*.json
+
+# --- Real data: lives in ~/IG-Harness-data, never in the repo ---
+data/
+*.db
+*.sqlite
+*.sqlite3
+*.log
+
+# Documents and spreadsheets are real data unless they are test fixtures
+*.pdf
+*.xlsx
+*.xls
+*.csv
+*.docx
+*.eml
+!tests/fixtures/**
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- Node / UI ---
+node_modules/
+ui/dist/
+.vite/
+
+# --- macOS / editors ---
+.DS_Store
+.idea/
+.vscode/

@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>IG Harness · Geneva</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&amp;family=Public+Sans:wght@400;500;600;700&amp;family=IBM+Plex+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Public Sans',system-ui,sans-serif;background:#F4F5F8;color:#1A2233}
+a{color:#4F5FA8}a:hover{color:#7D147D}
+button,textarea,input{font-family:inherit}
+.row-btn{transition:background-color .15s ease,border-color .15s ease}
+.row-btn:hover{background:#F5F6FC;border-color:#BFC7EA}
+.tile{transition:border-color .15s ease,transform .15s ease}
+.tile:hover{border-color:#6A7BC1;transform:translateY(-1px)}
+.mark:hover .mk-label{text-decoration:underline}
+.tab:hover{color:#1F3864}
+.chk{transition:transform .15s ease,background-color .2s ease}
+.chk:hover{transform:scale(1.08)}
+@keyframes pop{0%{transform:scale(.4);opacity:0}60%{transform:scale(1.15);opacity:1}100%{transform:scale(1);opacity:1}}
+@keyframes rise{0%{transform:translateY(0) scale(1);opacity:1}100%{transform:translateY(-90px) scale(.5);opacity:0}}
+@keyframes glow{0%{box-shadow:0 0 0 0 rgba(125,20,125,.4)}100%{box-shadow:0 0 0 14px rgba(125,20,125,0)}}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(161,38,28,.5)}100%{box-shadow:0 0 0 10px rgba(161,38,28,0)}}
+@keyframes slide{0%{transform:translateX(40px);opacity:0}100%{transform:translateX(0);opacity:1}}
+@keyframes fade{0%{opacity:0;transform:translateY(8px)}100%{opacity:1;transform:translateY(0)}}
+@keyframes surge{0%{transform:scaleY(1)}35%{transform:scaleY(1.35)}100%{transform:scaleY(1)}}
+@keyframes shimmer{0%,100%{opacity:.55}50%{opacity:.85}}
+.popin{animation:pop .45s ease-out both}
+.spark{animation:rise 1.2s ease-out both}
+.glow{animation:glow 1s ease-out 2}
+.pulse{animation:pulse 1.2s ease-out infinite}
+.slide{animation:slide .25s ease-out both}
+.fade{animation:fade .25s ease-out both}
+.surge{animation:surge 1.1s ease-out both}
+.mist{animation:shimmer 3.2s ease-in-out infinite}
+</style>
+</helmet>
+
+<div style="width: 1440px; height: 1000px; position: relative; overflow: hidden; background: #F4F5F8; display: flex; flex-direction: column">
+
+<header style="height: 72px; flex-shrink: 0; background: #FFFFFF; border-bottom: 1px solid #E0E3EA; display: flex; align-items: center; gap: 20px; padding: 0 32px; box-sizing: border-box">
+<a href="Main.dc.html" aria-label="IG Harness home" style="display: flex; align-items: center; gap: 14px; text-decoration: none">
+<img src="/_blob/4d81491e391c98c6fd97dd63f15501e2" alt="ICT for Peace Foundation" style="height: 34px; width: 155px">
+<span style="width: 1px; height: 30px; background: #D5D9E2"></span>
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; font-weight: 700; color: #1F3864">IG Harness</span><span style="font-size: 10px; font-weight: 600; letter-spacing: .12em; color: #4B5566">GENÈVE INTERNATIONALE</span></span>
+</a>
+<nav aria-label="Sections" style="display: flex; gap: 4px; height: 72px; margin-left: 28px">
+<a href="Main.dc.html" class="tab"  style="display: flex; align-items: center; gap: 8px; padding: 0 16px; height: 72px; box-sizing: border-box; text-decoration: none; font-size: 14px; font-weight: 500; color: #4B5566; border-top: 3px solid transparent; border-bottom: 3px solid transparent">Today</a>
+<a href="Inbox.dc.html" class="tab"  style="display: flex; align-items: center; gap: 8px; padding: 0 16px; height: 72px; box-sizing: border-box; text-decoration: none; font-size: 14px; font-weight: 500; color: #4B5566; border-top: 3px solid transparent; border-bottom: 3px solid transparent">Inbox <span style="font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px; background: #E8A300; color: #2B1F00">5</span></a>
+<a href="Projects.dc.html" class="tab"  style="display: flex; align-items: center; gap: 8px; padding: 0 16px; height: 72px; box-sizing: border-box; text-decoration: none; font-size: 14px; font-weight: 500; color: #4B5566; border-top: 3px solid transparent; border-bottom: 3px solid transparent">Projects &amp; finance</a>
+<a href="Geneva.dc.html" class="tab" aria-current="page" style="display: flex; align-items: center; gap: 8px; padding: 0 16px; height: 72px; box-sizing: border-box; text-decoration: none; font-size: 14px; font-weight: 700; color: #1F3864; border-top: 3px solid transparent; border-bottom: 3px solid #7D147D">Geneva</a>
+</nav>
+<div style="flex-grow: 1"></div>
+<div style="height: 36px; display: flex; align-items: center; gap: 8px; padding: 0 12px; background: #F6F0F7; border-radius: 10px; font-size: 12px; font-weight: 600; color: #5B2A4E">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#5B2A4E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
+Drafts only · never sent automatically
+</div>
+<button type="button" style="height: 36px; display: flex; align-items: center; gap: 8px; padding: 0 12px; background: #FFFFFF; border: 1px solid #E0E3EA; border-radius: 10px; font-size: 12px; color: #1A2233; cursor: pointer">
+<span style="width: 8px; height: 8px; border-radius: 4px; background: #7FA000"></span>Local model
+</button>
+</header>
+
+
+<section style="height: 130px; flex-shrink: 0; position: relative; background: #172B4D; color: #FFFFFF">
+<svg width="1440" height="130" viewBox="0 0 1440 130" style="position: absolute; left: 0; top: 0" aria-hidden="true">
+<path d="M0 70 C 200 48, 420 62, 640 46 S 1060 36, 1440 58 L1440 96 L0 96 Z" fill="#1E3660"></path>
+<rect x="0" y="96" width="1440" height="34" fill="#12234A"></rect>
+<path d="M0 112 C 60 108, 120 116, 180 112 S 300 108, 360 112 S 480 116, 540 112 S 660 108, 720 112 S 840 116, 900 112 S 1020 108, 1080 112 S 1200 116, 1260 112 S 1380 108, 1440 112" fill="none" stroke="#6A7BC1" stroke-opacity=".28" stroke-width="1.5"></path>
+<line x1="0" y1="96" x2="1440" y2="96" stroke="#8F9DD6" stroke-opacity=".75" stroke-width="2"></line>
+<ellipse cx="1300" cy="96" rx="22" ry="5" fill="#FFFFFF" fill-opacity=".18"></ellipse>
+<path class="mist" d="M1302 36 C 1312 40, 1326 62, 1334 94" fill="none" stroke="#FFFFFF" stroke-opacity=".22" stroke-width="10" stroke-linecap="round"></path>
+<path d="M1301 24 C 1308 18, 1322 28, 1330 60" fill="none" stroke="#FFFFFF" stroke-opacity=".38" stroke-width="7" stroke-linecap="round"></path>
+<path d="M1300 18 C 1304 6, 1318 10, 1324 38" fill="none" stroke="#FFFFFF" stroke-opacity=".6" stroke-width="4" stroke-linecap="round"></path>
+<path d="M1296 96 L1298.8 22 Q1300 16 1301.2 22 L1304 96 Z" fill="#FFFFFF" fill-opacity=".93"></path>
+<ellipse cx="1300" cy="96" rx="13" ry="3.5" fill="#FFFFFF" fill-opacity=".7"></ellipse>
+</svg>
+<div style="position: absolute; left: 32px; top: 24px; display: flex; flex-direction: column; gap: 6px">
+<h1 style="margin: 0; font-family: 'Source Serif 4', Georgia, serif; font-size: 28px; font-weight: 600">International Geneva, this fortnight</h1>
+<div style="font-size: 13px; color: #C5CEE4">5 events picked from your calendar, feeds and IG newsletters · 1 clash with the Geneva Peace Forum</div>
+</div>
+</section>
+
+<div style="flex-grow: 1; min-height: 0; display: flex; gap: 20px; padding: 22px 32px 24px; box-sizing: border-box">
+
+<sc-for list="{{weeks}}" as="wk" hint-placeholder-count="2">
+<section style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: baseline; gap: 10px"><h2 style="margin: 0; font-family: 'Source Serif 4', Georgia, serif; font-size: 20px; font-weight: 600; color: #1F3864">{{wk.title}}</h2><span style="font-size: 12px; color: #4B5566">{{wk.range}}</span></div>
+<sc-for list="{{wk.events}}" as="g" hint-placeholder-count="3">
+<button type="button" class="tile" onClick="{{g.open}}" style="text-align: left; cursor: pointer; display: flex; gap: 16px; align-items: stretch; padding: 16px; border-radius: 16px; border: 1px solid #E0E3EA; background: #FFFFFF; width: 100%; box-sizing: border-box">
+<div style="width: 64px; flex-shrink: 0; border-radius: 12px; background: #EEF0FA; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 8px 0">
+<span style="font-size: 11px; font-weight: 700; letter-spacing: .08em; color: #4F5FA8">{{g.dow}}</span>
+<span style="font-family: 'Source Serif 4', Georgia, serif; font-size: 26px; font-weight: 600; color: #1F3864; line-height: 1">{{g.day}}</span>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #4B5566">{{g.time}}</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 5px; flex-grow: 1; min-width: 0">
+<div style="font-size: 15px; font-weight: 700; color: #1A2233">{{g.what}}</div>
+<div style="font-size: 12px; color: #4B5566">{{g.where}}</div>
+<div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 2px">
+<sc-for list="{{g.tags}}" as="tg" hint-placeholder-count="2">
+<span style="{{tg.style}}">{{tg.label}}</span>
+</sc-for>
+</div>
+</div>
+</button>
+</sc-for>
+</section>
+</sc-for>
+
+<aside style="width: 330px; flex-shrink: 0; display: flex; flex-direction: column; gap: 12px; background: #FFFFFF; border-radius: 16px; padding: 20px; border: 1px solid #E0E3EA">
+<h2 style="margin: 0; font-family: 'Source Serif 4', Georgia, serif; font-size: 20px; font-weight: 600; color: #1F3864">Sources</h2>
+<div style="font-size: 12px; color: #4B5566; line-height: 1.45; margin-top: -4px">Where events come from. Turn a source off and its events stop appearing.</div>
+<sc-for list="{{sources}}" as="so" hint-placeholder-count="5">
+<button type="button" onClick="{{so.toggle}}" aria-pressed="{{so.on}}" style="cursor: pointer; display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; border: 1px solid #E6E8EF; background: #FFFFFF; text-align: left; width: 100%; box-sizing: border-box">
+<span style="display: flex; flex-direction: column; gap: 2px; flex-grow: 1"><span style="font-size: 13px; font-weight: 600; color: #1A2233">{{so.name}}</span><span style="font-size: 11px; color: #4B5566">{{so.meta}}</span></span>
+<span style="{{so.track}}"><span style="{{so.knob}}"></span></span>
+</button>
+</sc-for>
+<div style="margin-top: auto; padding: 12px 14px; border-radius: 12px; background: #F5F6FB; font-size: 12px; line-height: 1.45; color: #4B5566">
+<span style="font-weight: 700; color: #1F3864">How events are picked:</span> matched against your topics (AI governance, peace and security, cyber, disarmament) and your projects. “Not for me” teaches the filter.
+</div>
+</aside>
+
+</div>
+
+<sc-if value="{{toast}}" hint-placeholder-val="{{false}}">
+<div class="fade" style="position: absolute; left: 50%; bottom: 110px; transform: translateX(-50%); background: #172B4D; color: #FFFFFF; font-size: 13px; padding: 10px 16px; border-radius: 10px; box-shadow: 0 8px 24px rgba(23,43,77,.25); z-index: 5">{{toast}}</div>
+</sc-if>
+
+<sc-if value="{{anyPanel}}" hint-placeholder-val="{{false}}">
+<button type="button" aria-label="Close panel" onClick="{{close}}" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; border: none; padding: 0; background: rgba(23,43,77,.4); cursor: default"></button>
+</sc-if>
+
+<sc-if value="{{isDrawer}}" hint-placeholder-val="{{false}}">
+<aside class="slide" style="position: absolute; right: 0; top: 0; bottom: 0; width: 540px; background: #FFFFFF; box-shadow: -12px 0 32px rgba(23,43,77,.2); display: flex; flex-direction: column; overflow: auto">
+<div style="background: #172B4D; color: #FFFFFF; padding: 22px 24px 20px; display: flex; flex-direction: column; gap: 6px; flex-shrink: 0">
+<div style="display: flex; align-items: center; justify-content: space-between">
+<span style="font-size: 11px; font-weight: 700; letter-spacing: .12em; color: #AEB9E8">{{d.kicker}}</span>
+<button type="button" aria-label="Close" onClick="{{close}}" style="cursor: pointer; width: 36px; height: 36px; border-radius: 10px; border: 1px solid rgba(255,255,255,.25); background: transparent; display: flex; align-items: center; justify-content: center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+</div>
+<div style="font-family: 'Source Serif 4', Georgia, serif; font-size: 24px; font-weight: 600; line-height: 1.2">{{d.title}}</div>
+<div style="font-size: 13px; color: #C9D1E6">{{d.meta}}</div>
+</div>
+<div style="padding: 20px 24px; display: flex; flex-direction: column; gap: 18px">
+
+<sc-if value="{{d.hasFacts}}" hint-placeholder-val="{{true}}">
+<div style="display: grid; grid-template-columns: 124px minmax(0, 1fr); gap: 8px 12px; font-size: 13px">
+<sc-for list="{{d.facts}}" as="f" hint-placeholder-count="4">
+<span style="color: #4B5566">{{f.k}}</span><span style="color: #1A2233; font-weight: 500">{{f.v}}</span>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{d.hasContext}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div style="font-size: 11px; font-weight: 700; letter-spacing: .1em; color: #4F5FA8">{{d.contextLabel}}</div>
+<div style="font-size: 14px; line-height: 1.5; color: #1A2233">{{d.context}}</div>
+</div>
+</sc-if>
+
+<sc-if value="{{d.hasPrep}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 11px; font-weight: 700; letter-spacing: .1em; color: #4F5FA8">{{d.prepLabel}}</div>
+<sc-for list="{{d.prep}}" as="pp" hint-placeholder-count="3">
+<div style="display: flex; align-items: center; gap: 10px; font-size: 13px; color: #1A2233"><span style="{{pp.dot}}"></span><span style="flex-grow: 1">{{pp.label}}</span><span style="font-size: 11px; color: #4B5566">{{pp.state}}</span></div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{d.hasRelated}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 11px; font-weight: 700; letter-spacing: .1em; color: #4F5FA8">RELATED</div>
+<sc-for list="{{d.related}}" as="rl" hint-placeholder-count="2">
+<div style="display: flex; gap: 10px; align-items: center; padding: 10px 12px; border: 1px solid #E3E6EE; border-radius: 10px">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 500; color: #FFFFFF; background: #1F3864; padding: 2px 6px; border-radius: 4px">{{rl.type}}</span>
+<span style="font-size: 13px; color: #1A2233; flex-grow: 1">{{rl.label}}</span>
+<span style="font-size: 11px; color: #4B5566">{{rl.meta}}</span>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{d.hasDrafts}}" hint-placeholder-val="{{false}}">
+<sc-for list="{{d.drafts}}" as="df" hint-placeholder-count="1">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; align-items: baseline; justify-content: space-between; gap: 8px">
+<div style="font-size: 11px; font-weight: 700; letter-spacing: .1em; color: #4F5FA8">{{df.label}}</div>
+<span style="font-size: 11px; color: #4B5566">{{df.note}}</span>
+</div>
+<label style="display: flex">
+<span style="position: absolute; width: 1px; height: 1px; overflow: hidden">Draft text</span>
+<textarea style="width: 100%; height: 200px; box-sizing: border-box; resize: vertical; padding: 12px 14px; border: 1px solid #C9CFE6; border-radius: 10px; font-size: 13px; line-height: 1.5; color: #1A2233; background: #FBFBFE">{{df.text}}</textarea>
+</label>
+</div>
+</sc-for>
+<div style="display: flex; gap: 8px; align-items: flex-start; padding: 10px 12px; background: #F6F0F7; border-radius: 10px; font-size: 12px; line-height: 1.45; color: #3F1E37">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5B2A4E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink: 0; margin-top: 1px"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>
+<span>The harness can only create drafts. It has no permission to send; you send from Gmail, after your own edits.</span>
+</div>
+</sc-if>
+
+<sc-if value="{{d.hasList}}" hint-placeholder-val="{{false}}">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<sc-for list="{{d.list}}" as="li" hint-placeholder-count="6">
+<div class="{{li.cls}}" style="display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 10px; background: #F7F8FB; font-size: 13px; color: #1A2233">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7D147D" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>
+<span style="flex-grow: 1">{{li.label}}</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #4B5566">{{li.meta}}</span>
+</div>
+</sc-for>
+</div>
+</sc-if>
+
+<div style="display: flex; gap: 8px; flex-wrap: wrap; padding-top: 4px">
+<sc-for list="{{d.actions}}" as="ac" hint-placeholder-count="3">
+<button type="button" onClick="{{ac.run}}" style="{{ac.style}}">{{ac.label}}</button>
+</sc-for>
+</div>
+
+</div>
+</aside>
+</sc-if>
+
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { panel: null, toast: '', off: {} };
+  }
+  say(msg) {
+    this.setState({ toast: msg });
+    clearTimeout(this._toast);
+    this._toast = setTimeout(() => this.setState({ toast: '' }), 2600);
+  }
+  componentWillUnmount() { clearTimeout(this._t); clearTimeout(this._toast); }
+  chip(w) {
+    const base = 'font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; letter-spacing: .03em;';
+    if (w === 'major') return base + ' background: #7D147D; color: #FFFFFF';
+    if (w === 'hard') return base + ' background: #1F3864; color: #FFFFFF';
+    return base + ' background: #E6E9F6; color: #34407A';
+  }
+  btn(primary) {
+    return primary
+      ? 'cursor: pointer; height: 40px; padding: 0 16px; border-radius: 10px; border: none; background: #1F3864; color: #FFFFFF; font-size: 13px; font-weight: 600'
+      : 'cursor: pointer; height: 40px; padding: 0 14px; border-radius: 10px; border: 1px solid #DDE1EA; background: #FFFFFF; color: #1A2233; font-size: 13px';
+  }
+  acts(list) {
+    return list.map((a, i) => ({ label: a[0], style: this.btn(i === 0), run: () => this.say(a[1]) }));
+  }
+  dot(state) {
+    const c = state === 'done' ? '#7FA000' : (state === 'waiting' ? '#E8A300' : '#B7BCC8');
+    return 'width: 10px; height: 10px; border-radius: 5px; flex-shrink: 0; background: ' + c;
+  }
+  kv(a) { return a.map((f) => ({ k: f[0], v: f[1] })); }
+  blank() {
+    return { kicker: '', title: '', meta: '', facts: [], hasFacts: false, context: '', hasContext: false, contextLabel: 'CONTEXT', prep: [], hasPrep: false, prepLabel: 'PREP', related: [], hasRelated: false, drafts: [], hasDrafts: false, list: [], hasList: false, actions: [] };
+  }
+  emailsData() {
+    return [
+      { id: 'e1', initials: 'KO', from: 'Kevin Osborne · Globethics', subject: 'FAGI: letters of support by Friday?', h: 5, why: 'Asks you for something', code: 'FAGI', lang: 'EN', need: true,
+        summary: 'Kevin asks whether the letter-of-support templates can reach him by Friday, so partners have time to sign before submission. This matches an overdue item on your Today list.',
+        draft: 'Dear Kevin,\n\nThank you for the reminder, and apologies for the delay on my side. I will send the letter-of-support templates by Thursday evening, so partners have Friday to sign.\n\n[Anything to add on Pilot 2]\n\nBest regards,\nAnne-Marie' },
+      { id: 'e2', initials: 'YC', from: 'Youssouf · SPTS', subject: 'Bilan intermédiaire : deux questions', h: 20, why: 'Questions from your fiduciary', code: 'AUDIT', lang: 'FR', need: true,
+        summary: 'Youssouf a relu le bilan intermédiaire et pose deux questions. Le brouillon reprend le français et le vouvoiement.',
+        draft: 'Bonjour Youssouf,\n\nMerci pour votre relecture attentive. Concernant vos deux questions :\n\n1. [réponse]\n2. [réponse]\n\nJe reste à votre disposition pour en discuter.\n\nMeilleures salutations,\nAnne-Marie Buzatu' },
+      { id: 'e3', initials: 'MN', from: 'Mark Nitzberg · IASEAI', subject: 'IASEAI’27 workshop proposals close 5 Oct', h: 30, why: 'Deadline in 5 days', code: 'IASEAI', lang: 'EN', need: false,
+        summary: 'Reminder to affiliates that workshop proposals close on 5 October. Your proposal still needs Daniel’s views.',
+        draft: 'Dear Mark,\n\nThank you for the reminder. ICT4Peace will submit its workshop proposal ahead of the 5 October deadline.\n\n[Optional: one line on the theme]\n\nBest regards,\nAnne-Marie' },
+      { id: 'e4', initials: 'GP', from: 'Geneva Peace Forum team', subject: 'Speaker logistics and final run of show', h: 44, why: 'Closes a task due today', code: 'GPF', lang: 'EN', need: true,
+        summary: 'The organisers share speaker logistics and ask for the final run of show for your panel. Replying closes today’s GPF task.',
+        draft: 'Dear GPF team,\n\nMany thanks. Please find attached the run of show for our panel. [Attach file]\n\nPanellists: [names, confirmed]\n\nBest regards,\nAnne-Marie Buzatu\nICT4Peace Foundation' },
+      { id: 'e5', initials: 'CA', from: 'CAGI', subject: 'Confirmation du rendez-vous du 7 octobre', h: 62, why: 'Reply expected', code: 'ADMIN', lang: 'FR', need: true,
+        summary: 'CAGI confirme le rendez-vous du 7 octobre à 11 h et demande une confirmation de votre part.',
+        draft: 'Madame, Monsieur,\n\nJe vous remercie de votre message et vous confirme ma présence le mercredi 7 octobre à 11 h.\n\nAvec mes meilleures salutations,\nAnne-Marie Buzatu\nDirectrice exécutive, ICT4Peace Foundation' }
+    ];
+  }
+  emailPanel(e) {
+    return Object.assign(this.blank(), { kicker: 'EMAIL · ' + e.code, title: e.subject, meta: e.from + ' · received ' + e.h + ' h ago',
+      facts: this.kv([['Why flagged', e.why], ['Language', e.lang === 'FR' ? 'French, formal (vous)' : 'English']]), hasFacts: true,
+      context: e.summary, hasContext: true, contextLabel: 'SUMMARY',
+      drafts: [{ label: 'SUGGESTED REPLY', note: 'Matches the sender’s language and tone', text: e.draft }], hasDrafts: true,
+      actions: this.acts([['Save to Gmail drafts', 'Saved to Gmail drafts. Not sent.'], ['Make it warmer', 'Draft rewritten in a warmer tone (mockup).'], ['Shorter', 'Draft shortened (mockup).'], ['Open in Gmail', 'Would open the thread in Gmail.']]) });
+  }
+  rangeButtons(dark) {
+    return [24, 48, 72].map((r) => ({
+      label: r + ' h', on: this.state.range === r, pick: () => this.setState({ range: r }),
+      style: 'cursor: pointer; border: none; border-radius: 6px; padding: 4px 9px; font-size: 11px; font-weight: 700; ' + (this.state.range === r ? 'background: #1F3864; color: #FFFFFF' : 'background: transparent; color: #4B5566')
+    }));
+  }
+
+  tag(label, kind) {
+    const base = 'font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; ';
+    if (kind === 'cal') return { label: label, style: base + 'background: #1F3864; color: #FFFFFF' };
+    if (kind === 'warn') return { label: label, style: base + 'background: #FDF1D6; color: #5A4000' };
+    if (kind === 'fit') return { label: label, style: base + 'background: #EEF5CC; color: #3D4A00' };
+    return { label: label, style: base + 'background: #EEF0FA; color: #34407A' };
+  }
+  renderVals() {
+    const S = this.state;
+    const open = (id) => () => this.setState({ panel: { kind: 'event', id: id } });
+    const EV = [
+      { id: 'g1', wk: 0, src: 'cal', dow: 'THU', day: '1', time: '15:00', what: 'GPF alignment call', where: 'Globethics · online',
+        tags: [['In your calendar', 'cal'], ['GPF', 'fit']],
+        facts: [['When', 'Thursday 1 October, 15:00'], ['Organiser', 'Globethics'], ['Source', 'Your calendar'], ['Linked', 'GPF panel, Globethics workshop']],
+        context: 'Alignment call ahead of the Geneva Peace Forum (12–15 Oct). The run of show due today feeds directly into it.',
+        related: [['TASK', 'Send panellists the slot and run of show', 'today']],
+        actions: [['Prepare 3 talking points', 'Talking points would be drafted (mockup).'], ['Open GPF folder', 'Would open the GPF folder.']] },
+      { id: 'g2', wk: 0, src: 'mail', dow: 'FRI', day: '2', time: '14:00', what: 'CMN quarterly meeting', where: 'Microsoft Teams',
+        tags: [['Reply not sent', 'warn'], ['Invitation', 'src']],
+        facts: [['When', 'Friday 2 October, 14:00'], ['Format', 'Microsoft Teams'], ['Source', 'Invitation email'], ['Status', 'You have not replied']],
+        context: 'Quarterly network meeting. The invitation is still unanswered; the harness can draft an acceptance or an apology.',
+        related: [['EMAIL', 'CMN quarterly meeting invitation', 'unanswered']],
+        actions: [['Draft acceptance', 'Acceptance saved as a draft. Not sent.'], ['Draft apology', 'Apology saved as a draft. Not sent.']] },
+      { id: 'g3', wk: 1, src: 'gi', dow: 'THU', day: '8', time: '18:00', what: 'Localization in Action', where: 'Maison Rousseau et Littérature · Geneva Innovation',
+        tags: [['Good fit: FAGI, IG Harness', 'fit'], ['Newsletter', 'src']],
+        facts: [['When', 'Thursday 8 October, 18:00'], ['Where', 'Maison Rousseau et Littérature'], ['Organiser', 'Geneva Innovation'], ['Source', 'Geneva Innovation newsletter']],
+        context: 'Networking evening in the Geneva Innovation community (Adriana De Oro). Useful for FAGI partners and IG Harness outreach.',
+        related: [['PERSON', 'Adriana De Oro, Geneva Innovation', 'contact']],
+        actions: [['Add to calendar', 'Added to calendar as tentative (mockup).'], ['Register (opens site)', 'Would open the registration page.'], ['Not for me', 'Noted. Similar events will rank lower.']] },
+      { id: 'g4', wk: 1, src: 'gi', dow: 'TUE', day: '13', time: '18:00', what: 'The Innovation Connection', where: 'Geneva Innovation',
+        tags: [['Clashes with GPF', 'warn'], ['Newsletter', 'src']],
+        facts: [['When', 'Tuesday 13 October, 18:00'], ['Organiser', 'Geneva Innovation'], ['Source', 'Newsletter'], ['Clash', 'Geneva Peace Forum, 12–15 Oct']],
+        context: 'Falls during the Geneva Peace Forum week, so the harness flags a likely clash.',
+        related: [['EVENT', 'Geneva Peace Forum, 12–15 Oct', 'calendar']],
+        actions: [['Add to calendar', 'Added to calendar as tentative (mockup).'], ['Not for me', 'Noted. Similar events will rank lower.']] },
+      { id: 'g5', wk: 1, src: 'mdp', dow: 'WED', day: '14', time: '08:30', what: 'Geneva Policy Outlook breakfasts', where: 'Maison de la paix · 14 and 15 Oct',
+        tags: [['Register by 12 Oct', 'warn'], ['Good fit: peace & security', 'fit']],
+        facts: [['When', '14–15 October, 08:30'], ['Where', 'Maison de la paix'], ['Register by', '12 October'], ['Source', 'Newsletter']],
+        context: 'Breakfast briefings during GPF week. Registration closes on 12 October; the harness will remind you on the 10th.',
+        related: [],
+        actions: [['Register (opens site)', 'Would open the registration page.'], ['Remind me on 10 Oct', 'Reminder set (mockup).']] }
+    ];
+    const srcs = [
+      ['cal', 'Your calendar', 'Google Calendar'],
+      ['mail', 'Invitations in your email', 'Gmail, read-only'],
+      ['gi', 'Geneva Innovation newsletter', 'Weekly'],
+      ['mdp', 'Maison de la paix newsletter', 'Weekly'],
+      ['igc', 'International Geneva events calendar', '[feed to connect]']
+    ];
+    const visible = EV.filter((e) => !S.off[e.src]);
+    const weeks = [['This week', '30 Sep – 4 Oct'], ['Next week', '5 – 16 Oct']].map((w, i) => ({
+      title: w[0], range: w[1],
+      events: visible.filter((e) => e.wk === i).map((e) => Object.assign({}, e, { tags: e.tags.map((t) => this.tag(t[0], t[1])), open: open(e.id) }))
+    }));
+    const sources = srcs.map((s) => {
+      const on = !S.off[s[0]];
+      return { name: s[1], meta: s[2], on: on,
+        toggle: () => { const off = Object.assign({}, S.off); off[s[0]] = on; this.setState({ off: off }); },
+        track: 'width: 40px; height: 24px; border-radius: 12px; flex-shrink: 0; position: relative; display: block; background: ' + (on ? '#6A7BC1' : '#CDD1DB'),
+        knob: 'position: absolute; top: 3px; width: 18px; height: 18px; border-radius: 9px; background: #FFFFFF; display: block; left: ' + (on ? '19px' : '3px') };
+    });
+    const P = S.panel;
+    let d = this.blank();
+    if (P) {
+      const e = EV.filter((x) => x.id === P.id)[0];
+      d = Object.assign(this.blank(), { kicker: 'GENEVA · ' + e.dow + ' ' + e.day + ' OCT', title: e.what, meta: e.where,
+        facts: this.kv(e.facts), hasFacts: true, context: e.context, hasContext: true, contextLabel: 'WHY IT IS HERE',
+        related: e.related.map((r) => ({ type: r[0], label: r[1], meta: r[2] })), hasRelated: e.related.length > 0,
+        actions: this.acts(e.actions) });
+    }
+    return {
+      weeks: weeks, sources: sources,
+      anyPanel: !!P, isDrawer: !!P, d: d, close: () => this.setState({ panel: null }), toast: S.toast
+    };
+  }
+}
+</script>
+</body>
+</html>
