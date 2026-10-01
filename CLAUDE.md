@@ -14,7 +14,7 @@ The IG Harness is the **ICT4Peace Foundation's "control center"**: a local web a
 
 These apply to every change. If a task seems to require breaking one, stop and ask.
 
-1. **Never send email.** The harness creates Gmail drafts only. There is no send function anywhere in the code. The outbound network rules block Gmail's `messages.send` and `drafts.send` endpoints, and an automated test (`tests/test_no_send.py`, to be written in Phase 3) must prove a send attempt fails. Never remove or weaken any of these three layers.
+1. **Never send email.** The harness creates Gmail drafts only. There is no send function anywhere in the code. The outbound network rules block Gmail's `messages.send` and `drafts.send` endpoints, and an automated test (`tests/test_no_send.py`, to be written in Phase 3) must prove a send attempt fails. Never remove or weaken any of these three layers. Because Google's only permission that creates drafts (`gmail.compose`) also technically allows sending, these layers matter in practice. Decided 1 Oct 2026 with Anne-Marie: the Mac-side draft helper (which runs outside Docker, so container network rules cannot protect it) enforces layer 2 as a strict **allow-list** of Gmail operations in code (never a deny-list), holds its own Keychain token separate from the read-only one, and `tests/test_no_send.py` proves it. Drafts are created only after Anne-Marie's explicit approval of that specific draft.
 2. **One exit door for AI.** Every model call (local or external) goes through the model gateway (`harness/gateway/`). No other module may call an AI provider directly.
 3. **Sensitivity tiers decide where data may go:**
 
@@ -47,13 +47,13 @@ These apply to every change. If a task seems to require breaking one, stop and a
 | Harness API | Core logic; wraps her existing Python scripts | Python 3.12, FastAPI |
 | Database | Tasks, journal, deadlines, hours, events, privacy log | SQLite in `~/IG-Harness-data` |
 | Worker / scheduler | Morning prep, email sweep, scan-inbox watcher, Friday hours pass, 5th-of-month check | Python worker container |
-| Connectors | Gmail (read + drafts), Calendar, Drive, scan folder, bank statements, Geneva feeds | Google APIs, file watchers, RSS |
+| Connectors | Gmail (read-only triage now; drafts in Phase 3), Calendar, Drive, scan folder, bank statements, Geneva feeds | Mac-side helper `tools/google_helper.py` for Google (tokens in Keychain; it writes files into `~/IG-Harness-data` that importers read); file watchers, RSS |
 | Model gateway | Tiers, redaction, routing, approvals, privacy log, budget cap | part of the API (`harness/gateway/`) |
 | Local model | Default AI for everything | **Ollama run natively on macOS** (not in Docker — containers cannot use the Apple GPU), reached from containers at `host.docker.internal:11434` |
 
-Everything except Ollama runs with `docker compose`. Containers get no general internet access; only the gateway and the Google connectors have allow-listed outbound routes.
+Everything except Ollama and the Google helper runs with `docker compose`. Containers get no general internet access. The API (gateway) reaches only the native Ollama, through a one-destination forwarder (`ollama.internal`, `docker/ollama-bridge.conf`); Google data never needs a container route, because the helper runs on the Mac, holds the tokens in the Keychain, and exchanges plain files with the harness. `make check-network` proves the isolation.
 
-**Known environment issue:** as of 1 Oct 2026, port 11434 is held by an older Ollama (0.20.7) bundled inside AnythingLLM, not by her own Ollama (0.34.4). Before Phase 2, AnythingLLM is to be switched to use her Ollama and the native Ollama app started. Until then, do not rely on whatever answers on 11434.
+**Environment (as of 1 Oct 2026):** the Ollama port issue is resolved: her own Ollama (0.34.4) answers on 11434. Her Mac is an **M1 with 32 GB RAM** (not 48 GB). Models installed: `qwen3.8:27b-mlx` (in use, set via `IG_LOCAL_MODEL` in her git-ignored `.env`), `qwen3.5:9b`, `qwen3:8b`, `gemma3`, `llama3.2-vision:11b`, and `apertus1.5-8b-text:f16`, **our own unofficial text-only conversion** of the official Apertus 1.5 weights (see `docs/MODELS.md`; a transfer folder for her other MacBook was prepared). The model for each job is chosen in the UI's model picker (header); online providers are listed but locked until Phase 6, and the gateway still decides what data may use which model. Model comparison: the Inbox tab's scoreboard scores models against her own "this needs me / doesn't" labels.
 
 ## External model providers
 
@@ -82,17 +82,17 @@ Wrap and call these; do not rewrite their logic. Ask Anne-Marie to connect a fol
 
 | Phase | Content | Done when |
 |---|---|---|
-| 0 | Accounts, keys, repo, environment | ✅ largely done 1 Oct 2026 |
-| **1 (next)** | Docker skeleton (UI, API, worker), SQLite, port Today tab, read-only import from Suivi.xlsx, project register, Google Calendar. No AI. | Each morning Today matches Suivi and her calendar |
-| 2 | Model gateway (tiers, redaction, approvals, privacy log, cap) + native Ollama; email triage (Gmail read-only) | Red-team samples cannot leave the Mac |
-| 3 | Draft replies (sender's language and register), no-send guarantee + test, Waiting on and 7-day reminder drafts | Send attempt fails; drafts appear in Gmail |
+| 0 | Accounts, keys, repo, environment | ✅ done 1 Oct 2026 |
+| 1 ✅ built 1 Oct 2026 (she is checking it in daily use) | Docker skeleton (UI, API, worker), SQLite, port Today tab, read-only import from Suivi.xlsx, project register, Google Calendar. No AI. | Each morning Today matches Suivi and her calendar |
+| 2 ✅ closed 1 Oct 2026 | Model gateway (tiers, redaction, approvals, privacy log, cap) + native Ollama; email triage (Gmail read-only), standing rules, feedback labels, model picker and scoreboard | Red-team samples cannot leave the Mac (tests + `make check-network`; privacy log: 0 external calls) |
+| **3 (next)** | Draft replies: **only on her click, reviewed before saving**; language and register learned per addressee from past correspondence (professional default for new people, overridable per draft); no-send guarantee + test; Waiting on and 7-day reminder drafts | Send attempt fails; drafts appear in Gmail |
 | 4 | Projects & finance: wrap the two checkers, scan inbox (rename, dedupe, never overwrite), bank upload, widgets, Friday hours pass | Q3 2026 rerun matches today's scripts |
 | 5 | Geneva tab (calendar, invitations, newsletters via Gmail label, clashes), chat bar, local dictation | A week of newsletters gives a sensible view |
 | 6 | Infomaniak + Claude API behind the gateway; S2 approval flow; cost display | S2 asks approval; S3 refused |
 | 7 | MCP bridge to the Claude app (curated read-mostly tools) | Calls visible in privacy log |
 | 8 | Four-week parallel run, backup/restore test, retire Suivi.xlsx and morning brief; review 5 Nov 2026 | She stops opening the old tools |
 
-## Phase 1 — task list
+## Phase 1 — task list (done)
 
 1. Repository skeleton: `harness/` (FastAPI app), `ui/` (Vite + React + TS), `worker/`, `tests/`, `docker-compose.yml`, `Makefile` with `make up`, `make down`, `make test`.
 2. Data directory mounted from `~/IG-Harness-data`; SQLite schema for tasks, deadlines (with D-14 / D-3 warnings), done log, waiting-on, journal entries.
