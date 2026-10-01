@@ -308,3 +308,24 @@ def select_model(body: SelectIn) -> dict:
     except SelectionRefused as e:
         raise HTTPException(422, str(e))
     return {"ok": True, "job": body.job, "provider": body.provider, "model": body.model}
+
+
+class EditIn(BaseModel):
+    title: str | None = None
+    due: str | None = None
+    reset: bool = False
+
+
+@app.patch("/api/items/{item_type}/{item_id}")
+def edit_item_endpoint(item_type: str, item_id: int, body: EditIn) -> dict:
+    from harness import items
+    if item_type not in items.TABLES:
+        raise HTTPException(404, "Unknown item type")
+    try:
+        found = _with_conn(lambda c: items.edit_item(c, item_type, item_id, title=body.title, due=body.due,
+                                                     set_due="due" in body.model_fields_set, reset=body.reset))
+    except items.EditRefused as e:
+        raise HTTPException(422, str(e))
+    if not found:
+        raise HTTPException(404, "No such item")
+    return {"ok": True}

@@ -79,6 +79,18 @@ def clean(value) -> str | None:
     return s or None
 
 
+TITLE_COL = {"tasks": "title", "deadlines": "title", "waiting_on": "description"}
+DUE_COL = {"tasks": "due_date", "deadlines": "due_date", "waiting_on": "remind_on"}
+
+
+def _protected_columns(conn: sqlite3.Connection, table: str, item_id: int) -> dict[str, str]:
+    """Columns she has edited by hand: {column: field}. Importers must not overwrite these."""
+    out = {}
+    for r in conn.execute("SELECT field FROM item_overrides WHERE table_name=? AND item_id=?", (table, item_id)):
+        out[TITLE_COL[table] if r["field"] == "title" else DUE_COL[table]] = r["field"]
+    return out
+
+
 def upsert(
     conn: sqlite3.Connection,
     table: str,
@@ -104,6 +116,11 @@ def upsert(
         report.added += 1
         return
     changes = {k: v for k, v in fields.items() if row[k] != v}
+    for col, field in _protected_columns(conn, table, row["id"]).items():
+        if col in fields:                                   # her edit wins; remember what the source says now
+            conn.execute("UPDATE item_overrides SET source_value=? WHERE table_name=? AND item_id=? AND field=?",
+                         (None if fields[col] is None else str(fields[col]), table, row["id"], field))
+        changes.pop(col, None)
     if row["status"] != "done" and status == "done":
         changes["status"] = "done"
         changes["done_at"] = done_at

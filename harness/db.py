@@ -217,6 +217,17 @@ MIGRATIONS: list[str] = [
         updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
     """,
+    # 8: her edits to imported items (title, due date) are kept across re-imports; source_value = what the source says now
+    """
+    CREATE TABLE item_overrides (
+        table_name TEXT NOT NULL CHECK (table_name IN ('tasks','deadlines','waiting_on')),
+        item_id INTEGER NOT NULL,
+        field TEXT NOT NULL CHECK (field IN ('title','due')),
+        source_value TEXT,
+        edited_at TEXT NOT NULL,
+        PRIMARY KEY (table_name, item_id, field)
+    );
+    """,
 ]
 
 

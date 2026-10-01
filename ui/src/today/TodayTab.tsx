@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { type Item, type Today, getToday, setDone } from "../api";
-import { doneTime, dueLabel, timeOf } from "../format";
+import { type Item, type Today, editItem, getToday, setDone } from "../api";
+import { dayShort, doneTime, dueLabel, timeOf } from "../format";
 import EmailList from "../email/EmailList";
 import Drawer, { type Panel } from "./Drawer";
 import Lake from "./Lake";
@@ -12,8 +12,49 @@ const WIDGETS = [
   { title: "Scan inbox", sub: "Filed automatically", phase: "Phase 4" },
 ];
 
-function Row({ it, today, onToggle, fresh, doneRow }: { it: Item; today: string; onToggle: (it: Item) => void; fresh: boolean; doneRow?: boolean }) {
+function Editor({ it, onClose, onSaved }: { it: Item; onClose: () => void; onSaved: () => void }) {
+  const [title, setTitle] = useState(it.title);
+  const [due, setDue] = useState(it.due ?? "");
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+  const isWaiting = it.type === "waiting_on", canClear = it.type !== "deadline";
+  const save = async () => {
+    const patch: { title?: string; due?: string | null } = {};
+    if (title.trim() !== it.title) patch.title = title;
+    if ((due || null) !== it.due) patch.due = due || null;
+    if (Object.keys(patch).length === 0) return onClose();
+    setBusy(true); setErr("");
+    try { await editItem(it, patch); onSaved(); onClose(); } catch (e) { setErr((e as Error).message); setBusy(false); }
+  };
+  const reset = async () => { setBusy(true); try { await editItem(it, { reset: true }); onSaved(); onClose(); } catch (e) { setErr((e as Error).message); setBusy(false); } };
+  return (
+    <div className="editor">
+      <label>Title<textarea rows={2} value={title} onChange={(e) => setTitle(e.target.value)} maxLength={300} autoFocus /></label>
+      <label>{isWaiting ? "Chase on" : "Due date"}
+        <span className="date-row">
+          <input type="date" value={due} onChange={(e) => setDue(e.target.value)} />
+          {canClear && due && <button type="button" className="btn-ghost" onClick={() => setDue("")}>No date</button>}
+        </span>
+      </label>
+      {it.edited && (
+        <div className="edited-note">
+          Edited here. {it.edited.title_changed && <>Suivi's title: “{it.edited.title}”. </>}
+          {it.edited.due_changed && <>Suivi's date: {it.edited.due ? dayShort(it.edited.due) : "none"}. </>}
+          <button type="button" className="link-quiet" onClick={reset} disabled={busy}>Reset to the original</button>
+        </div>
+      )}
+      {err && <div className="edit-err">{err}</div>}
+      <div className="editor-actions">
+        <button type="button" className="btn-small" onClick={save} disabled={busy || !title.trim()}>Save</button>
+        <button type="button" className="btn-ghost" onClick={onClose}>Cancel</button>
+      </div>
+    </div>
+  );
+}
+
+function Row({ it, today, onToggle, fresh, doneRow, onEdited }: { it: Item; today: string; onToggle: (it: Item) => void; fresh: boolean; doneRow?: boolean; onEdited?: () => void }) {
   const over = it.days_overdue > 0 && !it.done;
+  const [editing, setEditing] = useState(false);
   return (
     <div className={`card ${it.done ? "is-done" : over ? "is-over" : ""} ${fresh ? "glow" : ""}`}>
       <button type="button" className={`chk ${it.done ? "on" : ""}`} onClick={() => onToggle(it)}
@@ -21,17 +62,25 @@ function Row({ it, today, onToggle, fresh, doneRow }: { it: Item; today: string;
         {it.done && <svg className="popin" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>}
       </button>
       <div className="card-main">
-        <div className={`card-title ${it.done ? "struck" : ""}`}>{it.title}</div>
-        <div className="card-meta">
-          <span className={`chip chip-${it.weight}`}>{it.weight === "waiting" ? "waiting on" : it.weight}</span>
-          {it.person && <span className="meta-small">{it.person}</span>}
-          {it.code && <span className="mono meta-small">{it.code}</span>}
-          {it.personal && <span className="chip chip-personal">personal</span>}
-          {doneRow && it.done_at
-            ? <span className="due">done {doneTime(it.done_at)}</span>
-            : <span className={`due ${over ? "due-over" : ""}`}>{dueLabel(it.due, it.days_overdue, today)}</span>}
-        </div>
+        {editing && onEdited ? <Editor it={it} onClose={() => setEditing(false)} onSaved={onEdited} /> : (
+          <>
+            <div className={`card-title ${it.done ? "struck" : ""}`}>{it.title}</div>
+            <div className="card-meta">
+              <span className={`chip chip-${it.weight}`}>{it.weight === "waiting" ? "waiting on" : it.weight}</span>
+              {it.person && <span className="meta-small">{it.person}</span>}
+              {it.code && <span className="mono meta-small">{it.code}</span>}
+              {it.personal && <span className="chip chip-personal">personal</span>}
+              {it.edited && <span className="chip chip-edited" title="You changed this here. Open the editor to see the original.">edited</span>}
+              {doneRow && it.done_at
+                ? <span className="due">done {doneTime(it.done_at)}</span>
+                : <span className={`due ${over ? "due-over" : ""}`}>{dueLabel(it.due, it.days_overdue, today)}</span>}
+            </div>
+          </>
+        )}
       </div>
+      {!doneRow && !it.done && onEdited && !editing && (
+        <button type="button" className="edit-btn" onClick={() => setEditing(true)} aria-label={`Edit: ${it.title}`} title="Edit title or date">✎</button>
+      )}
     </div>
   );
 }
@@ -94,7 +143,7 @@ export default function TodayTab() {
           )}
 
           {openItems.length === 0 && <div className="empty">{doneToday.length ? "All done for today. Well done." : "Nothing due today and nothing overdue."}</div>}
-          {openItems.map((it) => <Row key={it.key} it={it} today={data.today} onToggle={toggle} fresh={celebrate && last === it.key} />)}
+          {openItems.map((it) => <Row key={it.key} it={it} today={data.today} onToggle={toggle} fresh={celebrate && last === it.key} onEdited={load} />)}
 
           {doneToday.length > 0 && (
             <details className="done-today">
@@ -104,10 +153,17 @@ export default function TodayTab() {
           )}
           <button type="button" className="link-quiet" onClick={() => setPanel({ kind: "done" })}>See everything you have done, with dates →</button>
 
+          {data.later_items.length > 0 && (
+            <details className="done-today">
+              <summary>Later ({data.later_items.length})</summary>
+              {data.later_items.map((it) => <Row key={it.key} it={it} today={data.today} onToggle={toggle} fresh={false} onEdited={load} />)}
+            </details>
+          )}
+
           {(data.upcoming_items.length > 0 || data.undated_tasks > 0) && (
             <div className="coming">
               <div className="kicker">COMING UP · NEXT 7 DAYS</div>
-              {data.upcoming_items.map((it) => <Row key={it.key} it={it} today={data.today} onToggle={toggle} fresh={false} />)}
+              {data.upcoming_items.map((it) => <Row key={it.key} it={it} today={data.today} onToggle={toggle} fresh={false} onEdited={load} />)}
               {data.undated_tasks > 0 && <div className="muted small">{data.undated_tasks} more task{data.undated_tasks === 1 ? "" : "s"} without a date.</div>}
             </div>
           )}

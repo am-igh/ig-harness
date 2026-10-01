@@ -179,3 +179,12 @@ table.score td.best { font-weight: 700; color: var(--purple); }
 .opt .mono { flex-grow: 1; } .opt.locked { cursor: default; opacity: .6; background: #f7f8fb; } .opt.locked:hover { background: #f7f8fb; } .opt.locked span:nth-child(2) { flex-grow: 1; } .tiers { color: var(--muted); }
 .picker-ext { display: flex; flex-direction: column; gap: 6px; }
 .picker-msg { padding: 10px 12px; border-radius: 10px; background: #eef6d0; color: #3d4a00; font-size: 12px; line-height: 1.4; }
+
+/* inline editing */
+.edit-btn { align-self: flex-start; width: 28px; height: 28px; border-radius: 8px; border: 1px solid transparent; background: transparent; color: var(--muted); font-size: 14px; cursor: pointer; opacity: .55; } .card:hover .edit-btn, .edit-btn:focus-visible { opacity: 1; border-color: #c9cfe6; background: #fff; }
+.edit-btn:hover { color: var(--purple); }
+.chip-edited { background: #eef0f8; color: #4f5fa8; }
+.editor { display: flex; flex-direction: column; gap: 10px; } .editor label { display: flex; flex-direction: column; gap: 4px; font-size: 11px; font-weight: 700; letter-spacing: .06em; color: #4f5fa8; text-transform: uppercase; }
+.editor textarea, .editor input[type=date] { font: inherit; font-size: 14px; font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--ink); border: 1px solid #c9cfe6; border-radius: 8px; padding: 8px 10px; }
+.editor textarea { resize: vertical; } .date-row { display: flex; gap: 8px; align-items: center; } .date-row input { flex: 0 0 auto; }
+.editor-actions { display: flex; gap: 8px; } .edited-note { font-size: 12px; color: var(--muted); line-height: 1.45; } .edit-err { font-size: 12px; font-weight: 600; color: #a1261c; }

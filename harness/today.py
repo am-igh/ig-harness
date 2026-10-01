@@ -4,6 +4,7 @@ from datetime import date, datetime, timedelta
 
 from harness.config import now_local
 from harness.deadlines import done_this_week, warning_level, week_start
+from harness.items import overrides_for
 
 LAKE_DAYS = 47          # lake band runs from today to today + 47 days (30 Sep -> 15 Nov in the mockup)
 UPCOMING_DAYS = 7
@@ -23,7 +24,7 @@ def _item(r: sqlite3.Row, type_: str, today: date) -> dict:
         "code": r["code"], "weight": weight, "person": r["person"] if "person" in r.keys() else None,
         "personal": r["space"] == "personal", "due": due,
         "days_overdue": (today - d).days if d and d < today else 0,
-        "done": r["status"] == "done", "done_at": r["done_at"],
+        "done": r["status"] == "done", "done_at": r["done_at"], "edited": None,
     }
 
 
@@ -45,7 +46,13 @@ def _items(conn, today: date, lo: str | None, hi: str) -> list[dict]:
             f"{base} WHERE (status='open' AND due IS NOT NULL AND due <= :hi {lo_clause}) {done_clause} "
             "ORDER BY due, id", params
         ).fetchall()
-        out += [_item(r, type_, today) for r in rows]
+        ov = overrides_for(conn, {"task": "tasks", "deadline": "deadlines", "waiting_on": "waiting_on"}[type_])
+        for r in rows:
+            it = _item(r, type_, today)
+            if r["id"] in ov:                      # edited here: remember what the source still says
+                it["edited"] = {"title": ov[r["id"]].get("title"), "due": ov[r["id"]].get("due"),
+                                "title_changed": "title" in ov[r["id"]], "due_changed": "due" in ov[r["id"]]}
+            out.append(it)
     out.sort(key=lambda i: (i["due"] or "9999", i["id"]))
     return out
 
@@ -97,6 +104,7 @@ def build_today(conn: sqlite3.Connection, now: datetime | None = None) -> dict:
         "done_this_week": done_this_week(conn, today),
         "today_items": _items(conn, today, None, t),
         "upcoming_items": _items(conn, today, (today + timedelta(days=1)).isoformat(), upcoming_hi),
+        "later_items": _items(conn, today, (today + timedelta(days=UPCOMING_DAYS + 1)).isoformat(), "9999-12-31")[:40],
         "undated_tasks": undated,
         "lake": lake, "ticks": sorted(ticks),
         "events_today": _events_today(conn, today), "next_event": _next_event(conn, now),

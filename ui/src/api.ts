@@ -2,6 +2,7 @@ export type Item = {
   key: string; type: "task" | "deadline" | "waiting_on" | "email"; id: number; title: string;
   code: string | null; weight: "major" | "hard" | "soft" | "waiting"; person: string | null;
   personal: boolean; due: string | null; days_overdue: number; done: boolean; done_at: string | null;
+  edited: null | { title: string | null; due: string | null; title_changed: boolean; due_changed: boolean };
 };
 export type Mark = {
   id: number; title: string; due: string; importance: "major" | "normal"; kind: string;
@@ -10,7 +11,7 @@ export type Mark = {
 export type CalEvent = { id: number; title: string; start: string; end: string | null; all_day: boolean };
 export type Today = {
   now: string; today: string; week_start: string; done_this_week: number;
-  today_items: Item[]; upcoming_items: Item[]; undated_tasks: number;
+  today_items: Item[]; upcoming_items: Item[]; later_items: Item[]; undated_tasks: number;
   lake: Mark[]; ticks: string[]; events_today: CalEvent[]; next_event: { title: string; start: string } | null;
 };
 export type DeadlineDetail = {
@@ -77,3 +78,7 @@ export type ModelsInfo = {
 export const getModels = () => j<ModelsInfo>("/api/models");
 export const selectModel = (job: string, provider: string, model: string) =>
   j<{ ok: boolean }>("/api/models/select", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ job, provider, model }) });
+
+export const editItem = (it: Pick<Item, "type" | "id">, patch: { title?: string; due?: string | null; reset?: boolean }) =>
+  fetch(`/api/items/${it.type}/${it.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(patch) })
+    .then(async (r) => { if (!r.ok) throw new Error((await r.json().catch(() => ({ detail: "Could not save" }))).detail); return r.json(); });
