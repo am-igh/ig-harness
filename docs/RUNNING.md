@@ -8,7 +8,8 @@ The harness runs on your Mac in Docker and opens in your browser. Nothing leaves
 |---|---|
 | **Start it** | Open **Docker Desktop** (wait until it says "running"), then in Terminal: `cd ~/Developer/ig-harness && make up` |
 | **Open it** | Go to <http://localhost:5173> in your browser |
-| **Refresh from Suivi and the project register** | `make import` |
+| **Refresh now** | Press **↻ Updated hh:mm** in the header, or `make refresh-now` (shows each step). Normally you do nothing: the refresh agent does it every 30 minutes, 06:30–21:00. |
+| **Refresh from Suivi and the project register only** | `make import` |
 | **Refresh those and your Google Calendar** | `make calendar` |
 | **Fetch and triage your recent emails** (read-only) | `make gmail`. The triage then runs in the background; the Emails panel fills in as it goes. |
 | **Learn how you write to each person** | `make correspondence` (read-only; takes a few minutes). Then review the results on the Inbox tab under **How you write to people**. |
@@ -65,3 +66,20 @@ When Claude has made changes and you have agreed to them: `make down`, then `mak
 3. For something you are waiting on (a waiting-on item whose chase date has come), click **Remind**. The harness suggests the conversation where you asked for it; you can pick another or start a new message.
 
 Needed once and refreshed now and then: `make gmail` (so replies can be threaded), `make correspondence` (your style per person, and the conversations used for reminders), and `make agent-install`.
+
+
+## The background agents (set up once)
+
+| Agent | What it does | Install / remove |
+|---|---|---|
+| **Refresh agent** | Every 30 min between 06:30 and 21:00, and when you press ↻: fetches your calendar and Gmail (read-only), reads your past correspondence about once a day, imports everything, triages new email, and makes the daily backup. | `make refresh-install` / `make refresh-uninstall` |
+| **Draft agent** | Creates a Gmail *draft* only after you approve it in the app. Cannot send. | `make agent-install` / `make agent-uninstall` |
+
+`make agent-status` shows both, the last refresh and the latest backup. The header chip turns orange if the last refresh failed or is stale, and its hover text lists each step. Logs (no email text) are in `~/IG-Harness-data/logs/`. Both agents start at login. They need the harness running (`make up`) for the import and triage steps; if it isn't, those steps are skipped and the fetching still happens.
+
+## Backups and restoring
+
+- **Automatic:** a verified snapshot of the harness database once a day (by the refresh agent), kept in `~/IG-Harness-Backups/` (14 daily, 12 monthly), plus an automatic copy before any database upgrade (`~/IG-Harness-data/backups/`). These stay on this Mac because the database holds confidential and personal data. Time Machine or an encrypted external drive can copy the folder.
+- **`make backup`**: a snapshot now. **`make backup-list`**: what exists. **`make backup-test`**: restores the newest into a throwaway folder, opens it the way the harness does, and compares it with the live data. It should say `RESULT: PASS`.
+- **If something goes wrong:** `make down`, then `python3 tools/backup.py restore <snapshot file> --yes`, then `make up`. Your current database is kept next to it as `harness.db.before-restore-…`, never deleted.
+- What is *not* in the backup: your Google tokens (Keychain; you would log in again with `login`, `login-gmail` and `draft_worker.py login`), and your spreadsheets (they stay where they are).

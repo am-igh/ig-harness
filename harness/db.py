@@ -4,6 +4,7 @@ The database file lives in the data directory (~/IG-Harness-data), never in the 
 Migrations are append-only: to change the schema, add a new entry to MIGRATIONS.
 """
 import sqlite3
+from datetime import datetime
 from pathlib import Path
 
 from harness.config import DATA_DIR
@@ -337,9 +338,32 @@ def schema_version(conn: sqlite3.Connection) -> int:
     return conn.execute("PRAGMA user_version").fetchone()[0]
 
 
+KEEP_PRE_MIGRATION_SNAPSHOTS = 5
+
+
+def _snapshot_before_migration(conn: sqlite3.Connection, version: int) -> Path | None:
+    """Before changing the structure of a database that holds data, keep a copy (in a `backups` folder next to it)."""
+    file = conn.execute("PRAGMA database_list").fetchone()[2]
+    if not file:
+        return None
+    folder = Path(file).parent / "backups"
+    folder.mkdir(exist_ok=True)
+    dest = folder / f"pre-migration-v{version}-{datetime.now():%Y%m%d-%H%M%S}.db"
+    out = sqlite3.connect(dest)
+    try:
+        conn.backup(out)
+    finally:
+        out.close()
+    for old in sorted(folder.glob("pre-migration-v*.db"))[:-KEEP_PRE_MIGRATION_SNAPSHOTS]:
+        old.unlink(missing_ok=True)
+    return dest
+
+
 def migrate(conn: sqlite3.Connection) -> int:
     """Apply any migrations not yet applied. Returns the resulting schema version."""
     version = schema_version(conn)
+    if 0 < version < len(MIGRATIONS):
+        _snapshot_before_migration(conn, version)
     for i, sql in enumerate(MIGRATIONS[version:], start=version + 1):
         with conn:  # one transaction per migration
             conn.executescript("BEGIN;" + sql)

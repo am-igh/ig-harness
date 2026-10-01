@@ -521,3 +521,20 @@ def draft_reminder(waiting_id: int, body: DraftRequestIn) -> dict:
     from harness.gateway import Gateway
     return _drafting(lambda c: drafting.generate_reminder(c, Gateway(), waiting_id, thread_id=body.thread_id, new_message=body.new_message,
                                                           tone=body.tone, language=body.language, instruction=body.instruction))
+
+
+# --- Refresh agent status (the agent runs on the Mac; it writes a status file the screen reads) ---
+@app.get("/api/refresh/status")
+def refresh_status() -> dict:
+    from harness import refresh
+    from harness.config import now_local
+    return refresh.summary(refresh.read_status(DATA_DIR), now_local(), refresh.agent_alive(DATA_DIR))
+
+
+@app.post("/api/refresh/now")
+def refresh_now() -> dict:
+    """The 'Refresh now' button: the Mac-side agent picks the request up within a few seconds."""
+    from harness import refresh
+    from harness.config import now_local
+    refresh.request_refresh(DATA_DIR, now_local())
+    return {"requested": True, "agent_alive": refresh.agent_alive(DATA_DIR)}

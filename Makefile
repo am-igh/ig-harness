@@ -1,4 +1,4 @@
-.PHONY: up down test logs import calendar gmail correspondence check-network agent-install agent-uninstall agent-status
+.PHONY: up down test logs import calendar gmail correspondence check-network agent-install agent-uninstall agent-status refresh-install refresh-uninstall refresh-now backup backup-list backup-test
 
 up:      ## Start the harness (UI at http://localhost:5173)
 	docker compose up -d --build
@@ -38,5 +38,23 @@ agent-install: ## Install the background agent that saves approved drafts to Gma
 agent-uninstall: ## Remove the background agent
 	sh scripts/uninstall_draft_agent.sh
 
-agent-status: ## Is the draft agent installed and running?
-	sh scripts/draft_agent_status.sh
+agent-status: ## Are the background agents (drafts, refresh) installed and running? Last refresh and backup
+	sh scripts/agents_status.sh
+
+refresh-install: ## Install the background agent that keeps the harness current (calendar, Gmail, imports, triage, backup)
+	sh scripts/install_refresh_agent.sh
+
+refresh-uninstall: ## Remove the refresh agent
+	sh scripts/uninstall_refresh_agent.sh
+
+refresh-now: ## Refresh everything right now and print each step
+	python3 tools/refresh_worker.py once
+
+backup: ## Make a verified snapshot of the harness database now (kept in ~/IG-Harness-Backups)
+	python3 tools/backup.py backup
+
+backup-list: ## List the backups
+	python3 tools/backup.py list
+
+backup-test: ## Restore the newest backup into a throwaway folder and compare it with the live data
+	python3 tools/backup.py restore-check

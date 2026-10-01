@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import TodayTab from "./today/TodayTab";
 import EmailList from "./email/EmailList";
 import ModelPicker from "./ModelPicker";
+import RefreshChip from "./RefreshChip";
 import Rules from "./email/Rules";
 import Scoreboard from "./email/Scoreboard";
 import StyleProfiles from "./email/StyleProfiles";
@@ -44,6 +45,7 @@ export default function App() {
         </nav>
         <div className="grow" />
         <div className="badge-lock">🔒 Drafts only · never sent automatically</div>
+        <RefreshChip />
         <ModelPicker backendDown={health === "down"} />
       </header>
       {tab === "today" ? <TodayTab /> : tab === "inbox" ? (

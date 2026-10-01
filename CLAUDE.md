@@ -85,6 +85,8 @@ Wrap and call these; do not rewrite their logic. Ask Anne-Marie to connect a fol
 - **Style per person** is learned by plain rules from her past correspondence (`make correspondence`), shown on the Inbox tab and correctable; her corrections are never overwritten. New people default to a professional tone, overridable per draft.
 - **Her edits to imported items** (title, due date) are kept across re-imports (`item_overrides`); Suivi.xlsx itself is never changed.
 - **Ticking and the Done record:** ticked items move to "Done today" and the searchable Done record (with date and time); emails can be marked handled and reopen if the other person writes again.
+- **Keeping current:** a Mac-side refresh agent (`tools/refresh_worker.py`, LaunchAgent via `make refresh-install`) refreshes calendar and Gmail (read-only), imports, triages and backs up every 30 minutes between 06:30 and 21:00 or on the header's ↻ button; status in `~/IG-Harness-data/refresh_status.json`. It holds only read-only Google permissions and has no draft capability (the draft agent is separate).
+- **Backups:** daily verified snapshots of `harness.db` in `~/IG-Harness-Backups` (14 daily, 12 monthly) and an automatic copy before every database upgrade; they never leave the Mac (the database holds S2/S3 data). `make backup-test` is the restore test.
 - **Safety checks to keep green:** `make test` (red-team, one-door, no-send, fail-safe, masking), `make check-network`.
 
 ## Build phases

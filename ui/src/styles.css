@@ -210,3 +210,8 @@ table.score td.best { font-weight: 700; color: var(--purple); }
 .draft-box input, .draft-box textarea, .draft-box select { font: inherit; font-size: 13px; font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--ink); border: 1px solid #c9cfe6; border-radius: 8px; padding: 8px 10px; background: #fff; } .draft-box textarea { line-height: 1.5; resize: vertical; } .draft-box input:disabled, .draft-box textarea:disabled { background: #eef0f5; color: var(--muted); }
 .draft-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; } .draft-opts .wide { grid-column: 1 / -1; }
 .remind-btn { align-self: flex-start; height: 28px; padding: 0 10px; border-radius: 8px; border: 1px solid #c9cfe6; background: #fff; color: var(--navy); font-size: 12px; font-weight: 600; cursor: pointer; } .remind-btn:hover { border-color: var(--purple); color: var(--purple); }
+
+/* refresh chip */
+.refresh-chip { height: 36px; display: flex; align-items: center; gap: 8px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; font-size: 12px; background: #fff; color: var(--ink); cursor: pointer; } .refresh-chip:hover:not(:disabled) { border-color: #aeb6cf; } .refresh-chip:disabled { cursor: default; }
+.dot.run { background: var(--peri); animation: shimmer 1.2s ease-in-out infinite; } .spin { color: var(--muted); font-size: 14px; } .spin.on { display: inline-block; animation: turn 1s linear infinite; color: var(--peri); }
+@keyframes turn { to { transform: rotate(360deg); } }
