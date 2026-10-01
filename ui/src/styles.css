@@ -158,3 +158,14 @@ nav { display: flex; gap: 4px; height: 72px; margin-left: 28px; }
 .models { display: flex; flex-direction: column; gap: 4px; font-size: 13px; } .models label { display: flex; gap: 8px; align-items: center; }
 table.score { width: 100%; border-collapse: collapse; font-size: 12px; } table.score th, table.score td { padding: 6px 4px; text-align: right; border-bottom: 1px solid #eceef4; } table.score th:first-child, table.score td:first-child { text-align: left; font-family: "IBM Plex Mono", monospace; }
 table.score td.best { font-weight: 700; color: var(--purple); }
+
+/* done record */
+.done-today { margin-top: 6px; } .done-today summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--navy); margin-bottom: 8px; }
+.done-today > .card { margin-bottom: 8px; }
+.link-quiet { align-self: flex-start; border: none; background: transparent; padding: 4px 0; color: #4f5fa8; font-size: 12px; font-weight: 600; cursor: pointer; } .link-quiet:hover { color: var(--purple); }
+.search { height: 38px; border: 1px solid #c9cfe6; border-radius: 10px; padding: 0 12px; font: inherit; font-size: 13px; }
+.done-group { display: flex; flex-direction: column; gap: 6px; }
+.done-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 10px; background: #f7f8fb; font-size: 13px; }
+.done-time { font-size: 12px; color: var(--muted); width: 40px; flex-shrink: 0; } .done-title { flex-grow: 1; min-width: 0; } .done-title em { color: var(--muted); font-style: normal; font-size: 11px; }
+.btn-done { flex-grow: 1; height: 42px; border-radius: 10px; border: none; background: var(--purple); color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; } .btn-done:hover { filter: brightness(1.08); }
+.btn-ghost.wide { flex-grow: 1; height: 40px; }

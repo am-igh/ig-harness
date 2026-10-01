@@ -191,6 +191,23 @@ MIGRATIONS: list[str] = [
         error TEXT
     );
     """,
+    # 6: emails can be marked handled (with date and time); done_log may now hold emails
+    """
+    ALTER TABLE emails ADD COLUMN handled_at TEXT;
+    CREATE TABLE done_log_new (
+        id INTEGER PRIMARY KEY,
+        item_type TEXT NOT NULL CHECK (item_type IN ('task','deadline','waiting_on','email')),
+        item_id INTEGER NOT NULL,
+        title TEXT NOT NULL,                -- snapshot, survives later edits
+        done_at TEXT NOT NULL DEFAULT (datetime('now')),
+        space TEXT NOT NULL DEFAULT 'work' CHECK (space IN ('work','personal'))
+    );
+    INSERT INTO done_log_new (id, item_type, item_id, title, done_at, space)
+        SELECT id, item_type, item_id, title, done_at, space FROM done_log;
+    DROP TABLE done_log;
+    ALTER TABLE done_log_new RENAME TO done_log;
+    CREATE INDEX idx_done_log_done_at ON done_log (done_at);
+    """,
 ]
 
 

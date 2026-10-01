@@ -1,7 +1,7 @@
 export type Item = {
-  key: string; type: "task" | "deadline" | "waiting_on"; id: number; title: string;
+  key: string; type: "task" | "deadline" | "waiting_on" | "email"; id: number; title: string;
   code: string | null; weight: "major" | "hard" | "soft" | "waiting"; person: string | null;
-  personal: boolean; due: string | null; days_overdue: number; done: boolean;
+  personal: boolean; due: string | null; days_overdue: number; done: boolean; done_at: string | null;
 };
 export type Mark = {
   id: number; title: string; due: string; importance: "major" | "normal"; kind: string;
@@ -18,7 +18,7 @@ export type DeadlineDetail = {
   status: string; personal: boolean; source: string; days_left: number; warn_d14: string; warn_d3: string;
   related: { type: string; label: string; meta: string }[];
 };
-export type DoneItem = { title: string; done_at: string; personal: boolean };
+export type DoneItem = { key: string; type: Item["type"]; id: number; title: string; done_at: string; personal: boolean; reopenable: boolean; via: string | null };
 
 async function j<T>(url: string, init?: RequestInit): Promise<T> {
   const r = await fetch(url, init);
@@ -27,7 +27,7 @@ async function j<T>(url: string, init?: RequestInit): Promise<T> {
 }
 export const getToday = () => j<Today>("/api/today");
 export const getDeadline = (id: number) => j<DeadlineDetail>(`/api/deadlines/${id}`);
-export const getDoneWeek = () => j<{ items: DoneItem[] }>("/api/done/week");
+export const getDone = (days: number, q: string) => j<{ items: DoneItem[] }>(`/api/done?days=${days}&q=${encodeURIComponent(q)}`);
 export const setDone = (it: Pick<Item, "type" | "id">, done: boolean) =>
   j<{ changed: boolean }>(`/api/items/${it.type}/${it.id}/${done ? "done" : "undo"}`, { method: "POST" });
 
@@ -35,10 +35,10 @@ export type Email = {
   id: number; thread_id: string; subject: string; from_name: string; from_email: string; known: boolean;
   org: string | null; role: string | null; why: string | null; urgency: number | null; received_at: string;
   snippet: string | null; hours_ago: number; direct: boolean; status: string;
-  action: string | null; deadline: string | null; user_label: "yes" | "no" | null; task_id: number | null;
+  action: string | null; deadline: string | null; user_label: "yes" | "no" | null; task_id: number | null; handled_at: string | null;
 };
 export type EmailsResponse = {
-  needs_reply: Email[]; not_needing_reply?: Email[];
+  needs_reply: Email[]; not_needing_reply?: Email[]; handled?: Email[];
   counts: { pending: number; skipped: number; done: number; error: number };
 };
 export type TriageStatus = { running: boolean; last: Record<string, number | string> | null; finished_at: string | null };

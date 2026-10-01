@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
-import { type DeadlineDetail, type DoneItem, getDeadline, getDoneWeek } from "../api";
-import { dayFull, dayShort } from "../format";
+import { useCallback, useEffect, useState } from "react";
+import { type DeadlineDetail, type DoneItem, getDeadline, getDone, setDone } from "../api";
+import { dayFull, dayHeading, dayShort, doneDay, doneTime } from "../format";
 
 export type Panel = { kind: "deadline"; id: number } | { kind: "done" } | null;
 
@@ -61,24 +61,53 @@ function DeadlineDrawer({ id, today, onClose, onTick }: { id: number; today: str
   );
 }
 
-function DoneDrawer({ onClose }: { onClose: () => void }) {
+const RANGES: [string, number][] = [["This week", 7], ["30 days", 30], ["All time", 0]];
+const TYPE_LABEL: Record<string, string> = { task: "TASK", deadline: "DEADLINE", waiting_on: "WAITING", email: "EMAIL" };
+
+function DoneDrawer({ today, onClose, onChanged }: { today: string; onClose: () => void; onChanged: () => void }) {
+  const [days, setDays] = useState(7);
+  const [q, setQ] = useState("");
   const [items, setItems] = useState<DoneItem[] | null>(null);
-  useEffect(() => { getDoneWeek().then((r) => setItems(r.items)); }, []);
+  const load = useCallback(() => getDone(days, q).then((r) => setItems(r.items)), [days, q]);
+  useEffect(() => { const t = setTimeout(load, q ? 250 : 0); return () => clearTimeout(t); }, [load, q]);
+
+  const reopen = async (i: DoneItem) => { await setDone(i, false); await load(); onChanged(); };
   const n = items?.length ?? 0;
+  const groups: [string, DoneItem[]][] = [];
+  for (const i of items ?? []) {
+    const d = doneDay(i.done_at);
+    if (groups.length && groups[groups.length - 1][0] === d) groups[groups.length - 1][1].push(i); else groups.push([d, [i]]);
+  }
   return (
-    <Shell kicker="DONE THIS WEEK" title={items ? `${n} thing${n === 1 ? "" : "s"} off your plate` : "Loading…"} meta="Since Monday" onClose={onClose}>
-      {items && n === 0 && <p className="muted">Nothing ticked off yet this week. Tick something in Today &amp; overdue and the jet will rise.</p>}
-      {items?.map((i, k) => (
-        <div key={k} className="done-row">✓ <span>{i.title}</span><small>{dayShort(i.done_at.slice(0, 10))}</small></div>
+    <Shell kicker="DONE" title={items ? `${n} thing${n === 1 ? "" : "s"} done` : "Loading…"} meta="With the date and time you ticked them off" onClose={onClose}>
+      <div className="range" role="group" aria-label="Period">
+        {RANGES.map(([label, d]) => <button key={d} type="button" className={d === days ? "on" : ""} aria-pressed={d === days} onClick={() => setDays(d)}>{label}</button>)}
+      </div>
+      <input className="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search what you have done…" aria-label="Search done items" />
+      {items && n === 0 && <p className="muted">{q ? "Nothing matches." : "Nothing ticked off in this period yet. Tick something and it will be recorded here."}</p>}
+      {groups.map(([day, rows]) => (
+        <div key={day} className="done-group">
+          <div className="kicker">{dayHeading(day, today).toUpperCase()}</div>
+          {rows.map((i) => (
+            <div key={i.key + i.done_at} className="done-row">
+              <span className="mono done-time">{doneTime(i.done_at) || "—"}</span>
+              <span className="done-title">{i.title}{i.personal && <em> · personal</em>}</span>
+              <span className="mono rel-type">{TYPE_LABEL[i.type] ?? i.type}</span>
+              {i.reopenable
+                ? <button type="button" className="btn-ghost" onClick={() => reopen(i)}>Reopen</button>
+                : <small title="Closed in Suivi; reopen it there">{i.via ? `via ${i.via}` : ""}</small>}
+            </div>
+          ))}
+        </div>
       ))}
     </Shell>
   );
 }
 
-export default function Drawer({ panel, today, onClose, onTickDeadline }: {
-  panel: Panel; today: string; onClose: () => void; onTickDeadline: (id: number) => void;
+export default function Drawer({ panel, today, onClose, onTickDeadline, onChanged }: {
+  panel: Panel; today: string; onClose: () => void; onTickDeadline: (id: number) => void; onChanged: () => void;
 }) {
   if (!panel) return null;
-  if (panel.kind === "done") return <DoneDrawer onClose={onClose} />;
+  if (panel.kind === "done") return <DoneDrawer today={today} onClose={onClose} onChanged={onChanged} />;
   return <DeadlineDrawer id={panel.id} today={today} onClose={onClose} onTick={() => onTickDeadline(panel.id)} />;
 }

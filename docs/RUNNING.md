@@ -13,7 +13,7 @@ The harness runs on your Mac in Docker and opens in your browser. Nothing leaves
 | **Fetch and triage your recent emails** (read-only) | `make gmail`. The triage then runs in the background; the Emails panel fills in as it goes. |
 | **Stop it** | `make down` |
 
-The Today page reloads its own data every minute. Ticking something off is saved straight away in `~/IG-Harness-data/harness.db` and does not change Suivi.xlsx. Suivi stays your source of truth for now, and the harness only mirrors it.
+The Today page reloads its own data every minute. Ticked items move into **Done today** (with the time). Click the green counter, or "See everything you have done", for the full record by day: search it, and **Reopen** anything. Emails have a **Mark as done** button in their pop-out; handled emails stay findable under **Handled** on the Inbox tab. Ticking something off is saved straight away in `~/IG-Harness-data/harness.db` and does not change Suivi.xlsx. Suivi stays your source of truth for now, and the harness only mirrors it.
 
 ## First time only (already done on this Mac)
 

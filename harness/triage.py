@@ -190,7 +190,7 @@ def list_emails(conn: sqlite3.Connection, hours: int, now: datetime | None = Non
     now = now or now_local()
     cutoff = datetime.fromtimestamp(now.timestamp() - hours * 3600, TZ).isoformat(timespec="seconds")
     base = ("SELECT e.*, p.name AS person_name, p.org AS person_org, p.role AS person_role FROM emails e "
-            "LEFT JOIN people p ON p.slug = e.person_slug WHERE e.in_window = 1 AND e.received_at >= ? ")
+            "LEFT JOIN people p ON p.slug = e.person_slug WHERE e.in_window = 1 AND e.received_at >= ? AND e.handled_at IS NULL ")
 
     def shape(r):
         return {"id": r["id"], "thread_id": r["thread_id"], "subject": r["subject"] or "(no subject)",
@@ -199,12 +199,15 @@ def list_emails(conn: sqlite3.Connection, hours: int, now: datetime | None = Non
                 "action": r["action"], "deadline": r["deadline"], "user_label": r["user_label"], "task_id": r["task_id"],
                 "urgency": r["urgency"], "received_at": r["received_at"], "snippet": r["snippet"],
                 "hours_ago": round((now - datetime.fromisoformat(r["received_at"])).total_seconds() / 3600, 1),
-                "direct": bool(r["direct"]), "status": r["triage_status"]}
+                "direct": bool(r["direct"]), "status": r["triage_status"], "handled_at": r["handled_at"]}
     need = [shape(r) for r in conn.execute(base + "AND e.triage_status='done' AND e.needs_reply=1 ORDER BY e.score DESC", (cutoff,))]
     res = {"needs_reply": need,
-           "counts": {k: conn.execute("SELECT COUNT(*) FROM emails WHERE in_window=1 AND received_at>=? AND triage_status=?", (cutoff, k)).fetchone()[0]
+           "counts": {k: conn.execute("SELECT COUNT(*) FROM emails WHERE in_window=1 AND handled_at IS NULL AND received_at>=? AND triage_status=?", (cutoff, k)).fetchone()[0]
                       for k in ("pending", "skipped", "done", "error")}}
     if include_skipped:
+        res["handled"] = [shape(r) for r in conn.execute(
+            "SELECT e.*, p.name AS person_name, p.org AS person_org, p.role AS person_role FROM emails e "
+            "LEFT JOIN people p ON p.slug = e.person_slug WHERE e.in_window = 1 AND e.handled_at IS NOT NULL ORDER BY e.handled_at DESC")]
         res["not_needing_reply"] = [shape(r) for r in conn.execute(
             base + "AND ((e.triage_status='done' AND e.needs_reply=0) OR e.triage_status='skipped') ORDER BY e.received_at DESC", (cutoff,))]
     return res

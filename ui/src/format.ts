@@ -25,3 +25,11 @@ export function dueLabel(due: string | null, overdue: number, today: string): st
   if (due === today) return "due today";
   return `due ${dayShort(due)}`;
 }
+
+/** done_at is stored as Geneva local time: "2026-10-01 14:32:05". */
+export const doneDay = (doneAt: string) => doneAt.slice(0, 10);
+export const doneTime = (doneAt: string) => (doneAt.length > 10 ? doneAt.slice(11, 16) : "");
+export function dayHeading(day: string, today: string): string {
+  const diff = daysBetween(day, today);
+  return diff === 0 ? "Today" : diff === 1 ? "Yesterday" : dayShort(day);
+}

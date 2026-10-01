@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { type Item, type Today, getToday, setDone } from "../api";
-import { dueLabel, timeOf } from "../format";
+import { doneTime, dueLabel, timeOf } from "../format";
 import EmailList from "../email/EmailList";
 import Drawer, { type Panel } from "./Drawer";
 import Lake from "./Lake";
@@ -12,7 +12,7 @@ const WIDGETS = [
   { title: "Scan inbox", sub: "Filed automatically", phase: "Phase 4" },
 ];
 
-function Row({ it, today, onToggle, fresh }: { it: Item; today: string; onToggle: (it: Item) => void; fresh: boolean }) {
+function Row({ it, today, onToggle, fresh, doneRow }: { it: Item; today: string; onToggle: (it: Item) => void; fresh: boolean; doneRow?: boolean }) {
   const over = it.days_overdue > 0 && !it.done;
   return (
     <div className={`card ${it.done ? "is-done" : over ? "is-over" : ""} ${fresh ? "glow" : ""}`}>
@@ -27,7 +27,9 @@ function Row({ it, today, onToggle, fresh }: { it: Item; today: string; onToggle
           {it.person && <span className="meta-small">{it.person}</span>}
           {it.code && <span className="mono meta-small">{it.code}</span>}
           {it.personal && <span className="chip chip-personal">personal</span>}
-          <span className={`due ${over ? "due-over" : ""}`}>{dueLabel(it.due, it.days_overdue, today)}</span>
+          {doneRow && it.done_at
+            ? <span className="due">done {doneTime(it.done_at)}</span>
+            : <span className={`due ${over ? "due-over" : ""}`}>{dueLabel(it.due, it.days_overdue, today)}</span>}
         </div>
       </div>
     </div>
@@ -40,6 +42,7 @@ export default function TodayTab() {
   const [panel, setPanel] = useState<Panel>(null);
   const [celebrate, setCelebrate] = useState(false);
   const [last, setLast] = useState<string | null>(null);
+  const [settling, setSettling] = useState<Record<string, boolean>>({});
   const timer = useRef<number>();
 
   const load = useCallback(() => getToday().then((d) => { setData(d); setError(false); }).catch(() => setError(true)), []);
@@ -54,6 +57,9 @@ export default function TodayTab() {
       upcoming_items: d.upcoming_items.map((x) => (x.key === it.key ? { ...x, done: willBeDone } : x)),
     });
     if (willBeDone) {
+      // Keep the row in place for a moment so the tick is seen, then it moves to "Done today".
+      setSettling((m) => ({ ...m, [it.key]: true }));
+      window.setTimeout(() => setSettling((m) => { const { [it.key]: _, ...rest } = m; return rest; }), 1400);
       setCelebrate(true); setLast(it.key);
       window.clearTimeout(timer.current);
       timer.current = window.setTimeout(() => setCelebrate(false), 1300);
@@ -65,6 +71,9 @@ export default function TodayTab() {
   if (error && !data) return <main className="page"><p className="muted">The harness back end isn't reachable. Is it running (make up)?</p></main>;
   if (!data) return <main className="page"><p className="muted">Loading…</p></main>;
 
+  const inOpenList = (i: Item) => !i.done || settling[i.key];
+  const openItems = data.today_items.filter(inOpenList);
+  const doneToday = data.today_items.filter((i) => i.done && !settling[i.key]).sort((a, b) => (b.done_at ?? "").localeCompare(a.done_at ?? ""));
   const open = data.today_items.filter((i) => !i.done).length;
   return (
     <>
@@ -84,8 +93,16 @@ export default function TodayTab() {
             </div>
           )}
 
-          {data.today_items.length === 0 && <div className="empty">Nothing due today and nothing overdue.</div>}
-          {data.today_items.map((it) => <Row key={it.key} it={it} today={data.today} onToggle={toggle} fresh={celebrate && last === it.key} />)}
+          {openItems.length === 0 && <div className="empty">{doneToday.length ? "All done for today. Well done." : "Nothing due today and nothing overdue."}</div>}
+          {openItems.map((it) => <Row key={it.key} it={it} today={data.today} onToggle={toggle} fresh={celebrate && last === it.key} />)}
+
+          {doneToday.length > 0 && (
+            <details className="done-today">
+              <summary>Done today ({doneToday.length})</summary>
+              {doneToday.map((it) => <Row key={it.key} it={it} today={data.today} onToggle={toggle} fresh={false} doneRow />)}
+            </details>
+          )}
+          <button type="button" className="link-quiet" onClick={() => setPanel({ kind: "done" })}>See everything you have done, with dates →</button>
 
           {(data.upcoming_items.length > 0 || data.undated_tasks > 0) && (
             <div className="coming">
@@ -98,7 +115,7 @@ export default function TodayTab() {
 
         <section className="panel">
           <div className="panel-head"><h2 className="serif">Emails needing you</h2></div>
-          <EmailList full={false} />
+          <EmailList full={false} onChanged={load} />
         </section>
 
         <aside className="widgets" aria-label="Widgets">
@@ -119,7 +136,7 @@ export default function TodayTab() {
         <button type="button" disabled>Send</button>
       </section>
 
-      <Drawer panel={panel} today={data.today} onClose={() => setPanel(null)} onTickDeadline={tickDeadline} />
+      <Drawer panel={panel} today={data.today} onClose={() => setPanel(null)} onTickDeadline={tickDeadline} onChanged={load} />
     </>
   );
 }

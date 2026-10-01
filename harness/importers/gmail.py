@@ -41,7 +41,7 @@ def import_gmail(conn: sqlite3.Connection, folder: Path) -> list[Report]:
             changes = {k: v for k, v in fields.items() if row[k] != v}
             if changes:
                 if "message_id" in changes:                       # new message in the thread: triage again
-                    changes.update(triage_status="pending", needs_reply=None, why=None, urgency=None, score=None)
+                    changes.update(triage_status="pending", needs_reply=None, why=None, urgency=None, score=None, handled_at=None)
                 conn.execute("UPDATE emails SET " + ", ".join(f"{k}=?" for k in changes) + ", updated_at=datetime('now') WHERE id=?",
                              [*changes.values(), row["id"]])
                 rep.updated += 1

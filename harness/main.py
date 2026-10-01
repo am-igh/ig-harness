@@ -53,10 +53,17 @@ def get_today() -> dict:
     return _with_conn(today_view.build_today)
 
 
+@app.get("/api/done")
+def get_done(days: int = 7, q: str = "") -> dict:
+    """The Done record: days=0 means all time."""
+    from harness.config import now_local
+    items = _with_conn(lambda c: today_view.done_list(c, now_local().date(), days or None, q))
+    return {"items": items}
+
+
 @app.get("/api/done/week")
 def get_done_week() -> dict:
-    from harness.config import now_local
-    return {"items": _with_conn(lambda c: today_view.done_list(c, now_local().date()))}
+    return get_done(7, "")
 
 
 @app.get("/api/deadlines/{deadline_id}")
@@ -244,3 +251,13 @@ def scoreboard_get() -> dict:
         return {"latest": scoreboard.latest(c), "n_labelled": len(scoreboard.labelled(c)),
                 "n_yes": c.execute("SELECT COUNT(*) FROM emails WHERE user_label='yes'").fetchone()[0]}
     return {"running": running, **_with_conn(go)}
+
+
+@app.post("/api/emails/{email_id}/done")
+def email_done(email_id: int) -> dict:
+    return {"changed": _with_conn(lambda c: deadlines.mark_done(c, "email", email_id))}
+
+
+@app.post("/api/emails/{email_id}/undo")
+def email_undo(email_id: int) -> dict:
+    return {"changed": _with_conn(lambda c: deadlines.mark_undone(c, "email", email_id))}

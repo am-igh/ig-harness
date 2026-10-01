@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { type Email, type EmailsResponse, type TriageStatus, emailToTask, getEmails, getTriageStatus, labelEmail, runTriage } from "../api";
+import { type Email, type EmailsResponse, type TriageStatus, emailToTask, getEmails, getTriageStatus, labelEmail, runTriage, setDone } from "../api";
 import { Shell } from "../today/Drawer";
-import { dayMonth, dayShort, timeOf } from "../format";
+import { dayMonth, dayShort, doneTime, doneDay, timeOf } from "../format";
 
 const RANGES = [24, 48, 72];
 const initials = (n: string) => n.split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((x) => x[0]?.toUpperCase()).join("");
 const ago = (h: number) => (h < 1 ? "<1 h" : h < 48 ? `${Math.round(h)} h` : `${Math.round(h / 24)} d`);
 
 function EmailDrawer({ e, onClose, onChanged }: { e: Email; onClose: () => void; onChanged: () => void }) {
+  const handled = !!e.handled_at;
+  const finish = async (done: boolean) => { await setDone({ type: "email", id: e.id }, done); onChanged(); onClose(); };
   const [label, setLabel] = useState(e.user_label);
   const [taskId, setTaskId] = useState(e.task_id);
   const [busy, setBusy] = useState(false);
@@ -27,6 +29,11 @@ function EmailDrawer({ e, onClose, onChanged }: { e: Email; onClose: () => void;
     <Shell kicker={`EMAIL${e.org ? " · " + e.org.toUpperCase() : ""}`} title={e.subject} meta={`${e.from_name} · ${Math.round(e.hours_ago)} h ago`} onClose={onClose}>
       <div className="facts">{facts.map(([k, v]) => <><span key={k + "k"}>{k}</span><span key={k + "v"}>{v}</span></>)}</div>
       {e.snippet && <div className="related"><div className="kicker">PREVIEW</div><div className="preview">{e.snippet}</div></div>}
+      <div className="actions">
+        {handled
+          ? <button type="button" className="btn-ghost wide" onClick={() => finish(false)}>Reopen (handled {dayMonth(doneDay(e.handled_at!))} {doneTime(e.handled_at!)})</button>
+          : <button type="button" className="btn-done" onClick={() => finish(true)}>✓ Mark as done</button>}
+      </div>
       <div className="actions">
         {taskId
           ? <div className="added">✓ In Today &amp; overdue{e.deadline ? ` (due ${dayMonth(e.deadline)})` : " (due today)"}</div>
@@ -62,7 +69,7 @@ function Row({ e, onOpen, dim }: { e: Email; onOpen: (e: Email) => void; dim?: b
 }
 
 /** The email list used on Today (needs-reply only) and on the Inbox tab (also what was skipped). */
-export default function EmailList({ full }: { full: boolean }) {
+export default function EmailList({ full, onChanged }: { full: boolean; onChanged?: () => void }) {
   const [hours, setHours] = useState(72);
   const [data, setData] = useState<EmailsResponse | null>(null);
   const [status, setStatus] = useState<TriageStatus | null>(null);
@@ -119,7 +126,13 @@ export default function EmailList({ full }: { full: boolean }) {
           {data.not_needing_reply!.map((e) => <Row key={e.id} e={e} onOpen={setOpen} dim />)}
         </details>
       )}
-      {open && <EmailDrawer e={open} onClose={() => { setOpen(null); load(); }} onChanged={load} />}
+      {full && (data.handled?.length ?? 0) > 0 && (
+        <details className="skipped">
+          <summary>Handled ({data.handled!.length})</summary>
+          {data.handled!.map((e) => <Row key={e.id} e={e} onOpen={setOpen} dim />)}
+        </details>
+      )}
+      {open && <EmailDrawer e={open} onClose={() => { setOpen(null); load(); }} onChanged={() => { load(); onChanged?.(); }} />}
     </>
   );
 }

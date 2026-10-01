@@ -23,7 +23,7 @@ def _item(r: sqlite3.Row, type_: str, today: date) -> dict:
         "code": r["code"], "weight": weight, "person": r["person"] if "person" in r.keys() else None,
         "personal": r["space"] == "personal", "due": due,
         "days_overdue": (today - d).days if d and d < today else 0,
-        "done": r["status"] == "done",
+        "done": r["status"] == "done", "done_at": r["done_at"],
     }
 
 
@@ -34,9 +34,9 @@ def _items(conn, today: date, lo: str | None, hi: str) -> list[dict]:
     params = {"t": t, "hi": hi_, "lo": lo}
     out = []
     sources = [
-        ("task", "SELECT id, title, project_code AS code, due_date AS due, status, space, NULL AS person, NULL AS importance FROM tasks"),
-        ("deadline", "SELECT id, title, project_code AS code, due_date AS due, status, space, NULL AS person, importance FROM deadlines"),
-        ("waiting_on", "SELECT id, description AS title, NULL AS code, remind_on AS due, status, space, person, NULL AS importance FROM waiting_on"),
+        ("task", "SELECT id, title, project_code AS code, due_date AS due, status, done_at, space, NULL AS person, NULL AS importance FROM tasks"),
+        ("deadline", "SELECT id, title, project_code AS code, due_date AS due, status, done_at, space, NULL AS person, importance FROM deadlines"),
+        ("waiting_on", "SELECT id, description AS title, NULL AS code, remind_on AS due, status, done_at, space, person, NULL AS importance FROM waiting_on"),
     ]
     for type_, base in sources:
         # done-today rows only when looking at today's list (lo is None)
@@ -103,10 +103,27 @@ def build_today(conn: sqlite3.Connection, now: datetime | None = None) -> dict:
     }
 
 
-def done_list(conn: sqlite3.Connection, today: date) -> list[dict]:
-    rows = conn.execute("SELECT title, done_at, space FROM done_log WHERE date(done_at) >= ? ORDER BY done_at DESC",
-                        (week_start(today).isoformat(),)).fetchall()
-    return [{"title": r["title"], "done_at": r["done_at"], "personal": r["space"] == "personal"} for r in rows]
+def done_list(conn: sqlite3.Connection, today: date, days: int | None = 7, q: str = "") -> list[dict]:
+    """Everything marked done, newest first, with date and time. days=None means all time.
+
+    Items closed in Suivi (imported as done) are listed too, with a date only; they can't be reopened
+    here because the next import would close them again."""
+    like = f"%{q.strip()}%"
+    cutoff = (today - timedelta(days=days)).isoformat() if days else "0000-00-00"
+    out = []
+    for r in conn.execute("SELECT item_type, item_id, title, done_at, space FROM done_log "
+                          "WHERE substr(done_at,1,10) >= ? AND title LIKE ? ORDER BY done_at DESC, id DESC", (cutoff, like)):
+        out.append({"key": f"{r['item_type']}:{r['item_id']}", "type": r["item_type"], "id": r["item_id"], "title": r["title"],
+                    "done_at": r["done_at"], "personal": r["space"] == "personal", "reopenable": True, "via": None})
+    for type_, table, col in (("task", "tasks", "title"), ("deadline", "deadlines", "title"), ("waiting_on", "waiting_on", "description")):
+        for r in conn.execute(
+            f"SELECT id, {col} AS t, done_at, space, source FROM {table} WHERE status='done' AND done_at IS NOT NULL "
+            f"AND substr(done_at,1,10) >= ? AND {col} LIKE ? AND source != 'manual' "
+            f"AND NOT EXISTS (SELECT 1 FROM done_log d WHERE d.item_type=? AND d.item_id={table}.id)", (cutoff, like, type_)):
+            out.append({"key": f"{type_}:{r['id']}", "type": type_, "id": r["id"], "title": r["t"], "done_at": r["done_at"],
+                        "personal": r["space"] == "personal", "reopenable": False, "via": "Suivi" if r["source"] == "suivi" else r["source"]})
+    out.sort(key=lambda x: x["done_at"], reverse=True)
+    return out
 
 
 def deadline_detail(conn: sqlite3.Connection, deadline_id: int, today: date) -> dict | None:
