@@ -13,7 +13,7 @@ Keychain items: ig-harness-google-client (account calendar), ig-harness-google-c
 (account refresh-token). Scope: calendar.readonly. Only the primary calendar is read.
 Only title, start, end and status are kept: no attendees, descriptions or links.
 """
-import base64, hashlib, http.server, json, os, secrets, subprocess, sys, threading
+import base64, hashlib, http.server, json, os, secrets, ssl, subprocess, sys, threading
 import urllib.parse, urllib.request, webbrowser
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -26,6 +26,14 @@ CLIENT_ITEM, CLIENT_ACCT = "ig-harness-google-client", "calendar"
 TOKEN_ITEM, TOKEN_ACCT = "ig-harness-google-calendar", "refresh-token"
 OUT = Path(os.environ.get("IG_DATA_DIR", Path.home() / "IG-Harness-data")) / "calendar_events.json"
 DAYS_BACK, DAYS_AHEAD = 7, 90
+
+
+def _ssl_context() -> ssl.SSLContext:
+    """Verify HTTPS against the Mac's own certificate list (python.org builds ship none)."""
+    ctx = ssl.create_default_context()
+    if os.path.exists("/etc/ssl/cert.pem"):
+        ctx.load_verify_locations("/etc/ssl/cert.pem")
+    return ctx
 
 
 def kc_get(item: str, acct: str) -> str | None:
@@ -54,7 +62,7 @@ def normalize_event(item: dict) -> dict | None:
 
 def _post(url: str, data: dict) -> dict:
     req = urllib.request.Request(url, urllib.parse.urlencode(data).encode())
-    with urllib.request.urlopen(req, timeout=30) as r:
+    with urllib.request.urlopen(req, timeout=30, context=_ssl_context()) as r:
         return json.load(r)
 
 
@@ -130,7 +138,7 @@ def sync() -> None:
             params["pageToken"] = page
         req = urllib.request.Request(EVENTS_URL + "?" + urllib.parse.urlencode(params),
                                      headers={"Authorization": f"Bearer {access}"})
-        with urllib.request.urlopen(req, timeout=30) as r:
+        with urllib.request.urlopen(req, timeout=30, context=_ssl_context()) as r:
             body = json.load(r)
         events += [e for e in map(normalize_event, body.get("items", [])) if e]
         page = body.get("nextPageToken")
