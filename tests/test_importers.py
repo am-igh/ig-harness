@@ -143,5 +143,6 @@ def test_local_done_survives_reimport_and_changes_are_reported(conn, folders):
 
 def test_missing_file_reports_error_without_crashing(conn, tmp_path):
     empty = tmp_path / "none"; empty.mkdir()
-    reps = run_all(conn, empty, empty)
-    assert len(reps) == 2 and all("error" in r for r in reps)
+    reps = run_all(conn, empty, empty, empty)
+    errors = [r for r in reps if "error" in r]
+    assert len(errors) == 2  # Suivi and register fail; calendar just notes "no file yet"

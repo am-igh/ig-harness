@@ -3,6 +3,8 @@ import os
 from pathlib import Path
 
 from harness import db
+from harness.config import DATA_DIR
+from harness.importers.calendar import import_calendar
 from harness.importers.registre import import_registre
 from harness.importers.suivi import import_suivi
 
@@ -11,7 +13,7 @@ SUIVI_DIR = Path(os.environ.get("IG_SUIVI_DIR", "/sources/suivi"))
 PROJETS_DIR = Path(os.environ.get("IG_PROJETS_DIR", "/sources/projets"))
 
 
-def run_all(conn=None, suivi_dir: Path = None, projets_dir: Path = None) -> list[dict]:
+def run_all(conn=None, suivi_dir: Path = None, projets_dir: Path = None, data_dir: Path = None) -> list[dict]:
     own = conn is None
     conn = conn or db.connect()
     try:
@@ -19,6 +21,7 @@ def run_all(conn=None, suivi_dir: Path = None, projets_dir: Path = None) -> list
         for label, fn, folder in (
             ("suivi", import_suivi, suivi_dir or SUIVI_DIR),
             ("registre", import_registre, projets_dir or PROJETS_DIR),
+            ("calendar", import_calendar, data_dir or DATA_DIR),
         ):
             try:
                 reports += [r.as_dict() for r in fn(conn, folder)]

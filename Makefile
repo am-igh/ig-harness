@@ -1,4 +1,4 @@
-.PHONY: up down test logs import
+.PHONY: up down test logs import calendar
 
 up:      ## Start the harness (UI at http://localhost:5173)
 	docker compose up -d --build
@@ -14,4 +14,8 @@ logs:    ## Show recent logs
 	docker compose logs --tail=50
 
 import:  ## Re-read Suivi.xlsx and the project register (read-only) and show what changed
+	docker compose exec api python -m harness.importers.run
+
+calendar: ## Fetch your Google Calendar (read-only, runs on the Mac) and import it
+	python3 tools/gcal_helper.py sync
 	docker compose exec api python -m harness.importers.run

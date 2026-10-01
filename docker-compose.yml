@@ -14,6 +14,7 @@ services:
       - ./harness:/app/harness
       - ./tests:/app/tests
       - ./pytest.ini:/app/pytest.ini
+      - ./tools:/app/tools
       # Her spreadsheets, mounted READ-ONLY. Paths come from .env (see .env.example).
       - ${SUIVI_DIR:-./tests/fixtures/suivi}:/sources/suivi:ro
       - ${PROJETS_DIR:-./tests/fixtures/projets}:/sources/projets:ro

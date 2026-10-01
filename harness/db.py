@@ -83,6 +83,20 @@ MIGRATIONS: list[str] = [
     CREATE INDEX idx_done_log_done_at ON done_log (done_at);
     CREATE INDEX idx_journal_date ON journal_entries (entry_date);
     """,
+    # 2: Google Calendar events (title and times only; read-only mirror)
+    f"""
+    CREATE TABLE calendar_events (
+        id INTEGER PRIMARY KEY,
+        title TEXT NOT NULL,
+        start TEXT NOT NULL,                -- ISO date or datetime as Google returns it
+        end TEXT,
+        all_day INTEGER NOT NULL DEFAULT 0,
+        status TEXT NOT NULL DEFAULT 'confirmed' CHECK (status IN ('confirmed','tentative','cancelled')),
+        {_COMMON},
+        UNIQUE (source, source_ref)
+    );
+    CREATE INDEX idx_calendar_start ON calendar_events (start);
+    """,
 ]
 
 
