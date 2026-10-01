@@ -1,0 +1,16 @@
+:root {
+  --navy: #1f3864; --deep: #172b4d; --purple: #7d147d; --peri: #6a7bc1;
+  --orange: #e8a300; --lime: #bad403; --grey: #86858a;
+}
+body { margin: 0; font-family: "Public Sans", sans-serif; color: var(--deep); background: #f6f7fb; }
+h1, h2 { font-family: "Source Serif 4", serif; margin: 0; }
+.top { display: flex; align-items: center; gap: 2rem; padding: 0.8rem 1.5rem; background: var(--navy); color: #fff; }
+.top h1 { font-size: 1.3rem; }
+nav { display: flex; gap: 0.5rem; flex: 1; }
+nav button { background: none; border: 0; color: #fff; opacity: 0.75; padding: 0.5rem 0.9rem; font: inherit; cursor: pointer; border-bottom: 3px solid transparent; }
+nav button.active { opacity: 1; border-bottom-color: var(--orange); }
+.status { font-size: 0.85rem; }
+.status.ok { color: var(--lime); }
+.status.down { color: var(--orange); }
+main { padding: 2rem 1.5rem; }
+main p { color: var(--grey); }

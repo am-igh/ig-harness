@@ -1,0 +1,44 @@
+# IG Harness: UI + API + worker. Ollama runs natively on the Mac, not here.
+#
+# Network design: api and worker sit on an internal network with NO internet access.
+# Only the ui container (Vite dev server) is also on the edge network so the browser
+# can reach it at http://localhost:5173; it forwards /api calls to the api.
+# Phase 2 will add the allow-listed routes for the model gateway and Google connectors.
+services:
+  api:
+    build: { context: ., dockerfile: harness/Dockerfile }
+    command: uvicorn harness.main:app --host 0.0.0.0 --port 8000 --reload
+    environment: { IG_DATA_DIR: /data }
+    volumes:
+      - ${HOME}/IG-Harness-data:/data
+      - ./harness:/app/harness
+      - ./tests:/app/tests
+      - ./pytest.ini:/app/pytest.ini
+    networks: [backend]
+
+  worker:
+    build: { context: ., dockerfile: harness/Dockerfile }
+    command: python -m worker.main
+    environment: { IG_DATA_DIR: /data }
+    volumes:
+      - ${HOME}/IG-Harness-data:/data
+      - ./harness:/app/harness
+      - ./worker:/app/worker
+    networks: [backend]
+
+  ui:
+    build: { context: ./ui }
+    command: npm run dev -- --host 0.0.0.0 --port 5173
+    ports: ["127.0.0.1:5173:5173"]
+    volumes:
+      - ./ui:/app
+      - ui_node_modules:/app/node_modules
+    depends_on: [api]
+    networks: [backend, edge]
+
+networks:
+  backend: { internal: true }
+  edge: {}
+
+volumes:
+  ui_node_modules:
