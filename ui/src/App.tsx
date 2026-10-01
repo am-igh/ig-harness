@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
+import TodayTab from "./today/TodayTab";
 
 const TABS = [
-  { id: "today", label: "Today", phase: "Phase 1, task 4" },
+  { id: "today", label: "Today" },
   { id: "inbox", label: "Inbox", phase: "Phase 2" },
   { id: "projects", label: "Projects & finance", phase: "Phase 4" },
   { id: "geneva", label: "Geneva", phase: "Phase 5" },
@@ -14,31 +15,33 @@ export default function App() {
   const [health, setHealth] = useState<Health>("checking");
 
   useEffect(() => {
-    fetch("/api/health")
-      .then((r) => (r.ok ? setHealth("ok") : setHealth("down")))
-      .catch(() => setHealth("down"));
+    const check = () => fetch("/api/health").then((r) => setHealth(r.ok ? "ok" : "down")).catch(() => setHealth("down"));
+    check();
+    const t = setInterval(check, 30_000);
+    return () => clearInterval(t);
   }, []);
 
   const current = TABS.find((t) => t.id === tab)!;
-  const status = { checking: "Checking…", ok: "Connected", down: "Back end not reachable" }[health];
-
   return (
-    <>
+    <div className="app">
       <header className="top">
-        <h1>IG Harness</h1>
-        <nav>
+        <div className="brand">
+          <img src="/ict4peace_logo.png" alt="ICT for Peace Foundation" />
+          <span className="sep" />
+          <span className="brand-text"><b>IG Harness</b><small>GENÈVE INTERNATIONALE</small></span>
+        </div>
+        <nav aria-label="Sections">
           {TABS.map((t) => (
-            <button key={t.id} className={t.id === tab ? "active" : ""} onClick={() => setTab(t.id)}>
-              {t.label}
-            </button>
+            <button key={t.id} className={`tab ${t.id === tab ? "active" : ""}`} aria-current={t.id === tab ? "page" : undefined} onClick={() => setTab(t.id)}>{t.label}</button>
           ))}
         </nav>
-        <span className={`status ${health}`}>{status}</span>
+        <div className="grow" />
+        <div className="badge-lock">🔒 Drafts only · never sent automatically</div>
+        <div className="badge-model"><i className={`dot ${health}`} />{health === "ok" ? "Harness running" : health === "down" ? "Back end not reachable" : "Checking…"}</div>
       </header>
-      <main>
-        <h2>{current.label}</h2>
-        <p>Placeholder. Coming in {current.phase}.</p>
-      </main>
-    </>
+      {tab === "today" ? <TodayTab /> : (
+        <main className="page"><h2 className="serif">{current.label}</h2><p className="muted">Placeholder. Coming in {current.phase}.</p></main>
+      )}
+    </div>
   );
 }
