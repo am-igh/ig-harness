@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import TodayTab from "./today/TodayTab";
+import EmailList from "./email/EmailList";
 
 const TABS = [
   { id: "today", label: "Today" },
@@ -47,7 +48,9 @@ export default function App() {
           {health === "down" ? "Back end not reachable" : local?.up && local.model_installed ? "Local model" : local?.up ? "Local model: not installed" : "Local model: off"}
         </div>
       </header>
-      {tab === "today" ? <TodayTab /> : (
+      {tab === "today" ? <TodayTab /> : tab === "inbox" ? (
+        <main className="page"><section className="panel inbox"><div className="panel-head"><h2 className="serif">Inbox</h2></div><EmailList full /></section></main>
+      ) : (
         <main className="page"><h2 className="serif">{current.label}</h2><p className="muted">Placeholder. Coming in {current.phase}.</p></main>
       )}
     </div>

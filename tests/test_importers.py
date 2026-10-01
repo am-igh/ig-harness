@@ -49,6 +49,10 @@ def folders(tmp_path):
             ["J-1", "2026-09-30", "W", "PX", "email", "Wrote to funder", None, None, None, None, "confirmed", "2026-09-30"],
             ["J-2", "2026-09-29", "P", None, "admin", "Personal note", None, None, None, None, "confirmed", "2026-09-29"],
         ]),
+        ("People", ["id", "name", "aliases", "org", "role", "groups", "email", "context", "cadence", "domain"], [
+            ["partner-a", "Partner A", None, "Org A", "Director", None, "Partner.A@Example.org", "private notes", None, "W"],
+            ["no-email", "No Email", None, None, None, None, None, None, None, "W"],
+        ]),
     ])
     _book(p / "Registre_Projets.xlsx", [
         ("Mandates", ["code", "name", "funder", "IBAN", "activity end", "reporting deadline",
@@ -90,6 +94,13 @@ def test_suivi_mapping(conn, folders):
     assert dl["C-2"]["importance"] == "normal" and dl["C-3"]["importance"] == "major"
     w = q(conn, "SELECT * FROM waiting_on")
     assert len(w) == 1 and w[0]["person"] == "Partner A" and w[0]["remind_on"] == "2026-10-10"
+
+
+def test_people_import_lowercases_email_and_skips_context(conn, folders):
+    run_all(conn, *folders)
+    r = q(conn, "SELECT * FROM people WHERE slug='partner-a'")[0]
+    assert r["email"] == "partner.a@example.org" and r["role"] == "Director"
+    assert "private notes" not in str(q(conn, "SELECT * FROM people"))
 
 
 def test_personal_items_are_s3_personal(conn, folders):

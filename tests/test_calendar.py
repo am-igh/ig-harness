@@ -4,7 +4,7 @@ import pytest
 
 from harness import db
 from harness.importers.calendar import import_calendar
-from tools.gcal_helper import normalize_event
+from tools.google_helper import normalize_event
 
 
 @pytest.fixture

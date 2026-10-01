@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { type Item, type Today, getToday, setDone } from "../api";
 import { dueLabel, timeOf } from "../format";
+import EmailList from "../email/EmailList";
 import Drawer, { type Panel } from "./Drawer";
 import Lake from "./Lake";
 
@@ -97,7 +98,7 @@ export default function TodayTab() {
 
         <section className="panel">
           <div className="panel-head"><h2 className="serif">Emails needing you</h2></div>
-          <div className="placeholder"><b>Coming in Phase 2</b><span>Gmail triage (read-only) will list the emails that need a reply here. In Phase 3 the harness will draft replies. It never sends.</span></div>
+          <EmailList full={false} />
         </section>
 
         <aside className="widgets" aria-label="Widgets">

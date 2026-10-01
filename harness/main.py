@@ -1,4 +1,5 @@
 """IG Harness API. Phase 1 skeleton: health check only."""
+import threading
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
@@ -101,3 +102,44 @@ def privacy_log(limit: int = 50) -> dict:
         "SELECT ts, provider, model, tier, redacted, in_chars, out_chars, cost_chf, purpose, outcome, detail "
         "FROM privacy_log ORDER BY id DESC LIMIT ?", (min(limit, 500),))])
     return {"items": rows}
+
+
+# --- Email triage (runs on demand; the local model can take a while, so it runs in the background) ---
+_triage = {"running": False, "last": None, "finished_at": None}
+_triage_lock = threading.Lock()
+
+
+def _run_triage() -> None:
+    from harness import triage
+    from harness.config import now_local
+    conn = db.connect()
+    try:
+        result = triage.triage_pending(conn)
+    except Exception as e:  # never crash the API thread
+        result = {"error": f"{type(e).__name__}: {e}"}
+    finally:
+        conn.close()
+        with _triage_lock:
+            _triage.update(running=False, last=result, finished_at=now_local().isoformat(timespec="seconds"))
+
+
+@app.post("/api/triage/run")
+def triage_run() -> dict:
+    with _triage_lock:
+        if _triage["running"]:
+            return {"started": False, **_triage}
+        _triage["running"] = True
+    threading.Thread(target=_run_triage, daemon=True).start()
+    return {"started": True, **_triage}
+
+
+@app.get("/api/triage/status")
+def triage_status() -> dict:
+    with _triage_lock:
+        return dict(_triage)
+
+
+@app.get("/api/emails")
+def get_emails(hours: int = 72, include_skipped: bool = False) -> dict:
+    from harness import triage
+    return _with_conn(lambda c: triage.list_emails(c, min(max(hours, 1), 168), include_skipped=include_skipped))

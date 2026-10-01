@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
-"""Mac-side Google Calendar helper (read-only). Standard library only.
+"""Mac-side Google helper (Calendar and Gmail, both read-only). Standard library only.
 
 Runs on the Mac, NOT in Docker, because the Google credentials live in the macOS
 Keychain, which containers cannot read (CLAUDE.md rule 7). It writes a plain JSON
 file of upcoming events into ~/IG-Harness-data, which the harness imports.
 
-  python3 tools/gcal_helper.py store-client <client_secret.json>   one time
-  python3 tools/gcal_helper.py login                               one time (browser)
-  python3 tools/gcal_helper.py sync                                whenever you like
+  python3 tools/google_helper.py store-client <client_secret.json>   one time
+  python3 tools/google_helper.py login | sync                        calendar (login once)
+  python3 tools/google_helper.py login-gmail | sync-gmail            Gmail (login once)
 
-Keychain items: ig-harness-google-client (account calendar), ig-harness-google-calendar
-(account refresh-token). Scope: calendar.readonly. Only the primary calendar is read.
-Only title, start, end and status are kept: no attendees, descriptions or links.
+Keychain items: ig-harness-google-client (account calendar), ig-harness-google-calendar and
+ig-harness-google-gmail (account refresh-token). Scopes: calendar.readonly, gmail.readonly.
+There is NO send or draft code in this file: Gmail access here cannot create or send mail.
+Calendar keeps only title, start, end, status. Gmail keeps recent inbox threads (sender,
+subject, snippet, trimmed text) in ~/IG-Harness-data, on this Mac only.
 """
 import base64, hashlib, http.server, json, os, secrets, ssl, subprocess, sys, threading
 import urllib.parse, urllib.request, webbrowser
@@ -19,12 +21,20 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 SCOPE = "https://www.googleapis.com/auth/calendar.readonly"
+GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.readonly"
+GMAIL_API = "https://gmail.googleapis.com/gmail/v1/users/me"
 AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 TOKEN_URL = "https://oauth2.googleapis.com/token"
 EVENTS_URL = "https://www.googleapis.com/calendar/v3/calendars/primary/events"
 CLIENT_ITEM, CLIENT_ACCT = "ig-harness-google-client", "calendar"
 TOKEN_ITEM, TOKEN_ACCT = "ig-harness-google-calendar", "refresh-token"
-OUT = Path(os.environ.get("IG_DATA_DIR", Path.home() / "IG-Harness-data")) / "calendar_events.json"
+GMAIL_TOKEN_ITEM = "ig-harness-google-gmail"
+DATA = Path(os.environ.get("IG_DATA_DIR", Path.home() / "IG-Harness-data"))
+OUT = DATA / "calendar_events.json"
+GMAIL_OUT = DATA / "gmail_recent.json"
+GMAIL_QUERY = "in:inbox newer_than:3d -category:promotions -category:social -category:forums"
+GMAIL_MAX_THREADS = 100
+BODY_CHARS = 3000
 DAYS_BACK, DAYS_AHEAD = 7, 90
 
 
@@ -84,7 +94,7 @@ def store_client(path: str) -> None:
     print("Stored in Keychain and deleted the downloaded file.")
 
 
-def login() -> None:
+def login(scope: str = SCOPE, item: str = TOKEN_ITEM) -> None:
     c = _client()
     verifier = secrets.token_urlsafe(64)
     challenge = base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).rstrip(b"=").decode()
@@ -102,7 +112,7 @@ def login() -> None:
     redirect = f"http://127.0.0.1:{srv.server_port}"
     url = AUTH_URL + "?" + urllib.parse.urlencode({
         "client_id": c["client_id"], "redirect_uri": redirect, "response_type": "code",
-        "scope": SCOPE, "access_type": "offline", "prompt": "consent", "state": state,
+        "scope": scope, "access_type": "offline", "prompt": "consent", "state": state,
         "code_challenge": challenge, "code_challenge_method": "S256"})
     print("Opening your browser to approve READ-ONLY calendar access...")
     webbrowser.open(url)
@@ -118,16 +128,20 @@ def login() -> None:
                             "grant_type": "authorization_code", "code_verifier": verifier})
     if "refresh_token" not in tok:
         sys.exit("Google did not return a refresh token. Remove the app at myaccount.google.com/permissions and retry.")
-    kc_set(TOKEN_ITEM, TOKEN_ACCT, tok["refresh_token"])
-    print("Logged in. Token stored in Keychain. Now run: sync")
+    kc_set(item, TOKEN_ACCT, tok["refresh_token"])
+    print("Logged in. Token stored in Keychain.")
+
+
+def _access_token(item: str, login_cmd: str) -> str:
+    c, refresh = _client(), kc_get(item, TOKEN_ACCT)
+    if not refresh:
+        sys.exit(f"Not logged in. Run: {login_cmd}")
+    return _post(TOKEN_URL, {"client_id": c["client_id"], "client_secret": c["client_secret"],
+                             "refresh_token": refresh, "grant_type": "refresh_token"})["access_token"]
 
 
 def sync() -> None:
-    c, refresh = _client(), kc_get(TOKEN_ITEM, TOKEN_ACCT)
-    if not refresh:
-        sys.exit("Not logged in. Run: login")
-    access = _post(TOKEN_URL, {"client_id": c["client_id"], "client_secret": c["client_secret"],
-                               "refresh_token": refresh, "grant_type": "refresh_token"})["access_token"]
+    access = _access_token(TOKEN_ITEM, "login")
     now = datetime.now(timezone.utc)
     t_min, t_max = now - timedelta(days=DAYS_BACK), now + timedelta(days=DAYS_AHEAD)
     events, page = [], None
@@ -152,9 +166,92 @@ def sync() -> None:
     print(f"Wrote {len(events)} events to {OUT}")
 
 
+def _get(url: str, access: str, params: dict | None = None) -> dict:
+    full = url + ("?" + urllib.parse.urlencode(params) if params else "")
+    req = urllib.request.Request(full, headers={"Authorization": f"Bearer {access}"})
+    with urllib.request.urlopen(req, timeout=30, context=_ssl_context()) as r:
+        return json.load(r)
+
+
+def _header(headers: list[dict], name: str) -> str:
+    for h in headers:
+        if h.get("name", "").lower() == name.lower():
+            return h.get("value", "")
+    return ""
+
+
+def _text_of(payload: dict) -> str:
+    """Plain text of a message: text/plain if present, else tags stripped from text/html."""
+    import re
+    plain, html = [], []
+
+    def walk(part):
+        mt, data = part.get("mimeType", ""), part.get("body", {}).get("data")
+        if data and mt in ("text/plain", "text/html"):
+            raw = base64.urlsafe_b64decode(data + "=" * (-len(data) % 4)).decode("utf-8", "replace")
+            (plain if mt == "text/plain" else html).append(raw)
+        for sub in part.get("parts", []) or []:
+            walk(sub)
+
+    walk(payload)
+    if plain:
+        return "\n".join(plain)
+    text = re.sub(r"(?is)<(script|style).*?</\1>", " ", "\n".join(html))
+    return re.sub(r"[ \t]+", " ", re.sub(r"(?s)<[^>]+>", " ", text))
+
+
+def _parse_from(value: str) -> tuple[str, str]:
+    from email.utils import parseaddr
+    name, addr = parseaddr(value)
+    return name.strip().strip('"'), addr.lower()
+
+
+def normalize_thread(thread: dict, me: str) -> dict | None:
+    """One inbox thread -> the fields triage needs. Looks at the LAST message of the thread."""
+    msgs = thread.get("messages") or []
+    if not msgs:
+        return None
+    last = msgs[-1]
+    h = last.get("payload", {}).get("headers", [])
+    name, addr = _parse_from(_header(h, "From"))
+    me = me.lower()
+    body = " ".join(_text_of(last.get("payload", {})).split())[:BODY_CHARS]
+    to_all = (_header(h, "To") + "," + _header(h, "Cc")).lower()
+    return {
+        "thread_id": thread["id"], "message_id": last["id"], "messages_in_thread": len(msgs),
+        "received_ms": int(last.get("internalDate", 0)), "from_name": name, "from_email": addr,
+        "to_me_directly": me in _header(h, "To").lower(), "cc_only": me in to_all and me not in _header(h, "To").lower(),
+        "subject": _header(h, "Subject"), "snippet": last.get("snippet", ""), "body": body,
+        "labels": last.get("labelIds", []), "last_from_me": addr == me,
+        "bulk": bool(_header(h, "List-Unsubscribe")) or _header(h, "Precedence").lower() in ("bulk", "list", "junk")
+                or _header(h, "Auto-Submitted").lower().startswith("auto-"),
+    }
+
+
+def sync_gmail() -> None:
+    access = _access_token(GMAIL_TOKEN_ITEM, "login-gmail")
+    me = _get(f"{GMAIL_API}/profile", access)["emailAddress"]
+    ids = _get(f"{GMAIL_API}/threads", access, {"q": GMAIL_QUERY, "maxResults": str(GMAIL_MAX_THREADS)}).get("threads", [])
+    threads = []
+    for t in ids:
+        full = _get(f"{GMAIL_API}/threads/{t['id']}", access, {"format": "full"})
+        n = normalize_thread(full, me)
+        if n:
+            threads.append(n)
+    DATA.mkdir(parents=True, exist_ok=True)
+    tmp = GMAIL_OUT.with_suffix(".tmp")
+    tmp.write_text(json.dumps({"fetched_at": datetime.now(timezone.utc).isoformat(), "me": me,
+                               "query": GMAIL_QUERY, "threads": threads}, ensure_ascii=False))
+    tmp.replace(GMAIL_OUT)
+    GMAIL_OUT.chmod(0o600)
+    print(f"Wrote {len(threads)} recent inbox threads to {GMAIL_OUT}")
+
+
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else ""
     if cmd == "store-client" and len(sys.argv) == 3: store_client(sys.argv[2])
     elif cmd == "login": login()
     elif cmd == "sync": sync()
+    elif cmd == "login-gmail": login(GMAIL_SCOPE, GMAIL_TOKEN_ITEM)
+    elif cmd == "sync-gmail": sync_gmail()
     else: sys.exit(__doc__)

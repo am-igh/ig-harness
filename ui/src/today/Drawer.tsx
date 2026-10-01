@@ -4,7 +4,7 @@ import { dayFull, dayShort } from "../format";
 
 export type Panel = { kind: "deadline"; id: number } | { kind: "done" } | null;
 
-function Shell({ kicker, title, meta, onClose, children }: {
+export function Shell({ kicker, title, meta, onClose, children }: {
   kicker: string; title: string; meta: string; onClose: () => void; children: React.ReactNode;
 }) {
   useEffect(() => {

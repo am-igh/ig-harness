@@ -1,4 +1,4 @@
-.PHONY: up down test logs import calendar
+.PHONY: up down test logs import calendar gmail
 
 up:      ## Start the harness (UI at http://localhost:5173)
 	docker compose up -d --build
@@ -17,5 +17,10 @@ import:  ## Re-read Suivi.xlsx and the project register (read-only) and show wha
 	docker compose exec api python -m harness.importers.run
 
 calendar: ## Fetch your Google Calendar (read-only, runs on the Mac) and import it
-	python3 tools/gcal_helper.py sync
+	python3 tools/google_helper.py sync
 	docker compose exec api python -m harness.importers.run
+
+gmail:   ## Fetch recent inbox threads (read-only, on the Mac), import them and run the triage
+	python3 tools/google_helper.py sync-gmail
+	docker compose exec api python -m harness.importers.run
+	curl -s -X POST localhost:5173/api/triage/run; echo

@@ -127,6 +127,45 @@ MIGRATIONS: list[str] = [
         decided_at TEXT
     );
     """,
+    # 4: people (from Suivi) and recent inbox threads with triage results. All S2, local only.
+    """
+    CREATE TABLE people (
+        id INTEGER PRIMARY KEY,
+        slug TEXT NOT NULL UNIQUE,          -- the id used in Suivi (matches waiting_on.person)
+        name TEXT NOT NULL,
+        aliases TEXT, org TEXT, role TEXT,
+        email TEXT,                         -- lower-case
+        cadence TEXT,
+        space TEXT NOT NULL DEFAULT 'work' CHECK (space IN ('work','personal')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE INDEX idx_people_email ON people (email);
+    CREATE TABLE emails (
+        id INTEGER PRIMARY KEY,
+        thread_id TEXT NOT NULL UNIQUE,
+        message_id TEXT NOT NULL,           -- newest message; a new one resets triage
+        from_name TEXT, from_email TEXT NOT NULL,
+        subject TEXT,
+        received_at TEXT NOT NULL,          -- ISO, Geneva time
+        snippet TEXT, body TEXT,            -- trimmed text, stays on this Mac (S2)
+        direct INTEGER NOT NULL DEFAULT 0,  -- she is in To (not just Cc)
+        cc_only INTEGER NOT NULL DEFAULT 0,
+        bulk INTEGER NOT NULL DEFAULT 0,    -- newsletter / automated
+        last_from_me INTEGER NOT NULL DEFAULT 0,
+        in_window INTEGER NOT NULL DEFAULT 1,
+        person_slug TEXT,                   -- sender matched to People
+        triage_status TEXT NOT NULL DEFAULT 'pending' CHECK (triage_status IN ('pending','skipped','done','error')),
+        needs_reply INTEGER,
+        why TEXT,
+        urgency INTEGER,
+        score REAL,
+        triaged_model TEXT, triaged_at TEXT,
+        sensitivity TEXT NOT NULL DEFAULT 'S2',
+        space TEXT NOT NULL DEFAULT 'work',
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE INDEX idx_emails_received ON emails (received_at);
+    """,
 ]
 
 

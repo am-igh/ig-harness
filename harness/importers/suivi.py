@@ -27,7 +27,7 @@ def _space(domain) -> tuple[str, str]:
 
 def import_suivi(conn: sqlite3.Connection, folder: Path) -> list[Report]:
     path = folder / FILE
-    return [_commitments(conn, path), _journal(conn, path)]
+    return [_commitments(conn, path), _journal(conn, path), _people(conn, path)]
 
 
 def _commitments(conn, path) -> Report:
@@ -103,6 +103,36 @@ def _journal(conn, path) -> Report:
                 if changes:
                     sets = ", ".join(f"{k}=?" for k in changes) + ", updated_at=datetime('now')"
                     conn.execute(f"UPDATE journal_entries SET {sets} WHERE id=?", [*changes.values(), row["id"]])
+                    rep.updated += 1
+                else:
+                    rep.unchanged += 1
+    return rep
+
+
+def _people(conn, path) -> Report:
+    """People sheet -> people table (used to recognise email senders). The free-text 'context'
+    and 'groups' columns are deliberately not imported."""
+    rep = Report(source="suivi:people")
+    rows = read_sheet(path, "People", ["id", "name", "aliases", "org", "role", "email", "cadence", "domain"])
+    with conn:
+        for r in rows:
+            slug, name = clean(r["id"]), clean(r["name"])
+            if not (slug and name):
+                rep.skipped += 1
+                continue
+            fields = {"name": name, "aliases": clean(r["aliases"]), "org": clean(r["org"]), "role": clean(r["role"]),
+                      "email": (clean(r["email"]) or "").lower() or None, "cadence": clean(r["cadence"]),
+                      "space": "personal" if clean(r["domain"]) == "P" else "work"}
+            row = conn.execute("SELECT * FROM people WHERE slug = ?", (slug,)).fetchone()
+            if row is None:
+                cols = {"slug": slug, **fields}
+                conn.execute(f"INSERT INTO people ({','.join(cols)}) VALUES ({','.join('?' * len(cols))})", list(cols.values()))
+                rep.added += 1
+            else:
+                changes = {k: v for k, v in fields.items() if row[k] != v}
+                if changes:
+                    conn.execute("UPDATE people SET " + ", ".join(f"{k}=?" for k in changes) + ", updated_at=datetime('now') WHERE id=?",
+                                 [*changes.values(), row["id"]])
                     rep.updated += 1
                 else:
                     rep.unchanged += 1

@@ -30,3 +30,18 @@ export const getDeadline = (id: number) => j<DeadlineDetail>(`/api/deadlines/${i
 export const getDoneWeek = () => j<{ items: DoneItem[] }>("/api/done/week");
 export const setDone = (it: Pick<Item, "type" | "id">, done: boolean) =>
   j<{ changed: boolean }>(`/api/items/${it.type}/${it.id}/${done ? "done" : "undo"}`, { method: "POST" });
+
+export type Email = {
+  id: number; thread_id: string; subject: string; from_name: string; from_email: string; known: boolean;
+  org: string | null; role: string | null; why: string | null; urgency: number | null; received_at: string;
+  snippet: string | null; hours_ago: number; direct: boolean; status: string;
+};
+export type EmailsResponse = {
+  needs_reply: Email[]; not_needing_reply?: Email[];
+  counts: { pending: number; skipped: number; done: number; error: number };
+};
+export type TriageStatus = { running: boolean; last: Record<string, number | string> | null; finished_at: string | null };
+export const getEmails = (hours: number, full: boolean) =>
+  j<EmailsResponse>(`/api/emails?hours=${hours}&include_skipped=${full}`);
+export const getTriageStatus = () => j<TriageStatus>("/api/triage/status");
+export const runTriage = () => j<TriageStatus>("/api/triage/run", { method: "POST" });
