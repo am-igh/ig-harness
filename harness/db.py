@@ -208,6 +208,15 @@ MIGRATIONS: list[str] = [
     ALTER TABLE done_log_new RENAME TO done_log;
     CREATE INDEX idx_done_log_done_at ON done_log (done_at);
     """,
+    # 7: which model each job uses (set from the model picker; falls back to IG_LOCAL_MODEL)
+    """
+    CREATE TABLE model_settings (
+        job TEXT PRIMARY KEY,
+        provider TEXT NOT NULL,
+        model TEXT,
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    """,
 ]
 
 

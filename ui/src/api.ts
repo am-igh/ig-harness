@@ -67,3 +67,13 @@ export const getScoreboard = () => j<Scoreboard>("/api/scoreboard");
 export const runScoreboard = (models: string[]) => j<{ started: boolean }>("/api/scoreboard/run", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ models }) });
 export type GatewayStatus = { local: { up: boolean; model: string; model_installed: boolean; installed: string[] } };
 export const getGatewayStatus = () => j<GatewayStatus>("/api/gateway/status");
+
+export type ModelsInfo = {
+  local: { up: boolean; models: { name: string; size_gb: number }[] };
+  jobs: { job: string; label: string; tier: string; local_only: boolean; provider: string; model: string; model_installed: boolean }[];
+  external: { provider: string; label: string; hosting: string; tiers: string; status: string; note: string }[];
+  spend: number; cap_chf: number; budget_state: string;
+};
+export const getModels = () => j<ModelsInfo>("/api/models");
+export const selectModel = (job: string, provider: string, model: string) =>
+  j<{ ok: boolean }>("/api/models/select", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ job, provider, model }) });

@@ -42,7 +42,7 @@ def evaluate(conn, models: list[str], now: datetime | None = None, provider_fact
         results, times, load = [], [], None
         for e in candidates:
             t0 = time.time()
-            parsed, _, _ = ask_model(conn, gw, e, now, purpose="model-scoreboard")
+            parsed, _, _ = ask_model(conn, gw, e, now, purpose="model-scoreboard", job=None)   # job=None: test exactly this model, ignore the picker
             dt = time.time() - t0
             if load is None:
                 load = round(dt, 1)           # first call includes loading the model into memory

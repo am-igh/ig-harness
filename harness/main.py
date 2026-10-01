@@ -261,3 +261,50 @@ def email_done(email_id: int) -> dict:
 @app.post("/api/emails/{email_id}/undo")
 def email_undo(email_id: int) -> dict:
     return {"changed": _with_conn(lambda c: deadlines.mark_undone(c, "email", email_id))}
+
+
+# --- Model picker ---
+EXTERNAL = [
+    {"provider": "infomaniak", "label": "Infomaniak AI Tools", "hosting": "Swiss-hosted", "tiers": "S0–S1 (S2 only after redaction and your approval, which is switched off)"},
+    {"provider": "anthropic", "label": "Claude API", "hosting": "Anthropic, US", "tiers": "S0–S1 (S2 only after redaction and your approval, which is switched off)"},
+    {"provider": "openrouter", "label": "OpenRouter", "hosting": "for experiments", "tiers": "S0 (public data) only"},
+]
+
+
+class SelectIn(BaseModel):
+    job: str
+    provider: str
+    model: str
+
+
+@app.get("/api/models")
+def get_models() -> dict:
+    from harness.gateway import budget
+    from harness.gateway.providers import OllamaProvider
+    from harness.gateway.settings import JOBS, get_selection
+    local = OllamaProvider().status()
+    def go(c):
+        jobs = []
+        for job, meta in JOBS.items():
+            provider, model = get_selection(c, job)
+            jobs.append({"job": job, "label": meta["label"], "tier": str(meta["tier"]), "local_only": True,
+                         "provider": provider, "model": model, "model_installed": model in local["installed"]})
+        return {"jobs": jobs, "spend": round(budget.month_spend(c), 2), "budget_state": budget.state(c)}
+    return {"local": {"up": local["up"], "models": local["models"]}, "external": [{**e, "status": "not_set_up",
+            "note": "Needs an API key in your Mac's Keychain and a secure route out of the harness (Phase 6)."} for e in EXTERNAL],
+            "cap_chf": 40, **_with_conn(go)}
+
+
+@app.post("/api/models/select")
+def select_model(body: SelectIn) -> dict:
+    from harness.gateway.providers import OllamaProvider
+    from harness.gateway.settings import JOBS, SelectionRefused, set_selection
+    if body.job not in JOBS:
+        raise HTTPException(404, "Unknown job")
+    if body.provider == "local" and body.model not in OllamaProvider().status()["installed"]:
+        raise HTTPException(422, f"{body.model} is not installed in Ollama")
+    try:
+        _with_conn(lambda c: set_selection(c, body.job, body.provider, body.model))
+    except SelectionRefused as e:
+        raise HTTPException(422, str(e))
+    return {"ok": True, "job": body.job, "provider": body.provider, "model": body.model}

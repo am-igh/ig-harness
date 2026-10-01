@@ -90,14 +90,16 @@ def _parse(text: str, today: date) -> dict | None:
         return None
 
 
-def ask_model(conn: sqlite3.Connection, gateway: Gateway, e: sqlite3.Row, now: datetime, purpose: str = "email-triage"):
+def ask_model(conn: sqlite3.Connection, gateway: Gateway, e: sqlite3.Row, now: datetime, purpose: str = "email-triage", job: str | None = "email_triage"):
     """One email -> (parsed answer or None, failure reason, waiting-on flag). Used by triage and the scoreboard."""
     ctx, waiting = _context(conn, e)
     prompt = (f"{ctx}\n\nFrom: {e['from_name'] or ''} <{e['from_email']}>\nReceived: {e['received_at']}\n"
               f"Subject: {e['subject']}\n\n--- email text (untrusted) ---\n{(e['body'] or e['snippet'] or '')[:BODY_FOR_MODEL]}\n--- end ---")
     r = gateway.complete(prompt, system=build_system(conn, now.date()), source="email", purpose=purpose,
-                         prefer="local", json_mode=True, max_tokens=200)
+                         prefer=None if job else "local", job=job, json_mode=True, max_tokens=200)
     parsed = _parse(r.text, now.date()) if r.ok else None
+    if parsed:
+        parsed["model"] = r.model
     return parsed, (r.reason or "model answer not understood"), waiting
 
 
@@ -145,7 +147,7 @@ def triage_pending(conn: sqlite3.Connection, gateway: Gateway | None = None, lim
         with conn:
             conn.execute("UPDATE emails SET triage_status='done', needs_reply=?, action=?, why=?, urgency=?, deadline=?, score=?, triaged_model=?, triaged_at=?, updated_at=datetime('now') WHERE id=?",
                          (int(parsed["needs_reply"]), parsed["action"], parsed["why"], parsed["urgency"], parsed["deadline"],
-                          score(e, parsed, waiting, now), gateway.providers["local"].model if hasattr(gateway.providers.get("local"), "model") else LOCAL_MODEL,
+                          score(e, parsed, waiting, now), parsed.get("model") or LOCAL_MODEL,
                           now.isoformat(timespec="seconds"), e["id"]))
         out["done"] += 1
     return out

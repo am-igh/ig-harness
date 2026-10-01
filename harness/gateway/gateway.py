@@ -9,6 +9,7 @@ from harness.gateway import approvals, budget
 from harness.gateway.privacy_log import log_call
 from harness.gateway.providers import ProviderUnavailable, default_providers
 from harness.gateway.redact import redact
+from harness.gateway.settings import get_selection
 from harness.gateway.tiers import Tier, classify
 
 # Which providers each tier may reach (rule 3). S2 external is additionally gated (see _check_external).
@@ -40,6 +41,7 @@ class GatewayResult:
     reason: str = ""
     request_id: str = ""
     approval_id: int | None = None
+    model: str | None = None
     budget_warning: bool = False
     reasons: list[str] = field(default_factory=list)
 
@@ -50,15 +52,23 @@ class Gateway:
         self.providers = providers or default_providers()
 
     def complete(self, prompt: str, *, source: str, purpose: str, system: str | None = None,
-                 prefer: str = "local", space: str = "work", override_tier: Tier | None = None,
+                 prefer: str | None = None, space: str = "work", override_tier: Tier | None = None, job: str | None = None,
                  known_names: tuple[str, ...] = (), approval_id: int | None = None,
                  max_tokens: int = 1024, json_mode: bool = False) -> GatewayResult:
         rid = uuid.uuid4().hex[:12]
         conn = self._connect()
         try:
+            chosen_model = None
+            if job:                                         # the model picker's choice for this job
+                sel_provider, chosen_model = get_selection(conn, job)
+                prefer = prefer or sel_provider
+            prefer = prefer or "local"
             c = classify(prompt + "\n" + (system or ""), source, space, override_tier)
             res = GatewayResult(ok=False, outcome="blocked", tier=c.tier, provider=prefer, request_id=rid, reasons=c.reasons)
             provider = self.providers.get(prefer)
+            if provider is not None and chosen_model and prefer == "local" and hasattr(provider, "with_model"):
+                provider = provider.with_model(chosen_model)
+            res.model = getattr(provider, "model", None)
 
             def finish(outcome: str, detail: str = "", *, out_chars: int = 0, cost: float = 0.0,
                        redacted: bool = False, shown_provider: str | None = None) -> GatewayResult:

@@ -39,13 +39,18 @@ class OllamaProvider:
         except Exception as e:  # network down, model missing, timeout
             raise ProviderUnavailable(f"local model: {type(e).__name__}: {e}") from e
 
+    def with_model(self, model: str) -> "OllamaProvider":
+        return OllamaProvider(self.url, model, self.timeout)
+
     def status(self) -> dict:
         try:
             with urllib.request.urlopen(f"{self.url}/api/tags", timeout=4) as r:
-                names = [m["name"] for m in json.load(r).get("models", [])]
-            return {"up": True, "model": self.model, "model_installed": self.model in names, "installed": names}
+                tags = json.load(r).get("models", [])
+            names = [m["name"] for m in tags]
+            return {"up": True, "model": self.model, "model_installed": self.model in names, "installed": names,
+                    "models": [{"name": m["name"], "size_gb": round(m.get("size", 0) / 1e9, 1)} for m in tags]}
         except Exception:
-            return {"up": False, "model": self.model, "model_installed": False, "installed": []}
+            return {"up": False, "model": self.model, "model_installed": False, "installed": [], "models": []}
 
 
 class DisabledProvider:
