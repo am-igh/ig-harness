@@ -78,6 +78,15 @@ Wrap and call these; do not rewrite their logic. Ask Anne-Marie to connect a fol
 - Key design decisions: lake band with the Jet d'eau at "today" and deadlines along the water; **the jet rises with each item done this week** (she likes this — keep it); detail opens in side panels/pop-ups; four widgets on Today (Audit readiness, Hours this week, Budget burn, Scan inbox), more selectable from a gallery.
 - Palette from the ICT4Peace logo (`docs/design/assets/ict4peace_logo.png`): navy `#1F3864`, deep navy `#172B4D`, purple `#7D147D` (major), periwinkle `#6A7BC1` (Geneva / fixed dates), orange `#E8A300` (warnings), lime `#BAD403` (done, fills only), grey `#86858A`. Fonts: Source Serif 4 (headings), Public Sans (body), IBM Plex Mono (codes).
 
+## Decisions since the first brief (1 Oct 2026)
+
+- **Personal items** (Suivi domain P) are masked by the server: the board, lake and Done record show "Personal task" with the date; the title, project code and person are sent only when she clicks (`/api/items/{type}/{id}/reveal`). Searches never match personal titles. The mechanism is ready for personal emails.
+- **Drafting.** A draft is written by a local model only (job `email_draft`, S2). Nothing reaches Gmail until she clicks "Save to Gmail" on that exact text; the Mac-side worker (`tools/draft_worker.py`, a LaunchAgent installed with `make agent-install`) re-checks her approval and the text's hash, and can only create a draft. Recipients always come from the email's headers, never from model output. When she wrote last in a conversation, the draft is a **follow-up** to the people her message went to; a draft addressed only to her own address is refused.
+- **Style per person** is learned by plain rules from her past correspondence (`make correspondence`), shown on the Inbox tab and correctable; her corrections are never overwritten. New people default to a professional tone, overridable per draft.
+- **Her edits to imported items** (title, due date) are kept across re-imports (`item_overrides`); Suivi.xlsx itself is never changed.
+- **Ticking and the Done record:** ticked items move to "Done today" and the searchable Done record (with date and time); emails can be marked handled and reopen if the other person writes again.
+- **Safety checks to keep green:** `make test` (red-team, one-door, no-send, fail-safe, masking), `make check-network`.
+
 ## Build phases
 
 | Phase | Content | Done when |
@@ -85,8 +94,8 @@ Wrap and call these; do not rewrite their logic. Ask Anne-Marie to connect a fol
 | 0 | Accounts, keys, repo, environment | ✅ done 1 Oct 2026 |
 | 1 ✅ built 1 Oct 2026 (she is checking it in daily use) | Docker skeleton (UI, API, worker), SQLite, port Today tab, read-only import from Suivi.xlsx, project register, Google Calendar. No AI. | Each morning Today matches Suivi and her calendar |
 | 2 ✅ closed 1 Oct 2026 | Model gateway (tiers, redaction, approvals, privacy log, cap) + native Ollama; email triage (Gmail read-only), standing rules, feedback labels, model picker and scoreboard | Red-team samples cannot leave the Mac (tests + `make check-network`; privacy log: 0 external calls) |
-| **3 (next)** | Draft replies: **only on her click, reviewed before saving**; language and register learned per addressee from past correspondence (professional default for new people, overridable per draft); no-send guarantee + test; Waiting on and 7-day reminder drafts | Send attempt fails; drafts appear in Gmail |
-| 4 | Projects & finance: wrap the two checkers, scan inbox (rename, dedupe, never overwrite), bank upload, widgets, Friday hours pass | Q3 2026 rerun matches today's scripts |
+| 3 ✅ done 1 Oct 2026 | Draft replies: **only on her click, reviewed before saving**; language and register learned per addressee from past correspondence (professional default for new people, overridable per draft); follow-ups when she wrote last; no-send guarantee + test; Waiting on reminders | Send attempt fails (proved by `tests/test_no_send.py`); drafts appear in Gmail (confirmed by her on 1 Oct 2026) |
+| **4 (next after the refresh and backup work)** | Projects & finance: wrap the two checkers, scan inbox (rename, dedupe, never overwrite), bank upload, widgets, Friday hours pass | Q3 2026 rerun matches today's scripts |
 | 5 | Geneva tab (calendar, invitations, newsletters via Gmail label, clashes), chat bar, local dictation | A week of newsletters gives a sensible view |
 | 6 | Infomaniak + Claude API behind the gateway; S2 approval flow; cost display | S2 asks approval; S3 refused |
 | 7 | MCP bridge to the Claude app (curated read-mostly tools) | Calls visible in privacy log |
