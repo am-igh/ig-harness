@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import type { Today } from "../api";
 import { dayMonth, daysBetween, headerDate, timeOf, dayShort } from "../format";
 
-export const LAKE_DAYS = 47;
+export const LAKE_DAYS = 47;     // the API looks this far ahead; the lake zooms to fit what it finds
+const MIN_SPAN = 21;
 const TODAY_X = 300;
 const LANES = [50, 70, 90, 110, 130];
 const LABEL_GAP = 168;   // min distance between labels sharing a lane
@@ -40,7 +41,10 @@ export default function Lake({ data, doneCount, celebrate, onOpenDone, onOpenDea
     return () => ro.disconnect();
   }, []);
 
-  const perDay = (w - TODAY_X - 70) / LAKE_DAYS;
+  // Zoom the time axis to the deadlines: at least 3 weeks, up to just past the last one.
+  const lastDays = Math.max(0, ...data.lake.map((m) => daysBetween(data.today, m.due)));
+  const span = Math.min(LAKE_DAYS, Math.max(MIN_SPAN, lastDays + 4));
+  const perDay = (w - TODAY_X - 70) / span;
   const px = (iso: string) => Math.round(TODAY_X + daysBetween(data.today, iso) * perDay);
   const jet = jetPaths(doneCount);
 
@@ -58,7 +62,7 @@ export default function Lake({ data, doneCount, celebrate, onOpenDone, onOpenDea
   });
 
   const end = new Date(data.today + "T12:00:00");
-  end.setDate(end.getDate() + LAKE_DAYS);
+  end.setDate(end.getDate() + span);
 
   return (
     <section ref={ref} aria-label="Deadlines ahead" className="lake">
@@ -112,7 +116,7 @@ export default function Lake({ data, doneCount, celebrate, onOpenDone, onOpenDea
         </div>
       )}
 
-      {data.ticks.map((t) => (
+      {data.ticks.filter((t) => daysBetween(data.today, t) <= span).map((t) => (
         <div key={t} className="tick" style={{ left: px(t) }} />
       ))}
       {marks.map(({ m, x, lane, showDate }) => {
