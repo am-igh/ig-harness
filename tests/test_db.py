@@ -57,8 +57,8 @@ def test_warning_levels(due, expected):
 
 def test_mark_done_logs_once(conn):
     conn.execute("INSERT INTO tasks (title) VALUES ('Send report')")
-    assert mark_done(conn, "tasks", 1) is True
-    assert mark_done(conn, "tasks", 1) is False  # no double counting
+    assert mark_done(conn, "task", 1) is True
+    assert mark_done(conn, "task", 1) is False  # no double counting
     assert conn.execute("SELECT status FROM tasks WHERE id=1").fetchone()[0] == "done"
     assert conn.execute("SELECT COUNT(*) FROM done_log").fetchone()[0] == 1
 
