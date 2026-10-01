@@ -202,3 +202,11 @@ table.score td.best { font-weight: 700; color: var(--purple); }
 .prof-tags { display: flex; gap: 6px; align-items: center; } .dots { font-size: 9px; color: var(--purple); letter-spacing: 1px; } .prof-line { grid-column: 1 / -1; }
 .prof-edit { padding: 4px 12px 12px; display: flex; flex-direction: column; gap: 10px; } .prof-edit label { display: flex; flex-direction: column; gap: 4px; font-size: 11px; font-weight: 700; letter-spacing: .05em; color: #4f5fa8; text-transform: uppercase; }
 .prof-edit label small { text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--muted); } .prof-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+
+/* drafts */
+.draft-box { display: flex; flex-direction: column; gap: 10px; padding: 14px; background: #f7f8fb; border: 1px solid #e3e6ee; border-radius: 12px; } .draft-box.done { background: #f3f8e2; border-color: #d8e6a8; }
+.draft-box .why { font-size: 12px; color: var(--muted); line-height: 1.45; } .needs-input { font-size: 12px; padding: 8px 10px; background: #fdf1d6; color: #5a4000; border-radius: 8px; line-height: 1.4; }
+.draft-box label.f, .draft-opts label { display: flex; flex-direction: column; gap: 4px; font-size: 11px; font-weight: 700; letter-spacing: .05em; color: #4f5fa8; text-transform: uppercase; } .draft-opts label small { text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--muted); }
+.draft-box input, .draft-box textarea, .draft-box select { font: inherit; font-size: 13px; font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--ink); border: 1px solid #c9cfe6; border-radius: 8px; padding: 8px 10px; background: #fff; } .draft-box textarea { line-height: 1.5; resize: vertical; } .draft-box input:disabled, .draft-box textarea:disabled { background: #eef0f5; color: var(--muted); }
+.draft-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; } .draft-opts .wide { grid-column: 1 / -1; }
+.remind-btn { align-self: flex-start; height: 28px; padding: 0 10px; border-radius: 8px; border: 1px solid #c9cfe6; background: #fff; color: var(--navy); font-size: 12px; font-weight: 600; cursor: pointer; } .remind-btn:hover { border-color: var(--purple); color: var(--purple); }

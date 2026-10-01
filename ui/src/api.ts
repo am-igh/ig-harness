@@ -101,3 +101,29 @@ export const relearnProfile = (email: string) => j<Record<string, number>>(`/api
 export type Signature = { signature: string; source: string; learned: string | null };
 export const getSignature = () => j<Signature>("/api/style/signature");
 export const putSignature = (signature: string) => j<{ ok: boolean }>("/api/style/signature", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ signature }) });
+
+export type Draft = {
+  id: string; kind: "reply" | "reminder" | "new"; email_id: number | null; waiting_on_id: number | null; thread_id: string | null;
+  to: string[]; cc: string[]; subject: string; body: string; language: string | null; tone: string | null; model: string | null;
+  status: "draft" | "approved" | "created" | "failed" | "cancelled"; created_at: string; approved_at: string | null;
+  gmail_draft_id: string | null; error: string | null; instruction: string | null; needs_input: string[];
+  profile: { language?: string; tone?: string; pronoun?: string | null; greeting?: string | null; closing?: string | null; source?: string; n_mine?: number; confidence?: string; default_used?: boolean; overridden?: { tone?: boolean; language?: boolean } };
+  placeholders: number; in_thread: boolean;
+};
+export type DraftOpts = { tone?: string | null; language?: string | null; instruction?: string | null; thread_id?: string | null; new_message?: boolean };
+async function jj<T>(url: string, init?: RequestInit): Promise<T> {
+  const r = await fetch(url, init);
+  if (!r.ok) throw new Error((await r.json().catch(() => ({ detail: `Error ${r.status}` }))).detail);
+  return r.json();
+}
+const post = (body: unknown): RequestInit => ({ method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+export const getEmailDraft = (emailId: number) => jj<{ draft: Draft | null }>(`/api/emails/${emailId}/draft`);
+export const makeReplyDraft = (emailId: number, o: DraftOpts) => jj<Draft>(`/api/emails/${emailId}/draft`, post(o));
+export const makeReminderDraft = (wid: number, o: DraftOpts) => jj<Draft>(`/api/waiting/${wid}/draft`, post(o));
+export const getDraft = (id: string) => jj<Draft>(`/api/drafts/${id}`);
+export const approveDraft = (id: string, b: { body: string; subject: string; to: string[]; cc: string[] }) => jj<Draft>(`/api/drafts/${id}/approve`, post(b));
+export const cancelDraft = (id: string) => jj<{ changed: boolean }>(`/api/drafts/${id}/cancel`, { method: "POST" });
+export const getAgent = () => jj<{ alive: boolean }>("/api/drafts/agent");
+export type ReminderThreads = { person: string; email: string; description: string; since: string; default_thread: string | null;
+  threads: { thread_id: string; subject: string; last_at: string; last_from_me: number; n_messages: number }[] };
+export const getReminderThreads = (wid: number) => jj<ReminderThreads>(`/api/waiting/${wid}/threads`);

@@ -2,8 +2,9 @@ import { useCallback, useEffect, useState } from "react";
 import { type DeadlineDetail, type DoneItem, getDeadline, getDone, setDone } from "../api";
 import { dayFull, dayHeading, dayShort, doneDay, doneTime } from "../format";
 import { useReveal } from "./useReveal";
+import ReminderDrawer from "../drafts/ReminderDrawer";
 
-export type Panel = { kind: "deadline"; id: number } | { kind: "done" } | null;
+export type Panel = { kind: "deadline"; id: number } | { kind: "done" } | { kind: "reminder"; id: number } | null;
 
 export function Shell({ kicker, title, meta, onClose, children }: {
   kicker: string; title: string; meta: string; onClose: () => void; children: React.ReactNode;
@@ -121,5 +122,6 @@ export default function Drawer({ panel, today, onClose, onTickDeadline, onChange
 }) {
   if (!panel) return null;
   if (panel.kind === "done") return <DoneDrawer today={today} onClose={onClose} onChanged={onChanged} />;
+  if (panel.kind === "reminder") return <ReminderDrawer waitingId={panel.id} onClose={onClose} />;
   return <DeadlineDrawer id={panel.id} today={today} onClose={onClose} onTick={() => onTickDeadline(panel.id)} />;
 }

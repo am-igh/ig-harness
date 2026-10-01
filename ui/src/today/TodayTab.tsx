@@ -53,7 +53,7 @@ function Editor({ it, onClose, onSaved }: { it: Item; onClose: () => void; onSav
   );
 }
 
-function Row({ it, today, onToggle, fresh, doneRow, onEdited }: { it: Item; today: string; onToggle: (it: Item) => void; fresh: boolean; doneRow?: boolean; onEdited?: () => void }) {
+function Row({ it, today, onToggle, fresh, doneRow, onEdited, onRemind }: { it: Item; today: string; onToggle: (it: Item) => void; fresh: boolean; doneRow?: boolean; onEdited?: () => void; onRemind?: (it: Item) => void }) {
   const over = it.days_overdue > 0 && !it.done;
   const [editing, setEditing] = useState(false);
   const { shown, show, hide } = useReveal(it);
@@ -91,6 +91,9 @@ function Row({ it, today, onToggle, fresh, doneRow, onEdited }: { it: Item; toda
           </>
         )}
       </div>
+      {!doneRow && !it.done && it.type === "waiting_on" && !it.masked && onRemind && !editing && (
+        <button type="button" className="remind-btn" onClick={() => onRemind(it)} title="Draft a reminder to this person">Remind</button>
+      )}
       {!doneRow && !it.done && onEdited && !editing && (
         <button type="button" className="edit-btn" onClick={startEdit} aria-label={`Edit: ${it.title}`} title="Edit title or date">✎</button>
       )}
@@ -156,7 +159,7 @@ export default function TodayTab() {
           )}
 
           {openItems.length === 0 && <div className="empty">{doneToday.length ? "All done for today. Well done." : "Nothing due today and nothing overdue."}</div>}
-          {openItems.map((it) => <Row key={it.key} it={it} today={data.today} onToggle={toggle} fresh={celebrate && last === it.key} onEdited={load} />)}
+          {openItems.map((it) => <Row key={it.key} it={it} today={data.today} onToggle={toggle} fresh={celebrate && last === it.key} onEdited={load} onRemind={(i) => setPanel({ kind: "reminder", id: i.id })} />)}
 
           {doneToday.length > 0 && (
             <details className="done-today">

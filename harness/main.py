@@ -9,12 +9,29 @@ from harness.config import DATA_DIR, VERSION
 from harness.importers.run import run_all
 
 
+def _collector() -> None:
+    """Every few seconds, pick up the Mac-side worker's answers about drafts."""
+    import time
+    from harness import drafting
+    while True:
+        try:
+            c = db.connect()
+            try:
+                drafting.collect_results(c, DATA_DIR / "draft_outbox")
+            finally:
+                c.close()
+        except Exception:
+            pass
+        time.sleep(3)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Create or upgrade the database when the API starts.
     conn = db.connect()
     db.migrate(conn)
     conn.close()
+    threading.Thread(target=_collector, daemon=True).start()
     yield
 
 
@@ -419,3 +436,88 @@ def put_signature(body: SignatureIn) -> dict:
                       "ON CONFLICT (key) DO UPDATE SET value=excluded.value, source='edited', updated_at=datetime('now')", (text,))
     _with_conn(go)
     return {"ok": True}
+
+
+# --- Draft replies and reminders (drafts are text for her review; Gmail is only touched after she approves) ---
+class DraftRequestIn(BaseModel):
+    tone: str | None = None
+    language: str | None = None
+    instruction: str | None = None
+    thread_id: str | None = None
+    new_message: bool = False
+
+
+class DraftApproveIn(BaseModel):
+    body: str | None = None
+    subject: str | None = None
+    to: list[str] | None = None
+    cc: list[str] | None = None
+
+
+def _drafting(fn):
+    from harness import drafting
+    try:
+        return _with_conn(fn)
+    except drafting.DraftRefused as e:
+        raise HTTPException(422, str(e))
+
+
+@app.post("/api/emails/{email_id}/draft")
+def draft_reply(email_id: int, body: DraftRequestIn) -> dict:
+    from harness import drafting
+    from harness.gateway import Gateway
+    return _drafting(lambda c: drafting.generate_reply(c, Gateway(), email_id, tone=body.tone, language=body.language, instruction=body.instruction))
+
+
+@app.get("/api/emails/{email_id}/draft")
+def latest_draft(email_id: int) -> dict:
+    from harness import drafting
+    def go(c):
+        r = c.execute("SELECT id FROM draft_requests WHERE email_id=? AND status != 'cancelled' ORDER BY created_at DESC LIMIT 1", (email_id,)).fetchone()
+        return {"draft": drafting.view(c, r["id"]) if r else None}
+    return _with_conn(go)
+
+
+@app.get("/api/drafts/agent")
+def draft_agent() -> dict:
+    from harness import drafting
+    return {"alive": drafting.agent_alive(DATA_DIR / "draft_outbox")}
+
+
+@app.get("/api/drafts/{draft_id}")
+def get_draft(draft_id: str) -> dict:
+    from harness import drafting
+    def go(c):
+        drafting.collect_results(c, DATA_DIR / "draft_outbox")
+        return drafting.view(c, draft_id)
+    d = _with_conn(go)
+    if d is None:
+        raise HTTPException(404, "No such draft")
+    return d
+
+
+@app.post("/api/drafts/{draft_id}/approve")
+def approve_draft(draft_id: str, body: DraftApproveIn) -> dict:
+    """She clicked 'Save to Gmail' on this exact text."""
+    from harness import drafting
+    return _drafting(lambda c: drafting.approve(c, draft_id, DATA_DIR / "draft_outbox", body=body.body, subject=body.subject, to=body.to, cc=body.cc))
+
+
+@app.post("/api/drafts/{draft_id}/cancel")
+def cancel_draft(draft_id: str) -> dict:
+    from harness import drafting
+    return {"changed": _with_conn(lambda c: drafting.cancel(c, draft_id))}
+
+
+@app.get("/api/waiting/{waiting_id}/threads")
+def waiting_threads(waiting_id: int) -> dict:
+    from harness import drafting
+    return _drafting(lambda c: drafting.reminder_threads(c, waiting_id))
+
+
+@app.post("/api/waiting/{waiting_id}/draft")
+def draft_reminder(waiting_id: int, body: DraftRequestIn) -> dict:
+    from harness import drafting
+    from harness.gateway import Gateway
+    return _drafting(lambda c: drafting.generate_reminder(c, Gateway(), waiting_id, thread_id=body.thread_id, new_message=body.new_message,
+                                                          tone=body.tone, language=body.language, instruction=body.instruction))

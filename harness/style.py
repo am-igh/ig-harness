@@ -115,9 +115,21 @@ def build_profile(mine: list[dict], theirs: list[dict], names: list[str]) -> dic
     }
 
 
+def clean_signature_line(line: str) -> str:
+    """Plain-text leftovers of rich formatting: *bold* markers and <https://link> duplicates."""
+    line = re.sub(r"<\s*(?:https?://|mailto:)[^>\s]*\s*>", "", line)
+    line = re.sub(r"(?<!\w)[*_]{1,2}([^*_\n]+?)[*_]{1,2}(?!\w)", r"\1", line)
+    return re.sub(r"\s{2,}", " ", line).strip()
+
+
 def learned_signature(all_mine: list[str]) -> str | None:
-    """Her signature block: the most common set of lines after her closing, across all her messages."""
-    blocks = Counter("\n".join(sig) for _, sig in (closing_and_signature(t) for t in all_mine) if sig)
+    """Her signature block: the most common set of lines after her closing, across all her messages (cleaned)."""
+    cleaned = []
+    for _, sig in (closing_and_signature(t) for t in all_mine):
+        lines = [x for x in (clean_signature_line(ln) for ln in sig) if x]
+        if lines:
+            cleaned.append("\n".join(lines))
+    blocks = Counter(cleaned)
     return blocks.most_common(1)[0][0] if blocks else None
 
 

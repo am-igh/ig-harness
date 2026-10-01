@@ -1,4 +1,4 @@
-.PHONY: up down test logs import calendar gmail correspondence check-network
+.PHONY: up down test logs import calendar gmail correspondence check-network agent-install agent-uninstall agent-status
 
 up:      ## Start the harness (UI at http://localhost:5173)
 	docker compose up -d --build
@@ -31,3 +31,12 @@ check-network: ## Prove the containers are isolated (no internet; only the gatew
 correspondence: ## Read your past emails with each person (read-only, on the Mac), then learn how you write to them
 	python3 tools/google_helper.py sync-correspondence
 	docker compose exec api python -m harness.importers.run
+
+agent-install: ## Install the background agent that saves approved drafts to Gmail (never sends)
+	sh scripts/install_draft_agent.sh
+
+agent-uninstall: ## Remove the background agent
+	sh scripts/uninstall_draft_agent.sh
+
+agent-status: ## Is the draft agent installed and running?
+	sh scripts/draft_agent_status.sh

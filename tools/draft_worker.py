@@ -169,6 +169,7 @@ def main(argv: list[str]) -> None:
         gmail = GuardedGmail(_transmit)
         while True:
             try:
+                (OUTBOX / ".heartbeat").touch()                      # lets the app show "draft agent running"
                 stats = process_outbox(OUTBOX, _db(), gmail, _token) if any(OUTBOX.glob("*.json")) else None
                 if stats and (stats["created"] or stats["refused"]):
                     print(datetime.now().strftime("%H:%M:%S"), stats, flush=True)

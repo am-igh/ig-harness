@@ -12,6 +12,7 @@ The harness runs on your Mac in Docker and opens in your browser. Nothing leaves
 | **Refresh those and your Google Calendar** | `make calendar` |
 | **Fetch and triage your recent emails** (read-only) | `make gmail`. The triage then runs in the background; the Emails panel fills in as it goes. |
 | **Learn how you write to each person** | `make correspondence` (read-only; takes a few minutes). Then review the results on the Inbox tab under **How you write to people**. |
+| **Install the draft agent** (once) | `make agent-install`. It starts at login and saves *approved* drafts to Gmail. It cannot send. Check it with `make agent-status`, remove it with `make agent-uninstall`. |
 | **Stop it** | `make down` |
 
 The Today page reloads its own data every minute. **Personal items** (Suivi domain P) are masked: the board shows **🔒 Personal task** (or Personal follow-up) with its date, and the page never receives the title or project code until you click "show details". The same on the lake and in the Done record. Click the **✎** on any open item to change its title or date (a waiting-on item's "chase on" date too). Edits are kept here even after the next import from Suivi, the row is marked *edited*, and the editor shows what Suivi still says, with **Reset to the original**. Suivi.xlsx itself is never changed. Items due more than a week away are under **Later**. Ticked items move into **Done today** (with the time). Click the green counter, or "See everything you have done", for the full record by day: search it, and **Reopen** anything. Emails have a **Mark as done** button in their pop-out; handled emails stay findable under **Handled** on the Inbox tab. Ticking something off is saved straight away in `~/IG-Harness-data/harness.db` and does not change Suivi.xlsx. Suivi stays your source of truth for now, and the harness only mirrors it.
@@ -55,3 +56,12 @@ When Claude has made changes and you have agreed to them: `make down`, then `mak
 
 - `make test` includes the red-team tests (sensitive samples can't reach any external provider), the "one exit door" scan, and fail-safe tests for bad, huge and hostile email input.
 - `make check-network` proves the containers have no internet, that only the gateway can reach your Ollama, and that Gmail's API is unreachable from the containers. Run it after any change to `docker-compose.yml`.
+
+
+## Draft replies and reminders
+
+1. Open an email (Today or Inbox) and click **Draft a reply**. The local model writes it on this Mac, in the language and tone it has learned for that person (professional for someone new). Use **Choose tone, language or what to say first** to steer it.
+2. Edit the text, then **Save to Gmail as a draft**. Only that click lets the background agent create the Gmail draft, with exactly that text, inside the same conversation. You review and send it yourself from Gmail.
+3. For something you are waiting on (a waiting-on item whose chase date has come), click **Remind**. The harness suggests the conversation where you asked for it; you can pick another or start a new message.
+
+Needed once and refreshed now and then: `make gmail` (so replies can be threaded), `make correspondence` (your style per person, and the conversations used for reminders), and `make agent-install`.

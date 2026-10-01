@@ -309,6 +309,12 @@ MIGRATIONS: list[str] = [
         updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
     """,
+    # 11: what the draft was asked for and what it needs from her
+    """
+    ALTER TABLE draft_requests ADD COLUMN instruction TEXT;       -- her note when asking for the draft
+    ALTER TABLE draft_requests ADD COLUMN needs_input TEXT;       -- JSON list of things only she can fill in
+    ALTER TABLE draft_requests ADD COLUMN profile_summary TEXT;   -- JSON: which style information was used
+    """,
 ]
 
 

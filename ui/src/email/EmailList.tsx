@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { type Email, type EmailsResponse, type TriageStatus, emailToTask, getEmails, getTriageStatus, labelEmail, runTriage, setDone } from "../api";
+import { type Draft, type Email, type EmailsResponse, type TriageStatus, emailToTask, getEmailDraft, getEmails, getTriageStatus, labelEmail, makeReplyDraft, runTriage, setDone } from "../api";
+import DraftBox from "../drafts/DraftBox";
 import { Shell } from "../today/Drawer";
 import { dayMonth, dayShort, doneTime, doneDay, timeOf } from "../format";
 
@@ -9,6 +10,8 @@ const ago = (h: number) => (h < 1 ? "<1 h" : h < 48 ? `${Math.round(h)} h` : `${
 
 function EmailDrawer({ e, onClose, onChanged }: { e: Email; onClose: () => void; onChanged: () => void }) {
   const handled = !!e.handled_at;
+  const [existing, setExisting] = useState<Draft | null | undefined>(undefined);
+  useEffect(() => { getEmailDraft(e.id).then((r) => setExisting(r.draft)).catch(() => setExisting(null)); }, [e.id]);
   const finish = async (done: boolean) => { await setDone({ type: "email", id: e.id }, done); onChanged(); onClose(); };
   const [label, setLabel] = useState(e.user_label);
   const [taskId, setTaskId] = useState(e.task_id);
@@ -29,6 +32,7 @@ function EmailDrawer({ e, onClose, onChanged }: { e: Email; onClose: () => void;
     <Shell kicker={`EMAIL${e.org ? " · " + e.org.toUpperCase() : ""}`} title={e.subject} meta={`${e.from_name} · ${Math.round(e.hours_ago)} h ago`} onClose={onClose}>
       <div className="facts">{facts.map(([k, v]) => <><span key={k + "k"}>{k}</span><span key={k + "v"}>{v}</span></>)}</div>
       {e.snippet && <div className="related"><div className="kicker">PREVIEW</div><div className="preview">{e.snippet}</div></div>}
+      {existing !== undefined && <DraftBox initial={existing} startLabel="Draft a reply" generate={(o) => makeReplyDraft(e.id, o)} />}
       <div className="actions">
         {handled
           ? <button type="button" className="btn-ghost wide" onClick={() => finish(false)}>Reopen (handled {dayMonth(doneDay(e.handled_at!))} {doneTime(e.handled_at!)})</button>
