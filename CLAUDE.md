@@ -72,7 +72,7 @@ Paths are on her Mac, under `~/Tresors/A-Ms_Tresor/Career/ICT4Peace/`:
 
 Wrap and call these; do not rewrite their logic. Ask Anne-Marie to connect a folder before reading from it.
 
-**One exception to read-only, decided by Anne-Marie on 2 Oct 2026:** her harness *work* notes are appended to the Journal sheet of `Suivi.xlsx` by `tools/suivi_writer.py` (Mac-side only; the container still sees the Suivi folder read-only; personal notes are never sent; backup before each write; nothing is written while the file is open or changing; only the next empty journal rows change; verified before and after; revert on failure; pause with `make suivi-export-pause`). The project register, the audit folders and everything else stay read-only.
+**One exception to read-only, decided by Anne-Marie on 2 Oct 2026:** her harness *work* notes are appended to the Journal sheet of `Suivi.xlsx` by `tools/suivi_writer.py` (Mac-side only; the container still sees the Suivi folder read-only; personal notes are never sent; backup before each write; nothing is written while the file is open or changing; only the next empty journal rows change; verified before and after; revert on failure; pause with `make suivi-export-pause`). The project register, the audit folders and everything else stay read-only, **except for Phase 4 filing** (decided 2 Oct 2026): scan-inbox and bank-statement filing may add **new files only** to her audit/finance folders, **never overwrite or delete**, and each file is filed only after she approves a preview of its new name and destination. Anything ambiguous is asked.
 
 ## Design reference
 
