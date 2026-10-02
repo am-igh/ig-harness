@@ -63,6 +63,14 @@ def page_count(path: Path) -> int | None:
     return int(m.group(1)) if m else None
 
 
+def page_fingerprint(path: Path) -> str | None:
+    """Hash of how page 1 LOOKS (a small grey rendering), so the same page is recognised even when it was re-saved inside another PDF."""
+    with tempfile.TemporaryDirectory() as tmp:
+        _run(["pdftoppm", "-r", "40", "-gray", "-png", "-f", "1", "-l", "1", str(path), f"{tmp}/f"], 60)
+        files = sorted(Path(tmp).glob("f*.png"))
+        return fs.sha256_bytes(files[0].read_bytes()) if files else None
+
+
 def _num(v) -> float | None:
     try:
         x = float(str(v).replace("'", "").replace(" ", "").replace(",", "."))
@@ -109,8 +117,9 @@ def register(conn: sqlite3.Connection, name: str, content: bytes, source: str, d
     if is_pdf:
         (data_dir / OWN).mkdir(parents=True, exist_ok=True)
         _own(data_dir, sid).write_bytes(content)
+        n = page_count(_own(data_dir, sid))
         with conn:
-            conn.execute("UPDATE scans SET pages=? WHERE id=?", (page_count(_own(data_dir, sid)), sid))
+            conn.execute("UPDATE scans SET pages=?, page_hash=? WHERE id=?", (n, page_fingerprint(_own(data_dir, sid)) if n == 1 else None, sid))
     return sid, True
 
 
@@ -202,11 +211,40 @@ def split_pages(conn: sqlite3.Connection, sid: int, data_dir: Path | None = None
         if len(pages) != s["pages"]:
             raise ValueError("The pages could not be separated")
         for n, pg in enumerate(pages, 1):
-            new_id, _ = register(conn, f"{s['original_name']} (page {n})", pg.read_bytes(), s["source"], data_dir, parent_id=sid)
+            new_id, is_new = register(conn, f"{s['original_name']} (page {n})", pg.read_bytes(), s["source"], data_dir, parent_id=sid)
             ids.append(new_id)
+            h = conn.execute("SELECT page_hash FROM scans WHERE id=?", (new_id,)).fetchone()["page_hash"]
+            same = conn.execute("SELECT id FROM scans WHERE page_hash=? AND id != ? AND id != ? AND status != 'unreadable' ORDER BY id LIMIT 1", (h, new_id, sid)).fetchone() if (h and is_new) else None
+            if same:                                                  # this page was already scanned before: do not offer it twice
+                with conn:
+                    conn.execute("UPDATE scans SET status='skipped', note=? WHERE id=?", (f"Same page as scan #{same['id']}, which you already have.", new_id))
     with conn:
         conn.execute("UPDATE scans SET status='skipped', note=? WHERE id=?", ((reason or "Split into single pages") + f" ({len(ids)} pages).", sid))
     return ids
+
+
+def merge_scans(conn: sqlite3.Connection, ids: list[int], data_dir: Path | None = None) -> int:
+    """Join several scans (in the order given) into ONE document, e.g. the pages of one statement scanned separately. Our own copies only."""
+    data_dir = data_dir or DATA_DIR
+    ids = list(dict.fromkeys(ids))
+    if len(ids) < 2:
+        raise ValueError("Choose at least two scans to combine")
+    rows = [conn.execute("SELECT * FROM scans WHERE id=?", (i,)).fetchone() for i in ids]
+    if any(r is None for r in rows):
+        raise KeyError(ids)
+    if any(r["status"] not in ("found", "proposed", "duplicate") or not _own(data_dir, r["id"]).is_file() for r in rows):
+        raise ValueError("Only scans that are still waiting can be combined")
+    with tempfile.TemporaryDirectory() as tmp:
+        out = Path(tmp) / "merged.pdf"
+        _run(["pdfunite", *[str(_own(data_dir, i)) for i in ids], str(out)], 120)
+        if not out.is_file():
+            raise ValueError("The scans could not be combined")
+        new_id, _ = register(conn, f"{rows[0]['original_name']} + {len(ids) - 1} more", out.read_bytes(), rows[0]["source"], data_dir)
+    with conn:
+        for i in ids:
+            if i != new_id:
+                conn.execute("UPDATE scans SET status='skipped', note=? WHERE id=?", (f"Combined into scan #{new_id}.", i))
+    return new_id
 
 
 def _looks_like_another(conn: sqlite3.Connection, s: sqlite3.Row) -> str | None:
@@ -292,9 +330,12 @@ def read_scan(conn: sqlite3.Connection, gateway: Gateway, sid: int, root: Path |
 def tick(conn: sqlite3.Connection, gateway: Gateway | None = None, scan_dir: Path | None = None, data_dir: Path | None = None, root: Path | None = None) -> int:
     """One pass of the watcher: register new scans, read at most one waiting scan. Returns how many scans were read."""
     discover(conn, scan_dir, data_dir)
-    for r in conn.execute("SELECT id FROM scans WHERE pages IS NULL AND status IN ('found','proposed','duplicate')").fetchall():     # older rows: fill in the page count
-        with conn:
-            conn.execute("UPDATE scans SET pages=? WHERE id=?", (page_count(_own(data_dir or DATA_DIR, r["id"])), r["id"]))
+    for r in conn.execute("SELECT id FROM scans WHERE (pages IS NULL OR (pages=1 AND page_hash IS NULL)) AND status IN ('found','proposed','duplicate')").fetchall():     # older rows: page count and fingerprint
+        own = _own(data_dir or DATA_DIR, r["id"])
+        if own.is_file():
+            n = page_count(own)
+            with conn:
+                conn.execute("UPDATE scans SET pages=?, page_hash=? WHERE id=?", (n, page_fingerprint(own) if n == 1 else None, r["id"]))
     row = conn.execute("SELECT id FROM scans WHERE status='found' ORDER BY id LIMIT 1").fetchone()
     if row is None:
         return 0

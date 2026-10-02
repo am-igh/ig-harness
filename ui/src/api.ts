@@ -199,3 +199,4 @@ export async function uploadScan(file: File): Promise<{ id: number; new: boolean
   return r.json();
 }
 export const splitScan = (id: number) => j<{ ids: number[] }>(`/api/scans/${id}/split`, { method: "POST" });
+export const mergeScans = (ids: number[]) => j<{ id: number }>("/api/scans/merge", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids }) });

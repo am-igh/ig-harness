@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { type Scan, approveScan, editScan, getScans, skipScan, splitScan, uploadScan } from "../api";
+import { type Scan, approveScan, editScan, getScans, skipScan, mergeScans, splitScan, uploadScan } from "../api";
 import { Shell } from "../today/Drawer";
 
 const TYPES: [string, string][] = [["invoice_received", "Invoice received"], ["receipt", "Receipt"], ["invoice_issued", "Invoice issued by ICT4Peace"], ["contract", "Contract"], ["other", "Other document"]];
@@ -8,7 +8,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   return <label className="scan-field"><span>{label}</span>{children}</label>;
 }
 
-function ScanCard({ s, onChange }: { s: Scan; onChange: (s: Scan) => void }) {
+function ScanCard({ s, onChange, picked, onPick }: { s: Scan; onChange: (s: Scan) => void; picked: boolean; onPick: (on: boolean) => void }) {
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [err, setErr] = useState("");
   useEffect(() => { setDraft({}); }, [s.id, s.status]);
@@ -24,7 +24,7 @@ function ScanCard({ s, onChange }: { s: Scan; onChange: (s: Scan) => void }) {
   const open = s.status === "proposed" || s.status === "duplicate";
   return (
     <div className={`scan-card ${s.status === "duplicate" || s.status === "failed" ? "stmt-bad" : ""}`}>
-      <div className="scan-head"><span className="mono stmt-name">{s.original_name}{s.pages && s.pages > 1 ? ` · ${s.pages} pages` : ""}</span><span className="chip chip-soft">{({ found: "Waiting", reading: "Reading…", proposed: "To confirm", duplicate: "Duplicate", approved: "Filing…", filed: "Filed", failed: "Not filed", unreadable: "Cannot read", skipped: "Skipped" } as Record<string, string>)[s.status]}</span></div>
+      <div className="scan-head">{open && <label className="scan-pick" title="Tick two or more scans to combine them into one document"><input type="checkbox" checked={picked} onChange={(e) => onPick(e.target.checked)} /></label>}<span className="mono stmt-name">{s.original_name}{s.pages && s.pages > 1 ? ` · ${s.pages} pages` : ""}</span><span className="chip chip-soft">{({ found: "Waiting", reading: "Reading…", proposed: "To confirm", duplicate: "Duplicate", approved: "Filing…", filed: "Filed", failed: "Not filed", unreadable: "Cannot read", skipped: "Skipped" } as Record<string, string>)[s.status]}</span></div>
       {(s.status === "found" || s.status === "reading") && <p className="muted">Reading this scan on your Mac…</p>}
       {open && (
         <>
@@ -78,6 +78,9 @@ export default function ScansDrawer({ onClose, onChanged }: { onClose: () => voi
   };
   const items = (data?.items ?? []);
   const patch = (s: Scan) => { reload(); void s; };
+  const [picked, setPicked] = useState<number[]>([]);
+  const togglePick = (id: number, on: boolean) => setPicked((p) => (on ? [...p, id] : p.filter((x) => x !== id)));
+  const combine = async () => { setErr(""); try { await mergeScans(picked); setPicked([]); } catch (e) { setErr((e as Error).message); } reload(); };
   const ready = items.filter((s) => s.status === "proposed" && s.proposed_name);
   return (
     <Shell kicker="INVOICES AND RECEIPTS" title={data?.summary.to_confirm ? `${data.summary.to_confirm} to confirm` : "Invoices and receipts"} meta="Scans are read on this Mac only. Nothing is filed until you approve it." onClose={onClose} wide>
@@ -86,7 +89,8 @@ export default function ScansDrawer({ onClose, onChanged }: { onClose: () => voi
         <input ref={input} type="file" accept="application/pdf,.pdf" multiple hidden onChange={(e) => pick(e.target.files)} /></div>
       {err && <div className="edit-err">{err}</div>}
       {items.length === 0 && <p className="muted">Nothing here yet. Scan a document with Image Capture, or choose a PDF with the button.</p>}
-      {items.map((s) => <ScanCard key={s.id} s={s} onChange={patch} />)}
+      {picked.length > 1 && <div className="notice"><span>{picked.length} scans ticked: they are in the order you ticked them.</span><button type="button" onClick={combine}>Combine into one document</button></div>}
+      {items.map((s) => <ScanCard key={s.id} s={s} onChange={patch} picked={picked.includes(s.id)} onPick={(on) => togglePick(s.id, on)} />)}
       {ready.length > 1 && <button type="button" className="btn-primary" onClick={async () => { for (const s of ready) { try { await approveScan(s.id); } catch { /* shown on its card */ } } reload(); }}>Add all {ready.length} to folder</button>}
     </Shell>
   );

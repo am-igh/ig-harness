@@ -432,6 +432,8 @@ MIGRATIONS: list[str] = [
     """,
     # 19: page count and parent (a PDF split into single pages)
     "ALTER TABLE scans ADD COLUMN pages INTEGER; ALTER TABLE scans ADD COLUMN parent_id INTEGER;",
+    # 20: a fingerprint of a single page's picture, so a page that comes back unchanged is recognised
+    "ALTER TABLE scans ADD COLUMN page_hash TEXT;",
 ]
 
 

@@ -856,3 +856,18 @@ def scans_split(sid: int) -> dict:
         raise HTTPException(404, "No such scan")
     except ValueError as e:
         raise HTTPException(409, str(e))
+
+
+class MergeIn(BaseModel):
+    ids: list[int]
+
+
+@app.post("/api/scans/merge")
+def scans_merge(body: MergeIn) -> dict:
+    from harness import scans
+    try:
+        return {"id": _with_conn(lambda c: scans.merge_scans(c, body.ids))}
+    except KeyError:
+        raise HTTPException(404, "No such scan")
+    except ValueError as e:
+        raise HTTPException(409, str(e))

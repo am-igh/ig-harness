@@ -309,7 +309,8 @@ def test_a_page_appended_to_an_already_seen_scan_is_split_at_once_and_the_folder
     parent = env.c.execute("SELECT * FROM scans WHERE id=?", (ids2[0],)).fetchone()
     assert parent["pages"] == 2 and parent["status"] == "skipped" and "2 pages" in parent["note"]
     kids = env.c.execute("SELECT * FROM scans WHERE parent_id=? ORDER BY id", (ids2[0],)).fetchall()
-    assert [k["original_name"] for k in kids] == ["Scan.pdf (page 1)", "Scan.pdf (page 2)"] and all(k["pages"] == 1 and k["status"] == "found" for k in kids)
+    assert [k["original_name"] for k in kids] == ["Scan.pdf (page 1)", "Scan.pdf (page 2)"] and all(k["pages"] == 1 for k in kids)
+    assert [k["status"] for k in kids] == ["skipped", "found"]                          # page 1 is the scan already seen; only the new page is offered
     assert first.read_bytes() == combined                                                 # the file in Scan-Inbox is exactly as Image Capture left it
     assert env.c.execute("SELECT status FROM scans WHERE id=?", (ids1[0],)).fetchone()[0] == "found"       # the first scan's own copy is intact
 
@@ -327,3 +328,46 @@ def test_a_scan_that_looks_like_another_one_is_flagged(env):
     a, _ = new_scan(env); b, _ = new_scan(env)
     read(env, a); s = read(env, b)
     assert f"same document as scan #{a}" in s["note"]
+
+
+def test_a_page_that_comes_back_unchanged_is_not_offered_twice_and_only_the_new_page_remains(env):
+    old = time.time() - 100
+    f = env.inbox / "Scan.pdf"; f.write_bytes(pdf("invoice page one")); os.utime(f, (old, old))
+    first = scans.discover(env.c, env.inbox, env.data)[0]
+    f.write_bytes(pdf_pages("invoice page one", "Swiss Life page one")); os.utime(f, (old + 5, old + 5))
+    parent = scans.discover(env.c, env.inbox, env.data)[0]
+    kids = {k["original_name"]: k for k in env.c.execute("SELECT * FROM scans WHERE parent_id=?", (parent,))}
+    assert kids["Scan.pdf (page 1)"]["status"] == "skipped" and f"scan #{first}" in kids["Scan.pdf (page 1)"]["note"]
+    assert kids["Scan.pdf (page 2)"]["status"] == "found"
+    f.write_bytes(pdf_pages("invoice page one", "Swiss Life page one", "Swiss Life page two")); os.utime(f, (old + 9, old + 9))
+    parent3 = scans.discover(env.c, env.inbox, env.data)[0]
+    st = {k["original_name"]: k["status"] for k in env.c.execute("SELECT * FROM scans WHERE parent_id=?", (parent3,))}
+    assert st == {"Scan.pdf (page 1)": "skipped", "Scan.pdf (page 2)": "skipped", "Scan.pdf (page 3)": "found"}
+
+
+def test_several_scans_can_be_combined_into_one_document_in_the_order_given(env):
+    a, _ = scans.register(env.c, "p1.pdf", pdf("statement page one"), "folder", env.data)
+    b, _ = scans.register(env.c, "p2.pdf", pdf("statement page two"), "folder", env.data)
+    new = scans.merge_scans(env.c, [b, a], env.data)
+    row = env.c.execute("SELECT * FROM scans WHERE id=?", (new,)).fetchone()
+    assert row["pages"] == 2 and row["status"] == "found"
+    import subprocess
+    txt = subprocess.run(["pdftotext", "-layout", str(env.data / "filing/scans" / f"{new}.pdf"), "-"], capture_output=True, text=True).stdout
+    assert txt.index("page two") < txt.index("page one")
+    assert [env.c.execute("SELECT status FROM scans WHERE id=?", (i,)).fetchone()[0] for i in (a, b)] == ["skipped", "skipped"]
+    with pytest.raises(ValueError):
+        scans.merge_scans(env.c, [new], env.data)
+    with pytest.raises(ValueError):
+        scans.merge_scans(env.c, [a, new], env.data)                                      # a is already combined away
+
+
+def test_merge_endpoint(env, monkeypatch):
+    from fastapi.testclient import TestClient
+    from harness import main as m
+    monkeypatch.setattr(m, "_with_conn", lambda fn: fn(db.connect(env.data / "harness.db")))
+    monkeypatch.setattr(scans, "DATA_DIR", env.data)
+    a, _ = scans.register(env.c, "p1.pdf", pdf("one"), "folder", env.data); b, _ = scans.register(env.c, "p2.pdf", pdf("two"), "folder", env.data)
+    with TestClient(m.app) as cl:
+        assert cl.post("/api/scans/merge", json={"ids": [a]}).status_code == 409
+        assert cl.post("/api/scans/merge", json={"ids": [a, 9999]}).status_code == 404
+        assert "id" in cl.post("/api/scans/merge", json={"ids": [a, b]}).json()
