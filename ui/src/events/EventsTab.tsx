@@ -6,6 +6,10 @@ import { Shell } from "../today/Drawer";
 const STATUS_LABEL: Record<string, string> = { confirmed: "You're in", tentative: "Maybe", invited: "Invited", interested: "Interested", declined: "Not going", none: "" };
 const ROLE_LABEL: Record<string, string> = { moderator: "Moderating", facilitator: "Facilitating", speaker: "Speaking", panelist: "Panelist", judge: "Judging", mentor: "Mentoring" };
 
+const EVIDENCE_LABEL: Record<string, string> = { calendar: "Your Google Calendar", "email-club": "Club Diplomatique email", "email-luma": "Luma registration email", "email-registration": "Registration confirmation email",
+  "listing-geneve-int": "Genève internationale listing" };
+const SOURCE_LABEL: Record<string, string> = { "email-club": "Club Diplomatique", "listing-geneve-int": "International Geneva listing", "email-luma": "Registration", "email-registration": "Registration" };
+
 function when(e: EventItem): string {
   const d1 = e.start.slice(0, 10);
   const endIso = e.end ? e.end.slice(0, 10) : d1;
@@ -28,12 +32,13 @@ function Card({ e, onOpen }: { e: EventItem; onOpen: () => void }) {
       <div className="ev-when">{when(e)}</div>
       <div className="ev-main">
         <div className="ev-title serif">{e.title}</div>
-        <div className="ev-sub">{[e.venue, e.online && !e.venue ? "Online" : null].filter(Boolean).join(" · ") || (e.online ? "Online" : "")}</div>
+        <div className="ev-sub">{[e.organizer && e.source_kind.startsWith("listing") ? e.organizer : null, e.venue, e.online && !e.venue ? "Online" : null].filter(Boolean).join(" · ") || (e.online ? "Online" : "")}</div>
         <div className="ev-chips">
           {e.status === "confirmed" && <span className="ev-badge">✓ You're in</span>}
           {e.status !== "confirmed" && STATUS_LABEL[e.status] && <span className={`chip ev-status-${e.status}`}>{STATUS_LABEL[e.status]}</span>}
           {e.role && <span className="chip chip-major">{ROLE_LABEL[e.role] ?? e.role}</span>}
           {e.geneva && <span className="chip chip-soft">Geneva</span>}
+          {SOURCE_LABEL[e.source_kind] && e.status === "none" && <span className="chip chip-src">{SOURCE_LABEL[e.source_kind]}</span>}
           {e.topics.slice(0, 3).map((t) => <span key={t} className="chip chip-topic">{t}</span>)}
           {e.clashes.length > 0 && <span className="chip chip-clash">⚠ Clash</span>}
         </div>
@@ -69,7 +74,7 @@ function EventDrawer({ id, onClose, onChanged }: { id: number; onClose: () => vo
         <button type="button" className="btn-ghost" onClick={async () => { await hideEvent(id); onChanged(); onClose(); }}>Not an event</button>
       </div>
       <div className="related"><div className="kicker">WHY IT IS HERE</div>
-        {d.evidence.map((e, i) => <div key={i} className="related-row"><span>{e.kind === "calendar" ? "Your Google Calendar" : e.kind}: {e.signal ?? "—"}{e.detail ? ` · ${e.detail}` : ""}</span><span className="muted">{e.observed_at.slice(0, 10)}</span></div>)}
+        {d.evidence.map((e, i) => <div key={i} className="related-row"><span>{EVIDENCE_LABEL[e.kind] ?? e.kind}: {e.signal ?? "—"}{e.detail && !/^\d{4}-\d{2}-\d{2}$/.test(e.detail) ? ` · ${e.detail}` : ""}</span><span className="muted">{e.observed_at.slice(0, 10)}</span></div>)}
       </div>
     </Shell>
   );
@@ -81,9 +86,10 @@ export default function EventsTab() {
   const [status, setStatus] = useState<string>("");
   const [geneva, setGeneva] = useState(false);
   const [topic, setTopic] = useState("");
+  const [allListings, setAllListings] = useState(false);
   const [data, setData] = useState<EventsResponse | null>(null);
   const [open, setOpen] = useState<number | null>(null);
-  const load = useCallback(() => getEvents({ scope, q: q || undefined, status: status || undefined, geneva: geneva || undefined, topic: topic || undefined }).then(setData).catch(() => setData(null)), [scope, q, status, geneva, topic]);
+  const load = useCallback(() => getEvents({ scope, q: q || undefined, status: status || undefined, geneva: geneva || undefined, topic: topic || undefined, allListings }).then(setData).catch(() => setData(null)), [scope, q, status, geneva, topic, allListings]);
   useEffect(() => { const t = setTimeout(load, q ? 250 : 0); return () => clearTimeout(t); }, [load, q]);
 
   const groups: [string, EventItem[]][] = [];
@@ -109,8 +115,10 @@ export default function EventsTab() {
         {chip("Invited", status === "invited", () => setStatus(status === "invited" ? "" : "invited"))}
         {chip("Geneva", geneva, () => setGeneva(!geneva))}
         {(data?.topics ?? []).map((t) => chip(t, topic === t, () => setTopic(topic === t ? "" : t)))}
+        {(data?.other_listings ?? 0) > 0 && chip(`Also other International Geneva listings (${data!.other_listings})`, allListings, () => setAllListings(!allListings))}
       </div>
-      {data && data.items.length === 0 && <p className="muted">{scope === "upcoming" ? "No events match." : "Nothing in the archive matches."} Events come from your Google Calendar for now; invitations in your inbox and the public Geneva listings are the next steps.</p>}
+      {scope === "upcoming" && (data?.candidates ?? 0) > 0 && <p className="muted">{data!.candidates} more emails look like invitations or registrations that I could not read by rule (no clear date). Reading them with your local model comes next.</p>}
+      {data && data.items.length === 0 && <p className="muted">{scope === "upcoming" ? "No events match." : "Nothing in the archive matches."} Events come from your Google Calendar, event emails and the Genève internationale newsletter.</p>}
       {groups.map(([g, items]) => <section key={g} className="ev-group"><h3 className="ev-week">{g}</h3>{items.map((e) => <Card key={e.id} e={e} onOpen={() => setOpen(e.id)} />)}</section>)}
       {data && data.total > data.items.length && <p className="muted">Showing the first {data.items.length} of {data.total}. Narrow the search to see the rest.</p>}
       {open !== null && <EventDrawer id={open} onClose={() => setOpen(null)} onChanged={load} />}

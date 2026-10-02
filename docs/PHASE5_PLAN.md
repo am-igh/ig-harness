@@ -44,6 +44,8 @@ One **Events** tab (the Geneva tab, enlarged): conferences and events relevant t
 ## Progress
 - 5.1 built (calendar RSVP, events store, tab skeleton, topics, clashes, archive). Known rough edge: an umbrella entry that spans several days (e.g. a forum) clashes with the sessions inside it; to refine.
 
+- 5.2 built: Club Diplomatique subjects, Luma, organiser registrations, Genève internationale tables; evidence-based status; merging across sources; helper `sync-events` + agent step. First real run: 1,649 event-related messages in the year, about 600 events in the archive; about 1,500 emails kept as candidates for the model step (mostly noise: prioritise non-bulk, direct, personal invitations).
+
 ## Rules that stay
 Drafts only, never send; inbox-derived data local only (S2); public data S0; one model door (gateway, new job `event_extract`); no real data in the repo; nothing in her files changes; calendar stays read-only.
 

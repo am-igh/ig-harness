@@ -77,5 +77,5 @@ def import_event_mail(conn: sqlite3.Connection, folder: Path) -> list[Report]:
                                        (ref, m.get("thread_id") or ref, sent[:10], sender, subj[:200], snip[:300], int(bool(m.get("bulk"))), int(bool(m.get("direct")))))
     after = conn.execute("SELECT COUNT(*) FROM events").fetchone()[0]
     rep.added = max(0, after - before)
-    rep.unchanged = len(data.get("messages", [])) - rep.added - rep.skipped
+    rep.unchanged = max(0, len(data.get("messages", [])) - rep.added - rep.skipped)
     return [rep]

@@ -196,4 +196,8 @@ Google Calendar: entries whose title looks like an event (summit, forum, panel, 
 - A **⚠ Clash** appears when two confirmed (or maybe) events overlap in time.
 - Filters: All, Confirmed, Invited, Geneva, and your topics (digital & AI, cyber, peacebuilding, humanitarian tech, multilateral diplomacy, harmful information, tech for good).
 - The calendar now goes back a year (for the archive) and half a year ahead, and keeps your own response, the place and the join link (never attendees' addresses).
-- Coming next: invitations and registration confirmations from your inbox, the Genève internationale and Club Diplomatique emails, and the public Geneva listings (see `docs/PHASE5_PLAN.md`).
+- **From your inbox** (read-only, over the past year, then the last three weeks every few hours; run `make events-mail` to do it now): the Club Diplomatique invitations and reminders,
+  Luma "registration approved/confirmed" emails, organisers' registration confirmations, and the weekly **Genève internationale** newsletter tables. The same event seen in several places is **one card**
+  with all the evidence ("Your Google Calendar: accepted; Luma registration email: registration approved"). A registration beats "not yet answered" in your calendar.
+- **International Geneva listings** are shown only when they match your topics; the chip "Also other International Geneva listings (N)" shows the rest.
+- Emails that look like invitations or registrations but have no readable date are kept as *candidates*; reading them with your local model is the next step (see `docs/PHASE5_PLAN.md`).

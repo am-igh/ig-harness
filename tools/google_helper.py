@@ -44,12 +44,17 @@ BODY_CHARS = 3000
 DAYS_BACK, DAYS_AHEAD = 400, 180     # a year back for the Events archive, half a year ahead
 
 
+_CTX: ssl.SSLContext | None = None
+
+
 def _ssl_context() -> ssl.SSLContext:
-    """Verify HTTPS against the Mac's own certificate list (python.org builds ship none)."""
-    ctx = ssl.create_default_context()
-    if os.path.exists("/etc/ssl/cert.pem"):
-        ctx.load_verify_locations("/etc/ssl/cert.pem")
-    return ctx
+    """Verify HTTPS against the Mac's own certificate list (python.org builds ship none). Built once: loading the list on every request was slow."""
+    global _CTX
+    if _CTX is None:
+        _CTX = ssl.create_default_context()
+        if os.path.exists("/etc/ssl/cert.pem"):
+            _CTX.load_verify_locations("/etc/ssl/cert.pem")
+    return _CTX
 
 
 def kc_get(item: str, acct: str) -> str | None:
@@ -473,14 +478,14 @@ def sync_event_mail() -> None:
     failed = 0
     for n, mid in enumerate(new_ids, 1):
         try:
-            msg = _get(f"{GMAIL_API}/messages/{mid}", access, {"format": "full"})
+            msg = _get(f"{GMAIL_API}/messages/{mid}", access, {"format": "metadata"})        # headers and snippet only
+            norm = normalize_event_mail(msg, me)
+            if norm and norm["from_email"].endswith("geneve-int.ch"):                          # only this newsletter needs its body (HTML tables)
+                norm["listing"] = parse_geneve_int(_html_of(_get(f"{GMAIL_API}/messages/{mid}", access, {"format": "full"}).get("payload", {})))
         except GoogleError:
             failed += 1
             continue
-        norm = normalize_event_mail(msg, me)
         if norm:
-            if norm["from_email"].endswith("geneve-int.ch"):
-                norm["listing"] = parse_geneve_int(_html_of(msg.get("payload", {})))
             old[mid] = norm
         time.sleep(0.1)
         if n % 25 == 0:

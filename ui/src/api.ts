@@ -224,10 +224,10 @@ export const getProjectChecks = () => j<ProjectChecks>("/api/projects-check");
 // ---- Geneva and beyond (events)
 export type EventStatus = "none" | "invited" | "interested" | "tentative" | "confirmed" | "declined";
 export type EventItem = { id: number; title: string; start: string; end: string | null; all_day: boolean; venue: string | null; online: boolean; url: string | null; organizer: string | null;
-  topics: string[]; geneva: boolean; role: string | null; status: EventStatus; derived_status: EventStatus; overridden: boolean; source_kind: string; hidden: boolean; clashes: number[] };
-export type EventsResponse = { scope: string; items: EventItem[]; total: number; counts: { confirmed: number; tentative: number; invited: number; interested: number }; topics: string[] };
+  topics: string[]; geneva: boolean; relevant: boolean; tier: string; role: string | null; status: EventStatus; derived_status: EventStatus; overridden: boolean; source_kind: string; hidden: boolean; clashes: number[] };
+export type EventsResponse = { scope: string; items: EventItem[]; total: number; counts: { confirmed: number; tentative: number; invited: number; interested: number }; topics: string[]; other_listings: number; candidates: number };
 export type EventDetail = EventItem & { evidence: { kind: string; signal: string | null; detail: string | null; observed_at: string }[]; forced: boolean };
-export type EventQuery = { scope?: "upcoming" | "archive"; q?: string; status?: string; geneva?: boolean; topic?: string };
+export type EventQuery = { scope?: "upcoming" | "archive"; q?: string; status?: string; geneva?: boolean; topic?: string; allListings?: boolean };
 export const getEvents = (f: EventQuery = {}) => {
   const p = new URLSearchParams();
   if (f.scope) p.set("scope", f.scope);
@@ -235,6 +235,7 @@ export const getEvents = (f: EventQuery = {}) => {
   if (f.status) p.set("status", f.status);
   if (f.geneva !== undefined) p.set("geneva", String(f.geneva));
   if (f.topic) p.set("topic", f.topic);
+  if (f.allListings) p.set("all_listings", "true");
   return j<EventsResponse>(`/api/events?${p.toString()}`);
 };
 export const getEvent = (id: number) => j<EventDetail>(`/api/events/${id}`);

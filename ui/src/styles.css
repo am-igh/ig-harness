@@ -299,3 +299,4 @@ table.score td.best { font-weight: 700; color: var(--purple); }
 .ev-status-invited { background: #e6e9f6; color: #34407a; } .ev-status-tentative { background: #efe0f0; color: #5b0f5b; } .ev-status-interested, .ev-status-declined { background: #eee; color: #555; }
 .chip-topic { background: #eef6d0; color: #4b6b00; } .chip-clash { background: #fdf1d6; color: #7a4a00; }
 @media (max-width: 640px) { .ev-card { flex-direction: column; gap: 4px; } .ev-when { flex-basis: auto; } }
+.chip-src { background: #eef0f8; color: #4f5fa8; }
