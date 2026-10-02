@@ -5,8 +5,9 @@ Keeps the harness current without you running anything: every 30 minutes between
 whenever you press "Refresh now" in the app) it
   1. fetches your Google Calendar and recent Gmail            (read-only; tokens stay in the Keychain)
   2. reads your past correspondence with each person           (about once a day)
-  3. tells the harness to import everything and triage new emails
-  4. makes the daily backup of the harness database
+  3. adds your new work notes to Suivi's journal               (tools/suivi_writer.py, with its safeguards)
+  4. tells the harness to import everything and triage new emails
+  5. makes the daily backup of the harness database
 It runs on the Mac, outside Docker, because the Google tokens live in the Keychain. It holds only the READ-ONLY
 Google permissions: it has no draft or send capability (those live in tools/draft_worker.py, a separate agent).
 Each step is recorded in ~/IG-Harness-data/refresh_status.json, which the app shows. A step that fails never
@@ -105,6 +106,12 @@ def run_cycle(data_dir: Path, trigger: str, *, sub=run_sub, call=http, backup=ba
     step("gmail", helper("sync-gmail", 480))
     if force_correspondence or R.correspondence_due(prev, now(), age()):
         step("correspondence", helper("sync-correspondence", 1800))
+
+    def do_suivi():
+        """Her notes into Suivi's journal (work notes only; see tools/suivi_writer.py for the safeguards)."""
+        rc, line = sub([TOOLS / "suivi_writer.py", "run"], 240)
+        return ("ok" if rc == 0 else "error"), line
+    step("suivi", do_suivi)
 
     def do_import():
         if not api_up:

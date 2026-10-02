@@ -72,6 +72,8 @@ Paths are on her Mac, under `~/Tresors/A-Ms_Tresor/Career/ICT4Peace/`:
 
 Wrap and call these; do not rewrite their logic. Ask Anne-Marie to connect a folder before reading from it.
 
+**One exception to read-only, decided by Anne-Marie on 2 Oct 2026:** her harness *work* notes are appended to the Journal sheet of `Suivi.xlsx` by `tools/suivi_writer.py` (Mac-side only; the container still sees the Suivi folder read-only; personal notes are never sent; backup before each write; nothing is written while the file is open or changing; only the next empty journal rows change; verified before and after; revert on failure; pause with `make suivi-export-pause`). The project register, the audit folders and everything else stay read-only.
+
 ## Design reference
 
 - `docs/design/mockup-v0.3/` — the approved mockup (four `.dc.html` files: Main = Today, Inbox, Projects, Geneva). They use a small proprietary template syntax (`{{…}}`, `<sc-for>`, `<sc-if>`); treat them as the visual and behavioural spec, not as code to run.
@@ -88,6 +90,7 @@ Wrap and call these; do not rewrite their logic. Ask Anne-Marie to connect a fol
 - **Keeping current:** a Mac-side refresh agent (`tools/refresh_worker.py`, LaunchAgent via `make refresh-install`) refreshes calendar and Gmail (read-only), imports, triages and backs up every 30 minutes between 06:30 and 21:00 or on the header's ↻ button; status in `~/IG-Harness-data/refresh_status.json`. It holds only read-only Google permissions and has no draft capability (the draft agent is separate).
 - **Backups:** daily verified snapshots of `harness.db` in `~/IG-Harness-Backups` (14 daily, 12 monthly) and an automatic copy before every database upgrade; they never leave the Mac (the database holds S2/S3 data). `make backup-test` is the restore test.
 - **Notes** (`notes` table, `harness/notes.py`): context or follow-ups attached to a task, deadline, waiting-on item or email, or free-standing; a follow-up creates a task (source `note`) in Today & overdue. Recorded in the database (so in backups), listed in an All-notes log, masked when personal, and given to the drafting model as context (never personal notes).
+- **Notes go to Suivi's journal too** (work notes only), as `capture` rows following her Suivi specification: `confirmed` because she wrote them, evidence on every row, ids continuing from the highest `J-YYYY-NNN`.
 - **Calendar widget:** a Day/Week/Month view of the Google Calendar with deadline and task layers (`/api/calendar`); read-only, Geneva time; the helper reads 35 days back and 120 ahead.
 - **Safety checks to keep green:** `make test` (red-team, one-door, no-send, fail-safe, masking), `make check-network`.
 

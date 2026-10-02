@@ -7,6 +7,8 @@ import sqlite3
 from datetime import date, datetime
 
 from harness import privacy
+from harness import suivi_export
+from harness.config import DATA_DIR
 from harness.config import now_local
 from harness.items import TABLES
 from harness.importers.common import TITLE_COL
@@ -88,7 +90,8 @@ def view(conn: sqlite3.Connection, note_id: int, reveal: bool = False) -> dict |
     if r["follow_up_task_id"]:
         t = conn.execute("SELECT status, due_date, done_at FROM tasks WHERE id = ?", (r["follow_up_task_id"],)).fetchone()
         fu = {"task_id": r["follow_up_task_id"], "status": t["status"] if t else "gone", "due": t["due_date"] if t else r["due_date"], "done_at": t["done_at"] if t else None}
-    return {"id": r["id"], "created_at": r["created_at"], "kind": r["kind"], "text": privacy.label("note") if masked else r["text"], "masked": masked,
+    suivi = suivi_export.note_status(r["id"], r["space"], r["deleted_at"] is not None, suivi_export.read_state(DATA_DIR), suivi_export.is_paused(DATA_DIR))
+    return {"suivi": suivi, "id": r["id"], "created_at": r["created_at"], "kind": r["kind"], "text": privacy.label("note") if masked else r["text"], "masked": masked,
             "personal": privacy.is_personal(r["space"]), "due_date": r["due_date"], "follow_up": fu, "parent": _label(conn, r)}
 
 

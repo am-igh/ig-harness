@@ -111,10 +111,10 @@ def cycle(tmp_path, f, **kw):
 def test_a_full_cycle_runs_every_step_in_order_and_records_success(tmp_path):
     f = Fakes()
     st = cycle(tmp_path, f)
-    assert [s["name"] for s in st["steps"]] == ["calendar", "gmail", "import", "triage", "backup"]            # correspondence not due (read 1h ago)
-    assert f.calls == ["sync", "sync-gmail"] and ("POST", "/api/import") in f.http_calls and ("POST", "/api/triage/run") in f.http_calls
+    assert [s["name"] for s in st["steps"]] == ["calendar", "gmail", "suivi", "import", "triage", "backup"]    # correspondence not due (read 1h ago)
+    assert f.calls == ["sync", "sync-gmail", "run"] and ("POST", "/api/import") in f.http_calls and ("POST", "/api/triage/run") in f.http_calls
     assert st["ok"] is True and st["running"] is False and st["last_success_at"] == st["finished_at"]
-    assert st["steps"][2]["note"] == "6 change(s)" and st["backup"]["note"] == "saved harness-x.db"
+    assert st["steps"][3]["note"] == "6 change(s)" and st["backup"]["note"] == "saved harness-x.db"
     assert R.read_status(tmp_path) == st
 
 
@@ -129,7 +129,7 @@ def test_one_failing_step_never_stops_the_others(tmp_path):
     f = Fakes(fail={"sync-gmail"})
     st = cycle(tmp_path, f)
     states = {s["name"]: s["state"] for s in st["steps"]}
-    assert states == {"calendar": "ok", "gmail": "error", "import": "ok", "triage": "ok", "backup": "ok"}
+    assert states == {"calendar": "ok", "gmail": "error", "suivi": "ok", "import": "ok", "triage": "ok", "backup": "ok"}
     assert st["ok"] is False and st["last_success_at"] is None
     assert "Not logged in" in st["steps"][1]["note"]
 
@@ -146,7 +146,7 @@ def test_when_the_harness_is_not_running_the_fetches_still_happen_and_the_rest_i
     st = cycle(tmp_path, f)
     states = {s["name"]: s["state"] for s in st["steps"]}
     assert states["calendar"] == "ok" and states["gmail"] == "ok" and states["import"] == "skipped" and states["triage"] == "skipped"
-    assert st["ok"] is True and "make up" in st["steps"][2]["note"]
+    assert st["ok"] is True and "make up" in st["steps"][3]["note"]
 
 
 def test_import_problems_are_reported_by_name(tmp_path):
@@ -169,7 +169,7 @@ def test_the_status_shows_progress_while_a_cycle_is_running(tmp_path):
     f.sub = lambda args, timeout: (seen.append(R.read_status(tmp_path)), orig(args, timeout))[1]
     cycle(tmp_path, f)
     assert seen[0]["running"] is True and seen[0]["steps"][-1] == {"name": "calendar", "state": "running", "note": "", "seconds": 0}
-    assert [len(x["steps"]) for x in seen] == [1, 2]
+    assert [len(x["steps"]) for x in seen][:2] == [1, 2]
 
 
 # ---------------------------------------------------------------- this agent can read Google data and nothing else
@@ -178,6 +178,12 @@ def test_the_refresh_agent_has_no_draft_or_send_capability():
     assert not re.search(r"draft_worker|gmail\.compose|gmail\.modify|messages/send|drafts/send|smtplib", src.replace("tools/draft_worker.py, a separate agent", ""), re.I)
     commands = set(re.findall(r'helper\("([a-z-]+)"', src))
     assert commands == {"sync", "sync-gmail", "sync-correspondence"}                  # read-only subcommands only
+
+
+def test_the_refresh_agent_writes_to_suivi_only_through_the_suivi_writer():
+    src = (ROOT / "tools" / "refresh_worker.py").read_text()
+    assert 'TOOLS / "suivi_writer.py", "run"' in src
+    assert not re.search(r"openpyxl|zipfile|Suivi\.xlsx", src.split("def main")[0].replace("Suivi.xlsx", ""), re.I)       # no file-editing code of its own
 
 
 def test_the_install_scripts_start_only_the_refresh_worker():

@@ -1,4 +1,4 @@
-.PHONY: ui-test up down test logs import calendar gmail correspondence check-network agent-install agent-uninstall agent-status refresh-install refresh-uninstall refresh-now backup backup-list backup-test
+.PHONY: ui-test up down test logs import calendar gmail correspondence check-network agent-install agent-uninstall agent-status refresh-install refresh-uninstall refresh-now backup backup-list backup-test suivi-export-dry-run suivi-export-now suivi-export-pause suivi-export-resume
 
 up:      ## Start the harness (UI at http://localhost:5173)
 	docker compose up -d --build
@@ -62,3 +62,15 @@ backup-list: ## List the backups
 
 backup-test: ## Restore the newest backup into a throwaway folder and compare it with the live data
 	python3 tools/backup.py restore-check
+
+suivi-export-dry-run: ## Show which notes would be added to Suivi's journal, without changing anything
+	python3 tools/suivi_writer.py run --dry-run
+
+suivi-export-now: ## Add pending work notes to Suivi's journal right now (the refresh agent does this every 30 min)
+	python3 tools/suivi_writer.py run
+
+suivi-export-pause: ## Stop sending notes to Suivi (nothing is uninstalled)
+	mkdir -p $(HOME)/IG-Harness-data/suivi_export && touch $(HOME)/IG-Harness-data/suivi_export/DISABLED && echo "Paused."
+
+suivi-export-resume: ## Resume sending notes to Suivi
+	rm -f $(HOME)/IG-Harness-data/suivi_export/DISABLED && echo "Resumed."

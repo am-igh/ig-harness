@@ -134,6 +134,7 @@ export type CalRange = { start: string; end: string; events: CalEventFull[]; dea
 export const getCalendar = (start: string, end: string) => j<CalRange>(`/api/calendar?start=${start}&end=${end}`);
 
 export type Note = {
+  suivi: { state: "exported" | "pending" | "paused" | "excluded" | "none"; journal_id?: string; reason?: string };
   id: number; created_at: string; kind: "note" | "followup"; text: string; masked: boolean; personal: boolean; due_date: string | null;
   follow_up: null | { task_id: number; status: string; due: string | null; done_at: string | null };
   parent: null | { type: string; id: number; title: string; masked?: boolean };
