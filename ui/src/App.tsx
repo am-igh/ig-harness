@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import TodayTab from "./today/TodayTab";
+import ProjectsTab from "./finance/ProjectsTab";
 import EmailList from "./email/EmailList";
 import ModelPicker from "./ModelPicker";
 import RefreshChip from "./RefreshChip";
@@ -50,7 +51,7 @@ export default function App() {
       </header>
       {tab === "today" ? <TodayTab /> : tab === "inbox" ? (
         <main className="page inbox-page"><section className="panel inbox"><div className="panel-head"><h2 className="serif">Inbox</h2></div><EmailList full /></section><div className="side-col"><StyleProfiles /><Rules /><Scoreboard /></div></main>
-      ) : (
+      ) : tab === "projects" ? <ProjectsTab /> : (
         <main className="page"><h2 className="serif">{current.label}</h2><p className="muted">Placeholder. Coming in {current.phase}.</p></main>
       )}
     </div>

@@ -106,3 +106,11 @@ The **Audit readiness** tile shows what share of the bank debits in your year fo
 - The tile says when documents have changed since the last check; press **Check again now** (it takes seconds).
 - Statements, receipts and amounts are confidential and stay on this Mac. No IBAN is stored, only the short account label your script prints.
 - To use another year, point `AUDIT_YEAR_DIR` at that year's folder (and later we can mount more years).
+
+## Projects & finance tab
+
+The tab lists your four projects and your threads, taken from the Codes sheet of Suivi, with what is open and overdue, the next date,
+the last journal entry, and tagged calendar events (a `[TK]` in an event title attaches it to TK). Click a card for the detail.
+Personal areas never appear. Where Suivi says a project is in the project register but the register has no row yet (today: FAGI, MDH, TK),
+a notice says so; the funders you named (TK: Swiss FDFA; MDH: Gablinger for the course, SmartPeace for the self-hosting build) are not
+recorded anywhere yet, and the harness never writes to the register. Hours, Budget burn and Scan inbox are still "coming soon".

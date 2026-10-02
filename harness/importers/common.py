@@ -29,22 +29,23 @@ class Report:
         return self.__dict__.copy()
 
 
-def read_sheet(path: Path, sheet: str, columns: list[str]) -> list[dict]:
+def read_sheet(path: Path, sheet: str, columns: list[str], optional: tuple[str, ...] = ()) -> list[dict]:
     """Read only the named columns of a sheet. Other columns (e.g. IBAN) are never kept.
 
     The file is read fully into memory first so a Drive sync can't change it mid-read.
+    Columns named in `optional` may be absent from the sheet (they read as empty).
     """
     wb = openpyxl.load_workbook(io.BytesIO(path.read_bytes()), read_only=True, data_only=True)
     try:
         rows = wb[sheet].iter_rows(values_only=True)
         header = [str(h).strip() if h is not None else "" for h in next(rows)]
-        missing = [c for c in columns if c not in header]
+        missing = [c for c in columns if c not in header and c not in optional]
         if missing:
             raise ValueError(f"{path.name} / {sheet}: missing columns {missing}")
-        idx = {c: header.index(c) for c in columns}
+        idx = {c: header.index(c) for c in columns if c in header}
         out = []
         for r in rows:
-            rec = {c: (r[i] if i < len(r) else None) for c, i in idx.items()}
+            rec = {c: (r[idx[c]] if c in idx and idx[c] < len(r) else None) for c in columns}
             if any(v is not None and str(v).strip() != "" for v in rec.values()):
                 out.append(rec)
         return out

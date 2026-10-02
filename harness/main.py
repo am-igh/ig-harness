@@ -642,3 +642,21 @@ def audit_lines(year: str | None = None, statut: str | None = None) -> dict:
 def audit_compare(year: str | None = None) -> dict:
     from harness import audit
     return _with_conn(lambda c: audit.compare_with_report(c, audit.ROOT, _audit_year(year)))
+
+
+# --- Projects tab (from Suivi's Codes, commitments and journal, plus the project register) ---
+@app.get("/api/projects")
+def projects_overview() -> dict:
+    from harness import projects
+    from harness.config import now_local
+    return _with_conn(lambda c: projects.build_projects(c, now_local().date()))
+
+
+@app.get("/api/projects/{code}")
+def project_detail(code: str) -> dict:
+    from harness import projects
+    from harness.config import now_local
+    d = _with_conn(lambda c: projects.project_detail(c, code.upper(), now_local().date()))
+    if d is None:
+        raise HTTPException(404, "No such project")
+    return d

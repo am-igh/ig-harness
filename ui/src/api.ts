@@ -155,3 +155,13 @@ export const getAuditStatus = () => j<AuditStatus>("/api/audit/status");
 export const runAudit = () => jj<{ started: boolean }>("/api/audit/run", { method: "POST" });
 export const getAuditLines = (statut: string) => j<{ items: AuditLine[] }>(`/api/audit/lines?statut=${encodeURIComponent(statut)}`);
 export const getAuditCompare = () => j<AuditCompare>("/api/audit/compare");
+
+// ---- Projects tab
+export type RegisterInfo = { mandate: { funder: string | null; status: string | null; reporting_deadline: string | null; activity_end: string | null } | null; initiative: { status: string | null; next_touchpoint: string | null; counterpart: string | null } | null };
+export type ProjectCard = { code: string; name: string; kind: "project" | "thread"; registry_link: string | null; funder: string | null; register: RegisterInfo | null; open: number; overdue: number;
+  next_due: { title: string; due: string; type: string } | null; last_activity: string | null; events_ahead: number; next_event: { title: string; start: string } | null; gaps: string[] };
+export type ProjectsOverview = { projects: ProjectCard[]; threads: ProjectCard[]; gaps: { code: string; name: string; gap: string }[] };
+export type ProjectDetail = { code: string; name: string; kind: string; registry_link: string | null; register: RegisterInfo | null;
+  items: { type: string; id: number; title: string; due: string | null; importance: string | null; days_overdue: number }[]; journal: { date: string; text: string }[]; events: { id: number; title: string; start: string }[]; gaps: string[] };
+export const getProjects = () => j<ProjectsOverview>("/api/projects");
+export const getProject = (code: string) => j<ProjectDetail>(`/api/projects/${encodeURIComponent(code)}`);

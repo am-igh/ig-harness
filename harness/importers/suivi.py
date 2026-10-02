@@ -27,7 +27,7 @@ def _space(domain) -> tuple[str, str]:
 
 def import_suivi(conn: sqlite3.Connection, folder: Path) -> list[Report]:
     path = folder / FILE
-    return [_commitments(conn, path), _journal(conn, path), _people(conn, path)]
+    return [_commitments(conn, path), _journal(conn, path), _people(conn, path), _codes(conn, path)]
 
 
 def _commitments(conn, path) -> Report:
@@ -136,4 +136,39 @@ def _people(conn, path) -> Report:
                     rep.updated += 1
                 else:
                     rep.unchanged += 1
+    return rep
+
+
+def _codes(conn, path) -> Report:
+    """Codes sheet -> project_codes: which codes are projects, threads or personal areas, and where each is registered."""
+    rep = Report(source="suivi:codes")
+    try:
+        rows = read_sheet(path, "Codes", ["code", "name", "domain", "kind", "registry_link"])
+    except KeyError:
+        rep.notes.append("no Codes sheet in Suivi.xlsx: project list not updated")
+        return rep
+    seen = set()
+    with conn:
+        for r in rows:
+            code = clean(r["code"])
+            if not code:
+                rep.skipped += 1
+                continue
+            seen.add(code)
+            fields = {"name": clean(r["name"]), "domain": clean(r["domain"]), "kind": clean(r["kind"]), "registry_link": clean(r["registry_link"])}
+            row = conn.execute("SELECT * FROM project_codes WHERE code = ?", (code,)).fetchone()
+            if row is None:
+                conn.execute("INSERT INTO project_codes (code, name, domain, kind, registry_link) VALUES (?,?,?,?,?)", (code, *fields.values()))
+                rep.added += 1
+            else:
+                changes = {k: v for k, v in fields.items() if row[k] != v}
+                if changes:
+                    conn.execute("UPDATE project_codes SET " + ", ".join(f"{k}=?" for k in changes) + ", updated_at=datetime('now') WHERE code=?", [*changes.values(), code])
+                    rep.updated += 1
+                else:
+                    rep.unchanged += 1
+        for r in conn.execute("SELECT code FROM project_codes").fetchall():          # a code removed from the sheet is removed here too (it is a mirror)
+            if r["code"] not in seen:
+                conn.execute("DELETE FROM project_codes WHERE code = ?", (r["code"],))
+                rep.retired += 1
     return rep

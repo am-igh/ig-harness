@@ -365,6 +365,26 @@ MIGRATIONS: list[str] = [
     );
     CREATE INDEX idx_audit_lines_run ON audit_lines (run_id, statut);
     """,
+    # 15: project codes (Suivi's Codes sheet) and the project register's initiatives and mandates (no money, no IBAN)
+    """
+    CREATE TABLE project_codes (
+        code TEXT PRIMARY KEY,
+        name TEXT,
+        domain TEXT,                            -- W / P
+        kind TEXT,                              -- project | thread | area
+        registry_link TEXT,                     -- where Suivi says the project's register entry lives
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE TABLE register_initiatives (
+        code TEXT PRIMARY KEY, name TEXT, strand TEXT, counterpart TEXT, status TEXT, next_touchpoint TEXT,
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE TABLE register_mandates (
+        code TEXT PRIMARY KEY, name TEXT, funder TEXT, signature TEXT, activity_start TEXT, activity_end TEXT,
+        reporting_deadline TEXT, status TEXT, close_out_state TEXT,
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    """,
 ]
 
 
