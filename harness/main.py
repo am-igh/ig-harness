@@ -969,12 +969,12 @@ def projects_check() -> dict:
 
 # --- Geneva and beyond: events ---
 @app.get("/api/events")
-def events_list(scope: str = "upcoming", q: str | None = None, status: str | None = None, geneva: bool | None = None, topic: str | None = None) -> dict:
+def events_list(scope: str = "upcoming", q: str | None = None, status: str | None = None, geneva: bool | None = None, topic: str | None = None, all_listings: bool = False) -> dict:
     from harness import events
     from harness.config import now_local
     if scope not in ("upcoming", "archive"):
         raise HTTPException(422, "scope must be upcoming or archive")
-    return _with_conn(lambda c: events.list_events(c, now_local().date(), scope, q, status, geneva, topic))
+    return _with_conn(lambda c: events.list_events(c, now_local().date(), scope, q, status, geneva, topic, all_listings))
 
 
 @app.get("/api/events/{eid}")

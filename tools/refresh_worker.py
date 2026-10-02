@@ -36,6 +36,7 @@ DATA = Path(os.environ.get("IG_DATA_DIR", Path.home() / "IG-Harness-data"))
 API = os.environ.get("IG_API", "http://127.0.0.1:5173")
 TOOLS = ROOT / "tools"
 CORR_FILE = DATA / "correspondence.json"
+EVENT_FILE = DATA / "event_mail.json"
 
 
 def _now() -> datetime:
@@ -77,7 +78,14 @@ def corr_age() -> timedelta | None:
         return None
 
 
-def run_cycle(data_dir: Path, trigger: str, *, sub=run_sub, call=http, backup=backup_daily, age=corr_age, now=_now, force_correspondence: bool = False) -> dict:
+def event_age() -> timedelta | None:
+    try:
+        return datetime.now() - datetime.fromtimestamp(EVENT_FILE.stat().st_mtime)
+    except OSError:
+        return None
+
+
+def run_cycle(data_dir: Path, trigger: str, *, sub=run_sub, call=http, backup=backup_daily, age=corr_age, now=_now, force_correspondence: bool = False, event_age_fn=event_age) -> dict:
     """One refresh. Every step is recorded as it happens; one failing step never stops the next."""
     prev = R.read_status(data_dir) or {}
     status = {"running": True, "trigger": trigger, "started_at": now().isoformat(timespec="seconds"), "finished_at": None, "ok": None,
@@ -107,6 +115,9 @@ def run_cycle(data_dir: Path, trigger: str, *, sub=run_sub, call=http, backup=ba
     step("gmail", helper("sync-gmail", 480))
     if force_correspondence or R.correspondence_due(prev, now(), age()):
         step("correspondence", helper("sync-correspondence", 1800))
+    ea = event_age_fn()
+    if ea is None or ea > timedelta(hours=6):                   # event emails: a few times a day is plenty
+        step("events", helper("sync-events", 2400))
 
     def do_suivi():
         """Her notes into Suivi's journal (work notes only; see tools/suivi_writer.py for the safeguards)."""

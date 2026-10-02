@@ -105,7 +105,7 @@ class Fakes:
 
 def cycle(tmp_path, f, **kw):
     kw.setdefault("age", lambda: timedelta(hours=1))
-    return W.run_cycle(tmp_path, "manual", sub=f.sub, call=f.call, backup=f.backup, now=lambda: T(9), **kw)
+    return W.run_cycle(tmp_path, "manual", sub=f.sub, call=f.call, backup=f.backup, now=lambda: T(9), **{"event_age_fn": lambda: timedelta(hours=1), **kw})
 
 
 def test_a_full_cycle_runs_every_step_in_order_and_records_success(tmp_path):
@@ -137,7 +137,7 @@ def test_one_failing_step_never_stops_the_others(tmp_path):
 def test_last_success_is_kept_when_a_later_cycle_fails(tmp_path):
     cycle(tmp_path, Fakes())
     first = R.read_status(tmp_path)["last_success_at"]
-    st = W.run_cycle(tmp_path, "schedule", sub=Fakes(fail={"sync"}).sub, call=Fakes().call, backup=Fakes().backup, now=lambda: T(10), age=lambda: timedelta(hours=1))
+    st = W.run_cycle(tmp_path, "schedule", sub=Fakes(fail={"sync"}).sub, call=Fakes().call, backup=Fakes().backup, now=lambda: T(10), age=lambda: timedelta(hours=1), event_age_fn=lambda: timedelta(hours=1))
     assert st["ok"] is False and st["last_success_at"] == first
 
 
@@ -177,7 +177,7 @@ def test_the_refresh_agent_has_no_draft_or_send_capability():
     src = (ROOT / "tools" / "refresh_worker.py").read_text()
     assert not re.search(r"draft_worker|gmail\.compose|gmail\.modify|messages/send|drafts/send|smtplib", src.replace("tools/draft_worker.py, a separate agent", ""), re.I)
     commands = set(re.findall(r'helper\("([a-z-]+)"', src))
-    assert commands == {"sync", "sync-gmail", "sync-correspondence"}                  # read-only subcommands only
+    assert commands == {"sync", "sync-gmail", "sync-correspondence", "sync-events"}      # read-only subcommands only (each only reads; the helper holds read-only Google scopes)
 
 
 def test_the_refresh_agent_writes_to_suivi_only_through_the_suivi_writer():
@@ -204,3 +204,10 @@ def test_refresh_api_endpoints(tmp_path):
         R.take_request(DATA_DIR)
         R.write_status(DATA_DIR, {"running": False, "finished_at": datetime.now().astimezone().isoformat(), "last_success_at": datetime.now().astimezone().isoformat(), "steps": []})
         assert cl.get("/api/refresh/status").json()["state"] == "ok"
+
+
+def test_event_emails_are_read_when_missing_or_older_than_six_hours(tmp_path):
+    for age, expect in ((None, True), (timedelta(hours=7), True), (timedelta(hours=2), False)):
+        f = Fakes()
+        st = W.run_cycle(tmp_path, "manual", sub=f.sub, call=f.call, backup=f.backup, now=lambda: T(9), age=lambda: timedelta(hours=1), event_age_fn=lambda a=age: a)
+        assert ("events" in [s["name"] for s in st["steps"]]) is expect

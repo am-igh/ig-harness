@@ -1,4 +1,4 @@
-.PHONY: ui-test up down test logs import calendar gmail correspondence check-network agent-install agent-uninstall agent-status refresh-install refresh-uninstall refresh-now backup backup-list backup-test suivi-export-dry-run suivi-export-now suivi-export-pause suivi-export-resume filing-now hours-now hours-pause hours-resume
+.PHONY: ui-test up down test logs import calendar gmail correspondence check-network agent-install agent-uninstall agent-status refresh-install refresh-uninstall refresh-now backup backup-list backup-test suivi-export-dry-run suivi-export-now suivi-export-pause suivi-export-resume events-mail filing-now hours-now hours-pause hours-resume
 
 up:      ## Start the harness (UI at http://localhost:5173)
 	docker compose up -d --build
@@ -86,3 +86,6 @@ hours-pause: ## Stop the harness appending to hours.csv
 
 hours-resume: ## Let the harness append to hours.csv again
 	rm -f ~/IG-Harness-data/hours/DISABLED
+
+events-mail: ## Read the past year of event emails (read-only Gmail) for the Geneva and beyond tab; later runs only read the last 3 weeks
+	python3 tools/google_helper.py sync-events

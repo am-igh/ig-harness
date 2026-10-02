@@ -59,6 +59,101 @@ def derive_status(my_response: str | None, self_organizer: bool, attendees: int 
     return {"tentative": "tentative", "needsAction": "invited", "declined": "declined"}.get(my_response or "", "none")
 
 
+SIGNAL_STATUS = {
+    ("calendar", "accepted"): "confirmed", ("calendar", "own entry"): "confirmed", ("calendar", "tentative"): "tentative", ("calendar", "needsAction"): "invited",
+    ("calendar", "declined"): "declined", ("calendar", "no response"): "none",
+    ("email-club", "invitation"): "invited", ("email-club", "reminder"): "invited", ("email-club", "information"): "invited",
+    ("email-luma", "registration approved"): "confirmed", ("email-luma", "registration confirmed"): "confirmed", ("email-luma", "registration pending approval"): "tentative",
+    ("email-registration", "registration confirmed"): "confirmed",
+}
+
+
+def signal_status(kind: str, signal: str | None) -> str:
+    return SIGNAL_STATUS.get((kind, signal or ""), "none")
+
+
+def recompute_status(conn: sqlite3.Connection, eid: int) -> str:
+    """The event's derived status is the strongest of its evidence (a calendar 'declined' beats everything; her own override is separate)."""
+    best = "none"
+    for r in conn.execute("SELECT kind, signal FROM event_evidence WHERE event_id = ?", (eid,)):
+        st = signal_status(r["kind"], r["signal"])
+        if RANK[st] > RANK[best]:
+            best = st
+    conn.execute("UPDATE events SET derived_status = ? WHERE id = ?", (best, eid))
+    return best
+
+
+def _words(title: str) -> set[str]:
+    stop = {"the", "and", "for", "with", "from", "des", "les", "une", "der", "die", "das", "von", "geneva", "genève", "geneve", "genf", "2025", "2026", "2027"}
+    return {w for w in re.findall(r"[a-zà-ÿ0-9]{3,}", (title or "").lower()) if w not in stop}
+
+
+def similar(a: str, b: str) -> bool:
+    A, B = _words(a), _words(b)
+    if not A or not B:
+        return False
+    common = A & B
+    return A == B or (len(common) >= 2 and len(common) / min(len(A), len(B)) >= 0.6)
+
+
+def _days(start: str, end: str | None, all_day: bool) -> tuple[date, date]:
+    a = date.fromisoformat(start[:10])
+    if not end:
+        return a, a
+    b = date.fromisoformat(end[:10])
+    if all_day and b > a:
+        b -= timedelta(days=1)                      # all-day ends are exclusive
+    return a, max(a, b)
+
+
+def find_match(conn: sqlite3.Connection, title: str, start: str, end: str | None, all_day: bool, exclude: int | None = None) -> int | None:
+    """An existing event on overlapping days with a similar title: the same event seen from another source."""
+    a, b = _days(start, end, all_day)
+    for r in conn.execute("SELECT id, title, start, end, all_day FROM events WHERE substr(start,1,10) <= ? AND substr(coalesce(end, start),1,10) >= ?",
+                          ((b + timedelta(days=1)).isoformat(), (a - timedelta(days=1)).isoformat())):
+        if r["id"] == exclude:
+            continue
+        c, d = _days(r["start"], r["end"], bool(r["all_day"]))
+        if c <= b and a <= d and similar(title, r["title"]):
+            return r["id"]
+    return None
+
+
+def add_evidence(conn: sqlite3.Connection, eid: int, kind: str, ref: str, signal: str | None, detail: str | None = None) -> None:
+    conn.execute("INSERT INTO event_evidence (event_id, kind, ref, signal, detail) VALUES (?,?,?,?,?) ON CONFLICT (event_id, kind, ref) DO UPDATE SET signal=excluded.signal, detail=excluded.detail, observed_at=datetime('now')",
+                 (eid, kind, ref, signal, detail))
+
+
+def merge_into(conn: sqlite3.Connection, keep: int, drop: int) -> None:
+    """The same event found twice: move the evidence to the one we keep, carry over her override and hide choice, drop the duplicate."""
+    for r in conn.execute("SELECT kind, ref, signal, detail FROM event_evidence WHERE event_id = ?", (drop,)).fetchall():
+        add_evidence(conn, keep, r["kind"], r["ref"], r["signal"], r["detail"])
+    d = conn.execute("SELECT user_status, hidden, topics, url FROM events WHERE id = ?", (drop,)).fetchone()
+    k = conn.execute("SELECT user_status, hidden, topics, url FROM events WHERE id = ?", (keep,)).fetchone()
+    conn.execute("UPDATE events SET user_status = coalesce(user_status, ?), hidden = max(hidden, ?), url = coalesce(url, ?), topics = ? WHERE id = ?",
+                 (d["user_status"], d["hidden"], d["url"], ",".join(sorted(set(filter(None, ((k["topics"] or "") + "," + (d["topics"] or "")).split(","))))) or None, keep))
+    conn.execute("DELETE FROM events WHERE id = ?", (drop,))
+    recompute_status(conn, keep)
+
+
+def upsert_external(conn: sqlite3.Connection, *, source_kind: str, tier: str, title: str, start: str, end: str | None, all_day: bool, venue: str | None, online: bool,
+                    url: str | None, organizer: str | None, evidence: tuple[str, str, str | None, str | None], relevant: bool = True, extra_text: str = "") -> int:
+    """An event seen in an email or a listing: add evidence to an event we already know (any source), or create it."""
+    eid = find_match(conn, title, start, end, all_day)
+    created = eid is None
+    text = f"{title} {venue or ''} {extra_text}"
+    if created:
+        key = f"ext:{re.sub(r'[^a-z0-9]+', '-', title.lower()).strip('-')[:80]}|{start[:10]}"
+        eid = _upsert(conn, key, {"title": title, "start": start, "end": end, "all_day": int(all_day), "venue": venue, "online": int(online), "url": url, "organizer": organizer,
+                                  "topics": topics_of(text), "geneva": int(bool(GENEVA.search(text))), "role": role_of(title), "derived_status": "none",
+                                  "source_kind": source_kind, "tier": tier, "relevant": int(relevant)})
+    else:
+        conn.execute("UPDATE events SET url = coalesce(url, ?), organizer = coalesce(organizer, ?), venue = coalesce(venue, ?), relevant = max(relevant, ?) WHERE id = ?", (url, organizer, venue, int(relevant), eid))
+    add_evidence(conn, eid, *evidence)
+    recompute_status(conn, eid)
+    return eid
+
+
 def _upsert(conn, key: str, fields: dict) -> int:
     row = conn.execute("SELECT id FROM events WHERE dedupe_key = ?", (key,)).fetchone()
     if row is None:
@@ -83,13 +178,17 @@ def sync_calendar(conn: sqlite3.Connection) -> dict:
             text = f"{r['title']} {r['location'] or ''}"
             fields = {"title": r["title"], "start": r["start"], "end": r["end"], "all_day": r["all_day"], "venue": r["location"], "online": int(bool(r["link"]) and not r["location"]),
                       "url": r["link"], "topics": topics_of(text), "geneva": int(bool(GENEVA.search(text))), "role": role,
-                      "derived_status": derive_status(r["my_response"], bool(r["self_organizer"]), r["attendee_count"], role), "source_kind": "calendar", "tier": "S2"}
+                      "source_kind": "calendar", "tier": "S2", "relevant": 1}
             before = conn.execute("SELECT id FROM events WHERE dedupe_key = ?", (key,)).fetchone()
             eid = _upsert(conn, key, fields)
             added += before is None
             updated += before is not None
-            conn.execute("INSERT INTO event_evidence (event_id, kind, ref, signal, detail) VALUES (?,?,?,?,?) ON CONFLICT (event_id, kind, ref) DO UPDATE SET signal=excluded.signal, observed_at=datetime('now')",
-                         (eid, "calendar", r["source_ref"], r["my_response"] or ("own entry" if r["self_organizer"] else "no response"), f"{r['attendee_count'] or 0} attendee(s)"))
+            sig = "own entry" if (r["self_organizer"] and not r["attendee_count"]) else (r["my_response"] or "no response")
+            add_evidence(conn, eid, "calendar", r["source_ref"], sig, f"{r['attendee_count'] or 0} attendee(s)")
+            recompute_status(conn, eid)
+            twin = find_match(conn, r["title"], r["start"], r["end"], bool(r["all_day"]), exclude=eid)
+            if twin is not None and conn.execute("SELECT source_kind FROM events WHERE id = ?", (twin,)).fetchone()["source_kind"] != "calendar":
+                merge_into(conn, eid, twin)                      # the same event also came by email or from a listing
         for r in conn.execute("SELECT id, dedupe_key FROM events WHERE source_kind='calendar'").fetchall():
             if r["dedupe_key"] not in live:
                 conn.execute("DELETE FROM events WHERE id = ?", (r["id"],))
@@ -145,13 +244,13 @@ def _view(r, clash_ids: list[int]) -> dict:
     return {"id": r["id"], "title": r["title"], "start": r["start"], "end": r["end"], "all_day": bool(r["all_day"]), "venue": r["venue"], "online": bool(r["online"]), "url": r["url"],
             "organizer": r["organizer"], "topics": (r["topics"] or "").split(",") if r["topics"] else [], "geneva": bool(r["geneva"]), "role": r["role"],
             "status": effective_status(r), "derived_status": r["derived_status"], "overridden": r["user_status"] is not None, "source_kind": r["source_kind"],
-            "hidden": bool(r["hidden"]), "clashes": clash_ids}
+            "hidden": bool(r["hidden"]), "relevant": bool(r["relevant"]), "tier": r["tier"], "clashes": clash_ids}
 
 
 def list_events(conn: sqlite3.Connection, today: date, scope: str = "upcoming", q: str | None = None, status: str | None = None,
-                geneva: bool | None = None, topic: str | None = None, limit: int = 300) -> dict:
+                geneva: bool | None = None, topic: str | None = None, include_other: bool = False, limit: int = 300) -> dict:
     """upcoming: today and later (and anything still running). archive: before today, newest first, searchable."""
-    rows = conn.execute("SELECT * FROM events WHERE hidden = 0").fetchall()
+    rows = conn.execute("SELECT * FROM events WHERE hidden = 0" + ("" if include_other else " AND relevant = 1")).fetchall()
     day = today.isoformat()
     def ends_after(r):
         e = (r["end"] or r["start"])[:10]
@@ -170,7 +269,9 @@ def list_events(conn: sqlite3.Connection, today: date, scope: str = "upcoming", 
     cl = clashes([r for r in rows if ends_after(r)] if scope == "upcoming" else rows)
     items = [_view(r, cl.get(r["id"], [])) for r in sel[:limit]]
     counts = {s: sum(1 for r in rows if ends_after(r) and effective_status(r) == s) for s in ("confirmed", "tentative", "invited", "interested")}
-    return {"scope": scope, "items": items, "total": len(sel), "counts": counts, "topics": list(TOPICS)}
+    other = conn.execute("SELECT COUNT(*) FROM events WHERE hidden = 0 AND relevant = 0").fetchone()[0]
+    cand = conn.execute("SELECT COUNT(*) FROM event_candidates WHERE status = 'new'").fetchone()[0]
+    return {"scope": scope, "items": items, "total": len(sel), "counts": counts, "topics": list(TOPICS), "other_listings": other, "candidates": cand}
 
 
 def detail(conn: sqlite3.Connection, eid: int, today: date) -> dict | None:

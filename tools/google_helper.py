@@ -9,6 +9,7 @@ file of upcoming events into ~/IG-Harness-data, which the harness imports.
   python3 tools/google_helper.py login | sync                        calendar (login once)
   python3 tools/google_helper.py login-gmail | sync-gmail            Gmail (login once)
   python3 tools/google_helper.py sync-correspondence                 past threads with each person (for style profiles)
+  python3 tools/google_helper.py sync-events                         event emails of the past year (Geneva and beyond); later runs read the last 3 weeks
 
 Keychain items: ig-harness-google-client (account calendar), ig-harness-google-calendar and
 ig-harness-google-gmail (account refresh-token). Scopes: calendar.readonly, gmail.readonly.
@@ -34,6 +35,7 @@ DATA = Path(os.environ.get("IG_DATA_DIR", Path.home() / "IG-Harness-data"))
 OUT = DATA / "calendar_events.json"
 GMAIL_OUT = DATA / "gmail_recent.json"
 CORR_OUT = DATA / "correspondence.json"
+EVENT_OUT = DATA / "event_mail.json"
 CORR_THREADS = 8
 BODY_CHARS_CORR = 1500
 GMAIL_QUERY = "in:inbox newer_than:3d -category:promotions -category:social -category:forums"
@@ -404,6 +406,93 @@ def sync_correspondence() -> None:
     print(f"\nWrote {len(out)} people, {n_msgs} messages to {CORR_OUT}" + (f" ({failed} fetches skipped)" if failed else ""))
 
 
+EVENT_QUERIES = [
+    "from:clubdiplomatique.ch",
+    "from:geneve-int.ch",
+    "from:(luma-mail.com OR lu.ma)",
+    'subject:("registration confirmed" OR "registration approved" OR "registration confirmation" OR "registration pending" OR "you\'re registered" OR "you are registered" OR "thank you for registering" '
+    'OR "you\'re confirmed" OR "you are confirmed" OR "seat is confirmed" OR "your registration")',
+    'subject:(invitation OR invited OR "save the date" OR "invitation to speak" OR "speaking invitation" OR webinar OR conference OR symposium OR workshop OR summit OR forum OR roundtable '
+    'OR reception OR keynote OR panelist OR "open house" OR launch)',
+]
+EVENT_FIRST_DAYS, EVENT_LATER_DAYS = 400, 21
+
+
+def normalize_event_mail(msg: dict, me: str) -> dict | None:
+    """One message -> the few fields the events importer needs. No body is kept (the Genève internationale tables are parsed here and only their rows are kept)."""
+    h = msg.get("payload", {}).get("headers", [])
+    name, addr = _parse_from(_header(h, "From"))
+    if not addr or addr == me.lower():
+        return None
+    return {"id": msg["id"], "thread_id": msg.get("threadId", msg["id"]), "date_ms": int(msg.get("internalDate", 0)), "from_email": addr, "from_name": name,
+            "subject": _header(h, "Subject"), "snippet": msg.get("snippet", ""), "direct": me.lower() in _header(h, "To").lower(), "labels": msg.get("labelIds", []),
+            "bulk": bool(_header(h, "List-Unsubscribe")) or _header(h, "Precedence").lower() in ("bulk", "list", "junk") or _header(h, "Auto-Submitted").lower().startswith("auto-")}
+
+
+def _html_of(payload: dict) -> str:
+    out = []
+
+    def walk(part):
+        data = part.get("body", {}).get("data")
+        if data and part.get("mimeType") == "text/html":
+            out.append(base64.urlsafe_b64decode(data + "=" * (-len(data) % 4)).decode("utf-8", "replace"))
+        for sub in part.get("parts", []) or []:
+            walk(sub)
+    walk(payload)
+    return "\n".join(out)
+
+
+def sync_event_mail() -> None:
+    """Event-related mail from the past year (first run) or the last three weeks (later runs). Read-only Gmail. Written to ~/IG-Harness-data/event_mail.json."""
+    import time
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    from harness.event_parsers import parse_geneve_int                      # pure standard library
+    access = _access_token(GMAIL_TOKEN_ITEM, "login-gmail")
+    me = _get(f"{GMAIL_API}/profile", access)["emailAddress"]
+    old = {}
+    try:
+        old = {m["id"]: m for m in json.loads(EVENT_OUT.read_text()).get("messages", [])}
+    except (OSError, ValueError):
+        pass
+    days = EVENT_LATER_DAYS if old else EVENT_FIRST_DAYS
+    ids: dict[str, None] = {}
+    for q in EVENT_QUERIES:
+        page = None
+        while True:
+            params = {"q": f"{q} newer_than:{days}d -in:spam -in:trash", "maxResults": "500"}
+            if page:
+                params["pageToken"] = page
+            body = _get(f"{GMAIL_API}/messages", access, params)
+            for m in body.get("messages", []):
+                ids[m["id"]] = None
+            page = body.get("nextPageToken")
+            if not page:
+                break
+    new_ids = [i for i in ids if i not in old]
+    print(f"{len(ids)} matching messages, {len(new_ids)} new")
+    failed = 0
+    for n, mid in enumerate(new_ids, 1):
+        try:
+            msg = _get(f"{GMAIL_API}/messages/{mid}", access, {"format": "full"})
+        except GoogleError:
+            failed += 1
+            continue
+        norm = normalize_event_mail(msg, me)
+        if norm:
+            if norm["from_email"].endswith("geneve-int.ch"):
+                norm["listing"] = parse_geneve_int(_html_of(msg.get("payload", {})))
+            old[mid] = norm
+        time.sleep(0.1)
+        if n % 25 == 0:
+            print(f"  {n}/{len(new_ids)}", end="\r", flush=True)
+    DATA.mkdir(parents=True, exist_ok=True)
+    tmp = EVENT_OUT.with_suffix(".tmp")
+    tmp.write_text(json.dumps({"fetched_at": datetime.now(timezone.utc).isoformat(), "me": me, "messages": sorted(old.values(), key=lambda m: m["date_ms"])}, ensure_ascii=False))
+    tmp.replace(EVENT_OUT)
+    EVENT_OUT.chmod(0o600)
+    print(f"\nWrote {len(old)} event-related messages to {EVENT_OUT}" + (f" ({failed} skipped)" if failed else ""))
+
+
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else ""
     if cmd == "store-client" and len(sys.argv) == 3: store_client(sys.argv[2])
@@ -412,4 +501,5 @@ if __name__ == "__main__":
     elif cmd == "login-gmail": login(GMAIL_SCOPE, GMAIL_TOKEN_ITEM)
     elif cmd == "sync-gmail": sync_gmail()
     elif cmd == "sync-correspondence": sync_correspondence()
+    elif cmd == "sync-events": sync_event_mail()
     else: sys.exit(__doc__)

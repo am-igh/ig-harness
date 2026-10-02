@@ -502,6 +502,20 @@ MIGRATIONS: list[str] = [
         UNIQUE (event_id, kind, ref)
     );
     """,
+    # 27: events from emails and public listings: a relevance flag (listings outside her topics are kept but hidden by default) and the
+    # emails that look like invitations but could not be read by rules (the local-model step reads them next)
+    """
+    ALTER TABLE events ADD COLUMN relevant INTEGER NOT NULL DEFAULT 1;
+    CREATE TABLE event_candidates (
+        id INTEGER PRIMARY KEY,
+        message_id TEXT NOT NULL UNIQUE, thread_id TEXT NOT NULL,
+        received_at TEXT NOT NULL, sender TEXT, subject TEXT, snippet TEXT,
+        bulk INTEGER NOT NULL DEFAULT 0, direct INTEGER NOT NULL DEFAULT 0,
+        status TEXT NOT NULL DEFAULT 'new' CHECK (status IN ('new','event','not_event')),
+        event_id INTEGER REFERENCES events (id) ON DELETE SET NULL,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    """,
 ]
 
 
