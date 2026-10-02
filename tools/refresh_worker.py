@@ -175,9 +175,9 @@ def main(argv: list[str]) -> int:
                 except Exception as e:
                     print(f"refresh error: {type(e).__name__}: {e}", file=sys.stderr, flush=True)
             try:
-                import filer                                   # approved bank statements -> new files in the audit folder (tools/filer.py)
-                for fid, ok, msg in filer.run_once(DATA):
-                    print(f"{now:%H:%M:%S} filing #{fid}: {'ok' if ok else 'FAILED'} ({msg})", flush=True)
+                if any((DATA / "filing" / "outbox").glob("*.json")):         # approved statements/documents -> new files in the audit folder
+                    rc, line = run_sub([TOOLS / "filer.py", "once"], 120)    # a fresh process each time: always the current filer code
+                    print(f"{now:%H:%M:%S} filing: {line}", flush=True)
             except Exception as e:
                 print(f"filing error: {type(e).__name__}: {e}", file=sys.stderr, flush=True)
             time.sleep(5)

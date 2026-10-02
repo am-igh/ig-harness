@@ -875,3 +875,13 @@ def scans_merge(body: MergeIn) -> dict:
         raise HTTPException(404, "No such scan")
     except ValueError as e:
         raise HTTPException(409, str(e))
+
+
+@app.get("/api/scans/{sid}/image")
+def scans_image(sid: int, page: int = 1, w: int = 700):
+    from fastapi.responses import Response
+    from harness import scans
+    png = _with_conn(lambda c: scans.page_image(c, sid, page, w))
+    if png is None:
+        raise HTTPException(404, "No picture for this scan")
+    return Response(png, media_type="image/png", headers={"Cache-Control": "private, max-age=3600"})

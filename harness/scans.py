@@ -451,3 +451,17 @@ def summary(conn: sqlite3.Connection) -> dict:
     since = conn.execute("SELECT COUNT(*) FROM scans WHERE status='filed' AND filed_at >= datetime('now','-7 days')").fetchone()[0]
     return {"to_confirm": c.get("proposed", 0), "reading": c.get("found", 0) + c.get("reading", 0), "approved": c.get("approved", 0),
             "filed_this_week": since, "duplicates": c.get("duplicate", 0), "failed": c.get("failed", 0)}
+
+
+def page_image(conn: sqlite3.Connection, sid: int, page: int = 1, width: int = 700, data_dir: Path | None = None) -> bytes | None:
+    """A PNG of one page of our own copy of the scan (rendered on this Mac), for the preview in the review panel."""
+    data_dir = data_dir or DATA_DIR
+    row = conn.execute("SELECT pages FROM scans WHERE id = ?", (sid,)).fetchone()
+    own = _own(data_dir, sid)
+    if row is None or not own.is_file() or not (1 <= page <= (row["pages"] or 1)):
+        return None
+    width = max(150, min(width, 1600))
+    with tempfile.TemporaryDirectory() as tmp:
+        _run(["pdftoppm", "-png", "-scale-to", str(width), "-f", str(page), "-l", str(page), str(own), f"{tmp}/i"], 60)
+        files = sorted(Path(tmp).glob("i*.png"))
+        return files[0].read_bytes() if files else None

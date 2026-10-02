@@ -371,3 +371,25 @@ def test_merge_endpoint(env, monkeypatch):
         assert cl.post("/api/scans/merge", json={"ids": [a]}).status_code == 409
         assert cl.post("/api/scans/merge", json={"ids": [a, 9999]}).status_code == 404
         assert "id" in cl.post("/api/scans/merge", json={"ids": [a, b]}).json()
+
+
+def test_a_statement_and_a_document_with_the_same_id_never_confuse_each_other(env):
+    """Regression (2 Oct 2026): result files were named by id only, so a document result overwrote a bank statement's status."""
+    from harness import filing
+    stmt_name = "0240000022575501J0000_Relev__de_compte_20261001150231837768.pdf"
+    f = filing.stage(env.c, stmt_name, pdf("01.07.2026 - 30.09.2026 / Trimestrielle"), data_dir=env.data, root=env.root)
+    filing.approve(env.c, f["id"], data_dir=env.data)
+    sid, content, s = approved(env)
+    assert f["id"] == sid == 1
+    results = filer.run_once(env.data, env.year)
+    assert sorted(r[1] for r in results) == [True, True]
+    assert filing.reconcile(env.c, env.data) == [1] and scans.reconcile(env.c, env.data) == [1]
+    assert filing.get(env.c, 1)["status"] == "filed" and scans.get(env.c, 1)["status"] == "filed"
+    assert (env.year / stmt_name).is_file() and (env.year / "Expenses" / s["proposed_name"]).is_file()
+
+
+def test_a_picture_of_each_page_is_available_and_only_for_real_pages(env):
+    sid, _ = scans.register(env.c, "two.pdf", pdf_pages("a", "b"), "folder", env.data)
+    png = scans.page_image(env.c, sid, 1, 300, env.data)
+    assert png and png.startswith(b"\x89PNG") and scans.page_image(env.c, sid, 2, 300, env.data)
+    assert scans.page_image(env.c, sid, 3, 300, env.data) is None and scans.page_image(env.c, 999, 1, 300, env.data) is None

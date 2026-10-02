@@ -26,6 +26,16 @@ function ScanCard({ s, onChange, picked, onPick }: { s: Scan; onChange: (s: Scan
     <div className={`scan-card ${s.status === "duplicate" || s.status === "failed" ? "stmt-bad" : ""}`}>
       <div className="scan-head">{open && <label className="scan-pick" title="Tick two or more scans to combine them into one document"><input type="checkbox" checked={picked} onChange={(e) => onPick(e.target.checked)} /></label>}<span className="mono stmt-name">{s.original_name}{s.pages && s.pages > 1 ? ` · ${s.pages} pages` : ""}</span><span className="chip chip-soft">{({ found: "Waiting", reading: "Reading…", proposed: "To confirm", duplicate: "Duplicate", approved: "Filing…", filed: "Filed", failed: "Not filed", unreadable: "Cannot read", skipped: "Skipped" } as Record<string, string>)[s.status]}</span></div>
       {(s.status === "found" || s.status === "reading") && <p className="muted">Reading this scan on your Mac…</p>}
+      {s.status !== "unreadable" && (
+        <div className="scan-pics">
+          {Array.from({ length: Math.min(s.pages ?? 1, 4) }, (_, i) => i + 1).map((n) => (
+            <a key={n} href={`/api/scans/${s.id}/image?page=${n}&w=1400`} target="_blank" rel="noreferrer" title="Click to see it larger">
+              <img src={`/api/scans/${s.id}/image?page=${n}&w=360`} alt={`Scan ${s.original_name}, page ${n}`} loading="lazy" />
+            </a>
+          ))}
+          {(s.pages ?? 1) > 4 && <span className="muted">+{(s.pages ?? 1) - 4} more pages</span>}
+        </div>
+      )}
       {open && (
         <>
           <div className="scan-fields">

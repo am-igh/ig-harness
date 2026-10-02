@@ -101,7 +101,7 @@ def process(data: Path, year_dir: Path | None, req_file: Path) -> tuple[int | No
         return process_document(data, year_dir, req_file, req)
 
     def fail(msg: str):
-        _result(data, fid, False, msg)
+        _result(data, fid, False, msg, "st-")
         req_file.unlink(missing_ok=True)
         return fid, False, msg
     name = str(req.get("dest_name", ""))
@@ -126,7 +126,7 @@ def process(data: Path, year_dir: Path | None, req_file: Path) -> tuple[int | No
     dest = year_dir / name
     if dest.exists():
         if dest.is_file() and fs.sha256_file(dest) == row[1]:
-            _result(data, fid, True, "already in the folder with identical content; nothing written")
+            _result(data, fid, True, "already in the folder with identical content; nothing written", "st-")
             req_file.unlink(missing_ok=True)
             return fid, True, "already there"
         return fail("a different file with this name already exists; nothing was overwritten")
@@ -138,7 +138,7 @@ def process(data: Path, year_dir: Path | None, req_file: Path) -> tuple[int | No
         return fail(f"could not write: {e.strerror or type(e).__name__}")
     if fs.sha256_file(dest) != row[1]:
         return fail("the new file did not verify after writing; it was left in place for you to check")
-    _result(data, fid, True, f"filed in {year_dir.name}/")
+    _result(data, fid, True, f"filed in {year_dir.name}/", "st-")
     req_file.unlink(missing_ok=True)
     return fid, True, "filed"
 
