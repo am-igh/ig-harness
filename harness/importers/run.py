@@ -4,6 +4,7 @@ from pathlib import Path
 
 from harness import db
 from harness.config import DATA_DIR
+from harness import events as _events
 from harness.importers.calendar import import_calendar
 from harness.importers.costs import import_costs
 from harness.importers.gmail import import_gmail
@@ -17,6 +18,13 @@ SUIVI_DIR = Path(os.environ.get("IG_SUIVI_DIR", "/sources/suivi"))
 PROJETS_DIR = Path(os.environ.get("IG_PROJETS_DIR", "/sources/projets"))
 
 
+def import_events(conn, folder) -> list:
+    """Event-like calendar entries -> the Geneva-and-beyond events table (after the calendar import)."""
+    from harness.importers.common import Report
+    d = _events.sync_calendar(conn)
+    return [Report(source="events:calendar", added=d["added"], updated=d["updated"])]
+
+
 def run_all(conn=None, suivi_dir: Path = None, projets_dir: Path = None, data_dir: Path = None) -> list[dict]:
     own = conn is None
     conn = conn or db.connect()
@@ -28,6 +36,7 @@ def run_all(conn=None, suivi_dir: Path = None, projets_dir: Path = None, data_di
             ("hours", import_hours, projets_dir or PROJETS_DIR),
             ("costs", import_costs, projets_dir or PROJETS_DIR),
             ("calendar", import_calendar, data_dir or DATA_DIR),
+            ("events", import_events, data_dir or DATA_DIR),
             ("gmail", import_gmail, data_dir or DATA_DIR),
             ("correspondence", import_correspondence, data_dir or DATA_DIR),
         ):

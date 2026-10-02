@@ -27,7 +27,9 @@ def import_calendar(conn: sqlite3.Connection, folder: Path) -> list[Report]:
             seen.add(e["id"])
             fields = {"title": e["title"], "start": e["start"], "end": e.get("end"),
                       "all_day": int(e.get("all_day", False)),
-                      "status": e.get("status", "confirmed"), "sensitivity": "S2"}
+                      "status": e.get("status", "confirmed"), "sensitivity": "S2",
+                      "my_response": e.get("my_response"), "location": e.get("location"), "link": e.get("link"),
+                      "self_organizer": int(bool(e.get("self_organizer"))), "attendee_count": e.get("attendee_count")}
             row = conn.execute("SELECT * FROM calendar_events WHERE source=? AND source_ref=?",
                                (SOURCE, e["id"])).fetchone()
             if row is None:

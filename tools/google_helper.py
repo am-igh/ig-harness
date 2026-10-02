@@ -13,7 +13,7 @@ file of upcoming events into ~/IG-Harness-data, which the harness imports.
 Keychain items: ig-harness-google-client (account calendar), ig-harness-google-calendar and
 ig-harness-google-gmail (account refresh-token). Scopes: calendar.readonly, gmail.readonly.
 There is NO send or draft code in this file: Gmail access here cannot create or send mail.
-Calendar keeps only title, start, end, status. Gmail keeps recent inbox threads (sender,
+Calendar keeps only title, start, end, status, location, a join link and her own response (attendees are counted, never listed). Gmail keeps recent inbox threads (sender,
 subject, snippet, trimmed text) in ~/IG-Harness-data, on this Mac only.
 """
 import base64, hashlib, http.server, json, os, re, secrets, ssl, subprocess, sys, threading
@@ -39,7 +39,7 @@ BODY_CHARS_CORR = 1500
 GMAIL_QUERY = "in:inbox newer_than:3d -category:promotions -category:social -category:forums"
 GMAIL_MAX_THREADS = 100
 BODY_CHARS = 3000
-DAYS_BACK, DAYS_AHEAD = 35, 120      # wide enough for the calendar widget's month view
+DAYS_BACK, DAYS_AHEAD = 400, 180     # a year back for the Events archive, half a year ahead
 
 
 def _ssl_context() -> ssl.SSLContext:
@@ -62,16 +62,24 @@ def kc_set(item: str, acct: str, value: str) -> None:
 
 
 def normalize_event(item: dict) -> dict | None:
-    """Keep only title, times, status. Returns None for cancelled events."""
+    """Keep only what the harness needs: title, times, status, where, a join link, and HER response (accepted / tentative / declined /
+    needsAction). Never the description or anyone's email address (attendees are only counted). Returns None for cancelled events."""
     if item.get("status") == "cancelled":
         return None
     s, e = item.get("start", {}), item.get("end", {})
     start = s.get("dateTime") or s.get("date")
     if not item.get("id") or not start:
         return None
+    attendees = item.get("attendees") or []
+    me = next((a for a in attendees if a.get("self")), None)
+    self_org = bool((item.get("organizer") or {}).get("self"))
+    link = item.get("hangoutLink") or next((ep.get("uri") for ep in (item.get("conferenceData") or {}).get("entryPoints", []) if ep.get("uri", "").startswith("http")), None)
     return {"id": item["id"], "title": item.get("summary") or "(no title)", "start": start,
             "end": e.get("dateTime") or e.get("date"), "all_day": "date" in s,
-            "status": item.get("status", "confirmed")}
+            "status": item.get("status", "confirmed"),
+            "my_response": me.get("responseStatus") if me else ("accepted" if self_org else None),
+            "self_organizer": self_org, "attendee_count": len(attendees),
+            "location": (item.get("location") or "")[:200] or None, "link": link}
 
 
 def _post(url: str, data: dict) -> dict:
@@ -151,7 +159,7 @@ def sync() -> None:
     events, page = [], None
     while True:
         params = {"timeMin": t_min.isoformat(), "timeMax": t_max.isoformat(), "singleEvents": "true",
-                  "orderBy": "startTime", "maxResults": "250", "fields": "nextPageToken,items(id,status,summary,start,end)"}
+                  "orderBy": "startTime", "maxResults": "250", "fields": "nextPageToken,items(id,status,summary,start,end,location,hangoutLink,organizer(self),attendees(self,responseStatus),conferenceData(entryPoints(uri)))"}
         if page:
             params["pageToken"] = page
         req = urllib.request.Request(EVENTS_URL + "?" + urllib.parse.urlencode(params),

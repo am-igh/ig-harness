@@ -279,3 +279,23 @@ table.score td.best { font-weight: 700; color: var(--purple); }
 .scan-pick { display: flex; align-items: center; } .scan-head { justify-content: flex-start; } .scan-head .chip { margin-left: auto; }
 .scan-pics { display: flex; gap: 8px; flex-wrap: wrap; } .scan-pics img { max-height: 190px; border: 1px solid var(--line); border-radius: 6px; background: #fff; display: block; } .scan-pics a { line-height: 0; }
 .btn-primary:disabled { opacity: .4; cursor: not-allowed; }
+
+/* geneva and beyond */
+.ev-page { display: block; max-width: 1000px; margin: 0 auto; padding: 24px 16px; }
+.ev-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.ev-seg { display: flex; gap: 6px; } .ev-counts { margin: 6px 0 10px; font-size: 13px; color: var(--muted); } .ev-counts b { color: var(--navy); }
+.ev-filters { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 8px 0 14px; }
+.ev-search { flex: 1 1 220px; min-width: 180px; font: inherit; font-size: 13px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 999px; }
+.ev-filter { font: inherit; font-size: 12px; padding: 5px 11px; border: 1px solid var(--line); border-radius: 999px; background: #fff; color: var(--ink); cursor: pointer; } .ev-filter.on { background: var(--navy); color: #fff; border-color: var(--navy); }
+.ev-week { font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 18px 0 8px; }
+.ev-card { display: flex; gap: 14px; width: 100%; text-align: left; font: inherit; color: var(--ink); background: #fff; border: 1px solid var(--line); border-left: 4px solid var(--line); border-radius: 12px; padding: 10px 14px; margin: 0 0 8px; cursor: pointer; }
+.ev-card:hover { border-color: var(--peri); } .ev-when { flex: 0 0 150px; font-size: 12px; font-weight: 700; color: var(--navy); padding-top: 3px; }
+.ev-main { min-width: 0; } .ev-title { font-size: 16px; font-weight: 600; color: var(--navy); } .ev-sub { font-size: 12px; color: var(--muted); margin-top: 1px; }
+.ev-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+.ev-confirmed { border-left: 6px solid var(--purple); background: #f6edf7; box-shadow: 0 1px 0 rgba(125, 20, 125, .15); }
+.ev-badge { font-size: 11px; font-weight: 800; padding: 2px 9px; border-radius: 999px; background: var(--purple); color: #fff; letter-spacing: .02em; }
+.ev-tentative { border-left: 4px dashed var(--purple); } .ev-invited { border-left-color: var(--peri); } .ev-interested { border-left-color: #b7bde0; }
+.ev-declined { opacity: .55; } .ev-declined .ev-title { text-decoration: line-through; }
+.ev-status-invited { background: #e6e9f6; color: #34407a; } .ev-status-tentative { background: #efe0f0; color: #5b0f5b; } .ev-status-interested, .ev-status-declined { background: #eee; color: #555; }
+.chip-topic { background: #eef6d0; color: #4b6b00; } .chip-clash { background: #fdf1d6; color: #7a4a00; }
+@media (max-width: 640px) { .ev-card { flex-direction: column; gap: 4px; } .ev-when { flex-basis: auto; } }

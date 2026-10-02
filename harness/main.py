@@ -965,3 +965,47 @@ def projects_check() -> dict:
     from harness import projects_check as PC
     from harness.config import now_local
     return _with_conn(lambda c: PC.build_checks(c, now_local().date()))
+
+
+# --- Geneva and beyond: events ---
+@app.get("/api/events")
+def events_list(scope: str = "upcoming", q: str | None = None, status: str | None = None, geneva: bool | None = None, topic: str | None = None) -> dict:
+    from harness import events
+    from harness.config import now_local
+    if scope not in ("upcoming", "archive"):
+        raise HTTPException(422, "scope must be upcoming or archive")
+    return _with_conn(lambda c: events.list_events(c, now_local().date(), scope, q, status, geneva, topic))
+
+
+@app.get("/api/events/{eid}")
+def events_detail(eid: int) -> dict:
+    from harness import events
+    from harness.config import now_local
+    d = _with_conn(lambda c: events.detail(c, eid, now_local().date()))
+    if d is None:
+        raise HTTPException(404, "No such event")
+    return d
+
+
+class EventStatusIn(BaseModel):
+    status: str | None = None
+
+
+@app.post("/api/events/{eid}/status")
+def events_status(eid: int, body: EventStatusIn) -> dict:
+    from harness import events
+    try:
+        ok = _with_conn(lambda c: events.set_status(c, eid, body.status))
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    if not ok:
+        raise HTTPException(404, "No such event")
+    return {"ok": True}
+
+
+@app.post("/api/events/{eid}/hide")
+def events_hide(eid: int, hidden: bool = True) -> dict:
+    from harness import events
+    if not _with_conn(lambda c: events.hide(c, eid, hidden)):
+        raise HTTPException(404, "No such event")
+    return {"ok": True}

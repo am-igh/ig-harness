@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import TodayTab from "./today/TodayTab";
 import ProjectsTab from "./finance/ProjectsTab";
+import EventsTab from "./events/EventsTab";
 import EmailList from "./email/EmailList";
 import ModelPicker from "./ModelPicker";
 import RefreshChip from "./RefreshChip";
@@ -13,7 +14,7 @@ const TABS = [
   { id: "today", label: "Today" },
   { id: "inbox", label: "Inbox", phase: "Phase 2" },
   { id: "projects", label: "Projects & finance", phase: "Phase 4" },
-  { id: "geneva", label: "Geneva", phase: "Phase 5" },
+  { id: "geneva", label: "Geneva and beyond", phase: "Phase 5" },
 ];
 
 type Health = "checking" | "ok" | "down";
@@ -52,7 +53,7 @@ export default function App() {
       </header>
       {tab === "today" ? <TodayTab /> : tab === "inbox" ? (
         <main className="page inbox-page"><section className="panel inbox"><div className="panel-head"><h2 className="serif">Inbox</h2></div><EmailList full /></section><div className="side-col"><StyleProfiles /><WatchList /><Rules /><Scoreboard /></div></main>
-      ) : tab === "projects" ? <ProjectsTab /> : (
+      ) : tab === "projects" ? <ProjectsTab /> : tab === "geneva" ? <EventsTab /> : (
         <main className="page"><h2 className="serif">{current.label}</h2><p className="muted">Placeholder. Coming in {current.phase}.</p></main>
       )}
     </div>

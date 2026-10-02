@@ -47,6 +47,17 @@ def test_normalize_keeps_only_safe_fields():
            "end": {"dateTime": "2026-10-05T11:00:00+02:00"}, "attendees": [{"email": "a@b.c"}],
            "description": "secret", "hangoutLink": "https://meet"}
     n = normalize_event(raw)
-    assert set(n) == {"id", "title", "start", "end", "all_day", "status"}
+    assert set(n) == {"id", "title", "start", "end", "all_day", "status", "my_response", "self_organizer", "attendee_count", "location", "link"}
+    assert "secret" not in str(n) and "a@b.c" not in str(n) and n["attendee_count"] == 1 and n["link"] == "https://meet"
     assert normalize_event({**raw, "status": "cancelled"}) is None
     assert normalize_event({"id": "y", "start": {"date": "2026-10-09"}})["all_day"] is True
+
+
+def test_normalize_reads_her_own_response_location_and_join_link():
+    base = {"id": "x", "summary": "Summit", "start": {"dateTime": "2026-10-14T09:00:00+02:00"}, "end": {"dateTime": "2026-10-14T17:00:00+02:00"}, "location": "Palexpo, Geneva"}
+    acc = normalize_event({**base, "attendees": [{"email": "o@x.org", "responseStatus": "accepted"}, {"self": True, "email": "me@x.org", "responseStatus": "tentative"}]})
+    assert acc["my_response"] == "tentative" and acc["attendee_count"] == 2 and acc["location"] == "Palexpo, Geneva" and "me@x.org" not in str(acc)
+    assert normalize_event({**base, "organizer": {"self": True}})["my_response"] == "accepted"                         # her own entry
+    assert normalize_event(base)["my_response"] is None
+    z = normalize_event({**base, "conferenceData": {"entryPoints": [{"uri": "tel:+41"}, {"uri": "https://zoom.us/j/1"}]}})
+    assert z["link"] == "https://zoom.us/j/1"

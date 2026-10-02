@@ -184,3 +184,16 @@ read-only and lists, in plain language: hours without evidence or an `entered_on
 that are not in the register's Budget sheet, hours outside a mandate's activity period; costs without a justificatif, without the CHF amount, payment date or
 invoice reference; and mandate rows with empty details, an ended activity period, or a reporting deadline within 30 days (or passed). Projects that are not
 in the register yet appear under "notes for information". It refreshes with the other imports and never changes your files.
+
+## Geneva and beyond (events)
+
+The **Geneva and beyond** tab lists conferences and events: **Upcoming** by default, and **Past year · archive** (searchable). In this first version the events come from your
+Google Calendar: entries whose title looks like an event (summit, forum, panel, webinar, session…) or that are invitations with a place. Your own reminders
+("Focus:", "Travel booking", "D-3:") and ordinary calls and meetings are left out. If one is wrong, open it and click **Not an event**.
+
+- **Confirmed events are highlighted** (purple edge and a "✓ You're in" badge). Your calendar's answer decides: accepted = confirmed, tentative = maybe, not yet answered = invited,
+  declined = greyed. Something you put on your own calendar counts as confirmed. Click an event and **I'm going / Interested / Not going** to overrule the calendar.
+- A **⚠ Clash** appears when two confirmed (or maybe) events overlap in time.
+- Filters: All, Confirmed, Invited, Geneva, and your topics (digital & AI, cyber, peacebuilding, humanitarian tech, multilateral diplomacy, harmful information, tech for good).
+- The calendar now goes back a year (for the archive) and half a year ahead, and keeps your own response, the place and the join link (never attendees' addresses).
+- Coming next: invitations and registration confirmations from your inbox, the Genève internationale and Club Diplomatique emails, and the public Geneva listings (see `docs/PHASE5_PLAN.md`).

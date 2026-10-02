@@ -220,3 +220,24 @@ export const skipHourPass = (id: number) => j<HourProposal>(`/api/hours/pass/${i
 export type CheckFinding = { area: string; severity: "error" | "warning" | "info"; code: string | null; message: string; count: number; refs: string[] };
 export type ProjectChecks = { findings: CheckFinding[]; counts: { error: number; warning: number; info: number }; checked: { hours: number; costs: number; mandates: number }; ok: boolean };
 export const getProjectChecks = () => j<ProjectChecks>("/api/projects-check");
+
+// ---- Geneva and beyond (events)
+export type EventStatus = "none" | "invited" | "interested" | "tentative" | "confirmed" | "declined";
+export type EventItem = { id: number; title: string; start: string; end: string | null; all_day: boolean; venue: string | null; online: boolean; url: string | null; organizer: string | null;
+  topics: string[]; geneva: boolean; role: string | null; status: EventStatus; derived_status: EventStatus; overridden: boolean; source_kind: string; hidden: boolean; clashes: number[] };
+export type EventsResponse = { scope: string; items: EventItem[]; total: number; counts: { confirmed: number; tentative: number; invited: number; interested: number }; topics: string[] };
+export type EventDetail = EventItem & { evidence: { kind: string; signal: string | null; detail: string | null; observed_at: string }[]; forced: boolean };
+export type EventQuery = { scope?: "upcoming" | "archive"; q?: string; status?: string; geneva?: boolean; topic?: string };
+export const getEvents = (f: EventQuery = {}) => {
+  const p = new URLSearchParams();
+  if (f.scope) p.set("scope", f.scope);
+  if (f.q) p.set("q", f.q);
+  if (f.status) p.set("status", f.status);
+  if (f.geneva !== undefined) p.set("geneva", String(f.geneva));
+  if (f.topic) p.set("topic", f.topic);
+  return j<EventsResponse>(`/api/events?${p.toString()}`);
+};
+export const getEvent = (id: number) => j<EventDetail>(`/api/events/${id}`);
+export const setEventStatus = (id: number, status: "interested" | "confirmed" | "declined" | null) =>
+  j<{ ok: boolean }>(`/api/events/${id}/status`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
+export const hideEvent = (id: number, hidden = true) => j<{ ok: boolean }>(`/api/events/${id}/hide?hidden=${hidden}`, { method: "POST" });

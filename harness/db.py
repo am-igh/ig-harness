@@ -472,6 +472,36 @@ MIGRATIONS: list[str] = [
         updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
     """,
+    # 25: what the calendar says about her own response, the place and the join link
+    "ALTER TABLE calendar_events ADD COLUMN my_response TEXT; ALTER TABLE calendar_events ADD COLUMN location TEXT; ALTER TABLE calendar_events ADD COLUMN link TEXT; "
+    "ALTER TABLE calendar_events ADD COLUMN self_organizer INTEGER NOT NULL DEFAULT 0; ALTER TABLE calendar_events ADD COLUMN attendee_count INTEGER;",
+    # 26: Geneva and beyond: events from every source, with the evidence for each, her own status override and a hide switch
+    """
+    CREATE TABLE events (
+        id INTEGER PRIMARY KEY,
+        dedupe_key TEXT NOT NULL UNIQUE,         -- cal:<calendar id> for calendar events; other sources add their own keys
+        title TEXT NOT NULL,
+        start TEXT NOT NULL, end TEXT, all_day INTEGER NOT NULL DEFAULT 0,
+        venue TEXT, city TEXT, online INTEGER NOT NULL DEFAULT 0, url TEXT, organizer TEXT,
+        topics TEXT,                             -- comma-separated topic tags
+        geneva INTEGER NOT NULL DEFAULT 0,
+        role TEXT,                               -- attendee / speaker / moderator / panelist / judge / mentor / facilitator
+        derived_status TEXT NOT NULL DEFAULT 'none' CHECK (derived_status IN ('none','invited','interested','tentative','confirmed','declined')),
+        user_status TEXT CHECK (user_status IN ('interested','confirmed','declined')),     -- her override beats the derived status
+        hidden INTEGER NOT NULL DEFAULT 0,       -- "not an event" / not relevant
+        forced INTEGER NOT NULL DEFAULT 0,       -- "this is an event" for a calendar item the rules skipped
+        source_kind TEXT NOT NULL, tier TEXT NOT NULL DEFAULT 'S2',
+        created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE INDEX idx_events_start ON events (start);
+    CREATE TABLE event_evidence (
+        id INTEGER PRIMARY KEY,
+        event_id INTEGER NOT NULL REFERENCES events (id) ON DELETE CASCADE,
+        kind TEXT NOT NULL, ref TEXT NOT NULL, signal TEXT, detail TEXT,
+        observed_at TEXT NOT NULL DEFAULT (datetime('now')),
+        UNIQUE (event_id, kind, ref)
+    );
+    """,
 ]
 
 

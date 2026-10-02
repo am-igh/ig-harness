@@ -41,6 +41,9 @@ One **Events** tab (the Geneva tab, enlarged): conferences and events relevant t
 5. **5.5** Clash detection, Today strip, Monday digest, reply drafts.
 6. **5.6** Chat bar and local dictation (from the original Phase 5 scope), if still wanted.
 
+## Progress
+- 5.1 built (calendar RSVP, events store, tab skeleton, topics, clashes, archive). Known rough edge: an umbrella entry that spans several days (e.g. a forum) clashes with the sessions inside it; to refine.
+
 ## Rules that stay
 Drafts only, never send; inbox-derived data local only (S2); public data S0; one model door (gateway, new job `event_extract`); no real data in the repo; nothing in her files changes; calendar stays read-only.
 
