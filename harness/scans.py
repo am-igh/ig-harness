@@ -58,6 +58,11 @@ def extract_text(path: Path, pages: int = 3) -> str:
     return "\n".join(out)[:6000]
 
 
+def page_count(path: Path) -> int | None:
+    m = re.search(r"^Pages:\s+(\d+)", _run(["pdfinfo", str(path)], 30), re.M)
+    return int(m.group(1)) if m else None
+
+
 def _num(v) -> float | None:
     try:
         x = float(str(v).replace("'", "").replace(" ", "").replace(",", "."))
@@ -89,7 +94,7 @@ def _own(data_dir: Path, sid: int) -> Path:
     return data_dir / OWN / f"{sid}.pdf"
 
 
-def register(conn: sqlite3.Connection, name: str, content: bytes, source: str, data_dir: Path | None = None) -> tuple[int, bool]:
+def register(conn: sqlite3.Connection, name: str, content: bytes, source: str, data_dir: Path | None = None, parent_id: int | None = None) -> tuple[int, bool]:
     """Remember a scan (and keep our own copy). Returns (id, is_new). The same content is never registered twice."""
     data_dir = data_dir or DATA_DIR
     sha = fs.sha256_bytes(content)
@@ -98,12 +103,14 @@ def register(conn: sqlite3.Connection, name: str, content: bytes, source: str, d
         return row["id"], False
     is_pdf = content.startswith(b"%PDF")
     with conn:
-        sid = conn.execute("INSERT INTO scans (source, original_name, sha256, size, status, note) VALUES (?,?,?,?,?,?)",
+        sid = conn.execute("INSERT INTO scans (source, original_name, sha256, size, status, note, parent_id) VALUES (?,?,?,?,?,?,?)",
                            (source, fs.clean_upload_name(name)[:200], sha, len(content), "found" if is_pdf else "unreadable",
-                            None if is_pdf else "This is not a PDF. In Image Capture choose Format: PDF so the scan can be read and filed.")).lastrowid
+                            None if is_pdf else "This is not a PDF. In Image Capture choose Format: PDF so the scan can be read and filed.", parent_id)).lastrowid
     if is_pdf:
         (data_dir / OWN).mkdir(parents=True, exist_ok=True)
         _own(data_dir, sid).write_bytes(content)
+        with conn:
+            conn.execute("UPDATE scans SET pages=? WHERE id=?", (page_count(_own(data_dir, sid)), sid))
     return sid, True
 
 
@@ -114,7 +121,7 @@ def discover(conn: sqlite3.Connection, scan_dir: Path | None = None, data_dir: P
     out = []
     if not scan_dir.is_dir():
         return out
-    known = {r[0] for r in conn.execute("SELECT original_name FROM scans WHERE source='folder'")}
+    known = {r[0] for r in conn.execute("SELECT original_name FROM scans WHERE source='folder' AND parent_id IS NULL")}
     for p in sorted(scan_dir.iterdir()):
         if not p.is_file() or p.name.startswith(".") or p.suffix.lower() not in (".pdf", ".jpg", ".jpeg", ".png", ".tif", ".tiff"):
             continue
@@ -124,6 +131,11 @@ def discover(conn: sqlite3.Connection, scan_dir: Path | None = None, data_dir: P
         sid, new = register(conn, p.name, p.read_bytes(), "folder", data_dir)
         if new:
             out.append(sid)
+            n = conn.execute("SELECT pages FROM scans WHERE id=?", (sid,)).fetchone()["pages"] or 1
+            if p.name in known and n > 1:
+                # The same file name came back with different content and several pages: Image Capture (with "Combine into single
+                # document") appended a new scan to the old file. Split it at once so each page is its own scan.
+                split_pages(conn, sid, data_dir, reason=f"{p.name} changed: a new scan was added to it as another page")
     return out
 
 
@@ -169,6 +181,44 @@ def suggest_payment(conn: sqlite3.Connection, amount: float | None, currency: st
     return None, "No unjustified payment of this amount found (it may not be paid yet, or its statement is not filed). The name has no payment date for now."
 
 
+def split_pages(conn: sqlite3.Connection, sid: int, data_dir: Path | None = None, reason: str | None = None) -> list[int]:
+    """Turn a multi-page scan into one scan per page (our own copies; the file in Scan-Inbox is never touched). The original entry is set aside."""
+    data_dir = data_dir or DATA_DIR
+    s = conn.execute("SELECT * FROM scans WHERE id = ?", (sid,)).fetchone()
+    if s is None:
+        raise KeyError(sid)
+    if s["status"] not in ("found", "proposed", "duplicate") or not _own(data_dir, sid).is_file():
+        raise ValueError("This scan can no longer be split")
+    if s["pages"] is None:                                      # registered before page counts existed
+        with conn:
+            conn.execute("UPDATE scans SET pages=? WHERE id=?", (page_count(_own(data_dir, sid)), sid))
+        s = conn.execute("SELECT * FROM scans WHERE id = ?", (sid,)).fetchone()
+    if (s["pages"] or 1) < 2:
+        raise ValueError("This scan has only one page, so there is nothing to split")
+    ids = []
+    with tempfile.TemporaryDirectory() as tmp:
+        _run(["pdfseparate", str(_own(data_dir, sid)), f"{tmp}/p-%d.pdf"], 120)
+        pages = sorted(Path(tmp).glob("p-*.pdf"), key=lambda p: int(re.search(r"(\d+)", p.stem).group(1)))
+        if len(pages) != s["pages"]:
+            raise ValueError("The pages could not be separated")
+        for n, pg in enumerate(pages, 1):
+            new_id, _ = register(conn, f"{s['original_name']} (page {n})", pg.read_bytes(), s["source"], data_dir, parent_id=sid)
+            ids.append(new_id)
+    with conn:
+        conn.execute("UPDATE scans SET status='skipped', note=? WHERE id=?", ((reason or "Split into single pages") + f" ({len(ids)} pages).", sid))
+    return ids
+
+
+def _looks_like_another(conn: sqlite3.Connection, s: sqlite3.Row) -> str | None:
+    if not (s["supplier"] and s["amount"] is not None and s["currency"]):
+        return None
+    for o in conn.execute("SELECT id, status, number, doc_date FROM scans WHERE id != ? AND status NOT IN ('skipped','unreadable') AND lower(supplier)=lower(?) AND amount=? AND currency=?",
+                          (s["id"], s["supplier"], s["amount"], s["currency"])):
+        if (o["number"] or "") == (s["number"] or "") or not (o["number"] and s["number"]):
+            return f"Looks like the same document as scan #{o['id']} ({'already filed' if o['status'] == 'filed' else 'also in this list'}): skip one of them."
+    return None
+
+
 def propose(conn: sqlite3.Connection, sid: int, root: Path | None = None) -> dict:
     """Recompute the name, folder checks, duplicates and the payment match from the fields as they stand now."""
     s = conn.execute("SELECT * FROM scans WHERE id = ?", (sid,)).fetchone()
@@ -205,6 +255,8 @@ def propose(conn: sqlite3.Connection, sid: int, root: Path | None = None) -> dic
                         name = fs.doc_name(s["doc_type"], s["supplier"], s["number"], s["amount"], s["currency"], paid, folder, v)
                     if v > 1:
                         notes.append(f"A different file named {base} exists, so this would be saved as a new version (_v{v}); nothing is overwritten.")
+    if status == "proposed" and (same := _looks_like_another(conn, s)):
+        notes.append(same)
     with conn:
         conn.execute("UPDATE scans SET status=?, folder=?, paid_date=?, proposed_name=?, year=?, note=? WHERE id=? AND status IN ('found','reading','proposed','duplicate')",
                      (status, folder, paid, name, yd.name if yd else None, " ".join(notes) or None, sid))
@@ -240,6 +292,9 @@ def read_scan(conn: sqlite3.Connection, gateway: Gateway, sid: int, root: Path |
 def tick(conn: sqlite3.Connection, gateway: Gateway | None = None, scan_dir: Path | None = None, data_dir: Path | None = None, root: Path | None = None) -> int:
     """One pass of the watcher: register new scans, read at most one waiting scan. Returns how many scans were read."""
     discover(conn, scan_dir, data_dir)
+    for r in conn.execute("SELECT id FROM scans WHERE pages IS NULL AND status IN ('found','proposed','duplicate')").fetchall():     # older rows: fill in the page count
+        with conn:
+            conn.execute("UPDATE scans SET pages=? WHERE id=?", (page_count(_own(data_dir or DATA_DIR, r["id"])), r["id"]))
     row = conn.execute("SELECT id FROM scans WHERE status='found' ORDER BY id LIMIT 1").fetchone()
     if row is None:
         return 0

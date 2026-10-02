@@ -145,3 +145,9 @@ date, folder and the **exact file name it would get**. Correct any field (the na
 - After filing, the audit check re-runs by itself. The original scan stays in Scan-Inbox; tidy it by hand when you like.
 - No scanner at hand? **Add invoices and receipts** lets you choose PDFs directly.
 - After updating: `docker compose build` is needed once (text recognition was added to the image); `make refresh-install` is already done.
+
+**If Image Capture adds a new scan to the previous file** (the "Combine into single document" option reuses the name `Scan.pdf`): the harness notices that
+`Scan.pdf` came back changed with more pages, and splits it into one scan per page by itself. The file in Scan-Inbox is never altered. A page that
+repeats an earlier scan is flagged ("looks like the same document as scan #…"); skip one of them. For a multi-page PDF that is really one document,
+nothing is split; use **Split into single pages** on a card only when its pages are different documents.
+Tip: once a scan is filed, move its file from Scan-Inbox to the Trash yourself, so the next scan starts with a fresh `Scan.pdf`.

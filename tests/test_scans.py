@@ -283,3 +283,47 @@ def test_api_roundtrip(env, monkeypatch):
         assert cl.post(f"/api/scans/{sid}/approve").status_code == 409 and cl.post(f"/api/scans/{sid}/skip").status_code == 409
         assert cl.post("/api/scans/999/skip").status_code == 404
         assert cl.post("/api/scans/upload", content=b"nope", headers={"x-filename": "a.pdf"}).status_code == 422
+
+
+# ------------------------------------------------------------------ Image Capture "combine into single document" appends a page to Scan.pdf
+def pdf_pages(*lines):
+    """A multi-page PDF built by joining one-page PDFs with poppler (pdfunite)."""
+    import subprocess, tempfile
+    with tempfile.TemporaryDirectory() as t:
+        names = []
+        for i, ln in enumerate(lines):
+            p = Path(t) / f"{i}.pdf"; p.write_bytes(pdf(ln)); names.append(str(p))
+        out = Path(t) / "out.pdf"
+        subprocess.run(["pdfunite", *names, str(out)], check=True)
+        return out.read_bytes()
+
+
+def test_a_page_appended_to_an_already_seen_scan_is_split_at_once_and_the_folder_file_is_untouched(env):
+    old = time.time() - 100
+    first = env.inbox / "Scan.pdf"; first.write_bytes(pdf("invoice page one")); os.utime(first, (old, old))
+    ids1 = scans.discover(env.c, env.inbox, env.data)
+    assert len(ids1) == 1
+    combined = pdf_pages("invoice page one", "Swiss Life statement")
+    first.write_bytes(combined); os.utime(first, (old + 5, old + 5))                    # Image Capture appended a page to the same file
+    ids2 = scans.discover(env.c, env.inbox, env.data)
+    parent = env.c.execute("SELECT * FROM scans WHERE id=?", (ids2[0],)).fetchone()
+    assert parent["pages"] == 2 and parent["status"] == "skipped" and "2 pages" in parent["note"]
+    kids = env.c.execute("SELECT * FROM scans WHERE parent_id=? ORDER BY id", (ids2[0],)).fetchall()
+    assert [k["original_name"] for k in kids] == ["Scan.pdf (page 1)", "Scan.pdf (page 2)"] and all(k["pages"] == 1 and k["status"] == "found" for k in kids)
+    assert first.read_bytes() == combined                                                 # the file in Scan-Inbox is exactly as Image Capture left it
+    assert env.c.execute("SELECT status FROM scans WHERE id=?", (ids1[0],)).fetchone()[0] == "found"       # the first scan's own copy is intact
+
+
+def test_a_new_multi_page_file_with_a_new_name_is_kept_whole_and_can_be_split_by_hand(env):
+    sid, _ = scans.register(env.c, "Scan 2.pdf", pdf_pages("a", "b", "c"), "folder", env.data)
+    assert env.c.execute("SELECT pages, status FROM scans WHERE id=?", (sid,)).fetchone()[:] == (3, "found")
+    ids = scans.split_pages(env.c, sid, env.data)
+    assert len(ids) == 3 and env.c.execute("SELECT status FROM scans WHERE id=?", (sid,)).fetchone()[0] == "skipped"
+    with pytest.raises(ValueError):
+        scans.split_pages(env.c, ids[0], env.data)                                         # one page: nothing to split
+
+
+def test_a_scan_that_looks_like_another_one_is_flagged(env):
+    a, _ = new_scan(env); b, _ = new_scan(env)
+    read(env, a); s = read(env, b)
+    assert f"same document as scan #{a}" in s["note"]

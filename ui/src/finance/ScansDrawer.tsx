@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { type Scan, approveScan, editScan, getScans, skipScan, uploadScan } from "../api";
+import { type Scan, approveScan, editScan, getScans, skipScan, splitScan, uploadScan } from "../api";
 import { Shell } from "../today/Drawer";
 
 const TYPES: [string, string][] = [["invoice_received", "Invoice received"], ["receipt", "Receipt"], ["invoice_issued", "Invoice issued by ICT4Peace"], ["contract", "Contract"], ["other", "Other document"]];
@@ -24,7 +24,7 @@ function ScanCard({ s, onChange }: { s: Scan; onChange: (s: Scan) => void }) {
   const open = s.status === "proposed" || s.status === "duplicate";
   return (
     <div className={`scan-card ${s.status === "duplicate" || s.status === "failed" ? "stmt-bad" : ""}`}>
-      <div className="scan-head"><span className="mono stmt-name">{s.original_name}</span><span className="chip chip-soft">{({ found: "Waiting", reading: "Reading…", proposed: "To confirm", duplicate: "Duplicate", approved: "Filing…", filed: "Filed", failed: "Not filed", unreadable: "Cannot read", skipped: "Skipped" } as Record<string, string>)[s.status]}</span></div>
+      <div className="scan-head"><span className="mono stmt-name">{s.original_name}{s.pages && s.pages > 1 ? ` · ${s.pages} pages` : ""}</span><span className="chip chip-soft">{({ found: "Waiting", reading: "Reading…", proposed: "To confirm", duplicate: "Duplicate", approved: "Filing…", filed: "Filed", failed: "Not filed", unreadable: "Cannot read", skipped: "Skipped" } as Record<string, string>)[s.status]}</span></div>
       {(s.status === "found" || s.status === "reading") && <p className="muted">Reading this scan on your Mac…</p>}
       {open && (
         <>
@@ -42,6 +42,7 @@ function ScanCard({ s, onChange }: { s: Scan; onChange: (s: Scan) => void }) {
           <div className="stmt-actions">
             <button type="button" className="btn-primary" disabled={!s.proposed_name || s.status !== "proposed"} onClick={() => act(() => approveScan(s.id))}>Add to folder</button>
             <button type="button" className="btn-ghost" onClick={() => act(() => skipScan(s.id))}>{s.status === "duplicate" ? "Dismiss" : "Skip"}</button>
+            {(s.pages ?? 1) > 1 && s.status === "proposed" && <button type="button" className="btn-ghost" title="Use this when the pages are different documents" onClick={() => act(async () => { await splitScan(s.id); return s; })}>Split into single pages</button>}
           </div>
         </>
       )}

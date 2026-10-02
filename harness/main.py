@@ -845,3 +845,14 @@ def scans_skip(sid: int) -> dict:
         raise HTTPException(404, "No such scan")
     except ValueError as e:
         raise HTTPException(409, str(e))
+
+
+@app.post("/api/scans/{sid}/split")
+def scans_split(sid: int) -> dict:
+    from harness import scans
+    try:
+        return {"ids": _with_conn(lambda c: scans.split_pages(c, sid))}
+    except KeyError:
+        raise HTTPException(404, "No such scan")
+    except ValueError as e:
+        raise HTTPException(409, str(e))

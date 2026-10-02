@@ -430,6 +430,8 @@ MIGRATIONS: list[str] = [
         decided_at TEXT, filed_at TEXT
     );
     """,
+    # 19: page count and parent (a PDF split into single pages)
+    "ALTER TABLE scans ADD COLUMN pages INTEGER; ALTER TABLE scans ADD COLUMN parent_id INTEGER;",
 ]
 
 
