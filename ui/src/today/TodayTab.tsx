@@ -6,10 +6,10 @@ import Drawer, { type Panel } from "./Drawer";
 import { useReveal } from "./useReveal";
 import NotesBox from "../notes/NotesBox";
 import QuickNote from "../notes/QuickNote";
+import AuditTile, { useAuditStatus } from "../finance/AuditTile";
 import Lake from "./Lake";
 
 const WIDGETS = [
-  { title: "Audit readiness", sub: "Every payment has its document", phase: "Phase 4" },
   { title: "Hours this week", sub: "Friday pass fills the gaps", phase: "Phase 4" },
   { title: "Budget burn", sub: "Highest open mandate", phase: "Phase 4" },
   { title: "Scan inbox", sub: "Filed automatically", phase: "Phase 4" },
@@ -116,6 +116,7 @@ export default function TodayTab() {
   const [celebrate, setCelebrate] = useState(false);
   const [last, setLast] = useState<string | null>(null);
   const [settling, setSettling] = useState<Record<string, boolean>>({});
+  const audit = useAuditStatus();
   const timer = useRef<number>();
 
   const load = useCallback(() => getToday().then((d) => { setData(d); setError(false); }).catch(() => setError(true)), []);
@@ -210,6 +211,7 @@ export default function TodayTab() {
               <span className="soon">Day · Week · Month →</span>
             </div>
           </button>
+          <AuditTile st={audit.st} onOpen={() => setPanel({ kind: "audit" })} />
           {WIDGETS.map((w) => (
             <div key={w.title} className="tile">
               <div className="tile-art" />
@@ -227,7 +229,7 @@ export default function TodayTab() {
         <button type="button" disabled>Send</button>
       </section>
 
-      <Drawer panel={panel} today={data.today} onClose={() => setPanel(null)} onTickDeadline={tickDeadline} onChanged={load} />
+      <Drawer panel={panel} today={data.today} onClose={() => setPanel(null)} onTickDeadline={tickDeadline} onChanged={() => { load(); audit.reload(); }} />
     </>
   );
 }

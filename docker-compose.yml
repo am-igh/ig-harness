@@ -22,9 +22,13 @@ services:
       - ./worker:/app/worker:ro
       - ./scripts:/app/scripts:ro
       - ./ui/src:/app/ui/src:ro
+      - ./docker-compose.yml:/app/docker-compose.yml:ro      # so a test can check what is mounted
       # Her spreadsheets, mounted READ-ONLY. Paths come from .env (see .env.example).
       - ${SUIVI_DIR:-./tests/fixtures/suivi}:/sources/suivi:ro
       - ${PROJETS_DIR:-./tests/fixtures/projets}:/sources/projets:ro
+      # Audit: ONLY the 2026 year folder and the Outils folder (the checker script), read-only. Contracts and salary slips in other years stay unmounted.
+      - ${AUDIT_YEAR_DIR:-./tests/fixtures/audit/2026}:/sources/audit/2026:ro
+      - ${AUDIT_TOOLS_DIR:-./tests/fixtures/audit/Outils}:/sources/audit/Outils:ro
     networks: [backend, ollama_net]
 
   ollama-bridge:

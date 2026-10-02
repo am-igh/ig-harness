@@ -603,3 +603,42 @@ def calendar_range(start: str, end: str) -> dict:
         return _with_conn(lambda c: calendar_view.build_range(c, a, b))
     except (ValueError, calendar_view.BadRange) as e:
         raise HTTPException(422, str(e))
+
+
+# --- Audit readiness: her checker (controle_justificatifs.py), run unchanged inside the harness ---
+def _audit_year(year: str | None) -> str:
+    from harness import audit
+    years = audit.years_available(audit.ROOT)
+    if not years:
+        raise HTTPException(404, "The audit folder is not connected")
+    y = year or years[-1]
+    if y not in years:
+        raise HTTPException(404, f"No audit folder for {y}")
+    return y
+
+
+@app.get("/api/audit/status")
+def audit_status(year: str | None = None) -> dict:
+    from harness import audit
+    if not audit.configured(audit.ROOT):
+        return {"configured": False, "years": [], "running": False, "latest": None, "last_error": None, "stale": False}
+    return _with_conn(lambda c: audit.status(c, audit.ROOT, _audit_year(year)))
+
+
+@app.post("/api/audit/run")
+def audit_run(year: str | None = None) -> dict:
+    from harness import audit
+    y = _audit_year(year)
+    return {"started": audit.start_background(db.connect, audit.ROOT, y), "year": y}
+
+
+@app.get("/api/audit/lines")
+def audit_lines(year: str | None = None, statut: str | None = None) -> dict:
+    from harness import audit
+    return {"items": _with_conn(lambda c: audit.lines(c, _audit_year(year), statut))}
+
+
+@app.get("/api/audit/compare")
+def audit_compare(year: str | None = None) -> dict:
+    from harness import audit
+    return _with_conn(lambda c: audit.compare_with_report(c, audit.ROOT, _audit_year(year)))

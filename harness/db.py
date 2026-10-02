@@ -341,6 +341,30 @@ MIGRATIONS: list[str] = [
     CREATE INDEX idx_notes_parent ON notes (parent_type, parent_id);
     CREATE INDEX idx_notes_created ON notes (created_at);
     """,
+    # 14: audit readiness: runs of her checker (controle_justificatifs.py) and the lines it found. S2: stays on this Mac. No IBAN is kept.
+    """
+    CREATE TABLE audit_runs (
+        id INTEGER PRIMARY KEY,
+        year TEXT NOT NULL,
+        started_at TEXT NOT NULL,
+        finished_at TEXT,
+        status TEXT NOT NULL DEFAULT 'running' CHECK (status IN ('running','done','error')),
+        input_signature TEXT,              -- fingerprint of the statements, receipts and script used
+        n_statements INTEGER, n_pieces INTEGER, n_lines INTEGER,
+        summary TEXT,                      -- JSON
+        error TEXT
+    );
+    CREATE TABLE audit_lines (
+        id INTEGER PRIMARY KEY,
+        run_id INTEGER NOT NULL REFERENCES audit_runs (id) ON DELETE CASCADE,
+        compte TEXT, periode TEXT,
+        date_raw TEXT,                     -- dd.mm.yyyy as in her report
+        date_iso TEXT,
+        beneficiaire TEXT, devise TEXT, montant REAL,
+        statut TEXT, source TEXT, groupe TEXT
+    );
+    CREATE INDEX idx_audit_lines_run ON audit_lines (run_id, statut);
+    """,
 ]
 
 

@@ -96,3 +96,13 @@ Needed once and refreshed now and then: `make gmail` (so replies can be threaded
 ## The calendar widget
 
 The **Calendar** tile (top of the right-hand column) shows today's count and your next event. Click it for a full **Day / Week / Month** view of your Google Calendar. **Deadlines** and **Tasks & chase dates** can be switched on or off. Click a day to open it, an event for its details, and use the arrow keys or the ‹ › buttons to move. Times are Geneva time. It is read-only: the harness never changes your calendar. It shows from 35 days back to 120 days ahead, and it remembers your last view.
+
+
+## Audit readiness (Projects & finance)
+
+The **Audit readiness** tile shows what share of the bank debits in your year folder has its document, using your own `controle_justificatifs.py`, run **unchanged inside the harness**. Click it for the result (justified / covered / still to justify), the list of payments still missing a document, a **Check again now** button, and a comparison with your own `Controle_justificatifs_<year>.xlsx` report.
+
+- Only the **2026 year folder** and the **Outils** folder are connected, read-only (set in `.env`: `AUDIT_YEAR_DIR`, `AUDIT_TOOLS_DIR`). Nothing is written to your folders and nothing is installed on your Mac. The PDF reader (poppler) lives inside the harness.
+- The tile says when documents have changed since the last check; press **Check again now** (it takes seconds).
+- Statements, receipts and amounts are confidential and stay on this Mac. No IBAN is stored, only the short account label your script prints.
+- To use another year, point `AUDIT_YEAR_DIR` at that year's folder (and later we can mount more years).

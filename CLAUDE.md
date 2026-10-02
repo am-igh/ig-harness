@@ -92,6 +92,7 @@ Wrap and call these; do not rewrite their logic. Ask Anne-Marie to connect a fol
 - **Notes** (`notes` table, `harness/notes.py`): context or follow-ups attached to a task, deadline, waiting-on item or email, or free-standing; a follow-up creates a task (source `note`) in Today & overdue. Recorded in the database (so in backups), listed in an All-notes log, masked when personal, and given to the drafting model as context (never personal notes).
 - **Notes go to Suivi's journal too** (work notes only), as `capture` rows following her Suivi specification: `confirmed` because she wrote them, evidence on every row, ids continuing from the highest `J-YYYY-NNN`.
 - **Calendar widget:** a Day/Week/Month view of the Google Calendar with deadline and task layers (`/api/calendar`); read-only, Geneva time; the helper reads 35 days back and 120 ahead.
+- **Audit readiness (Phase 4, first slice):** `controle_justificatifs.py` runs unchanged inside the API container (`harness/audit.py`; poppler in the image; only the year folder and `Outils` mounted read-only); its `ecrire_xlsx` is replaced so its report is captured into `audit_runs`/`audit_lines` instead of being written; no IBAN stored; equivalence with her script was proved line by line on 2 Oct 2026.
 - **Safety checks to keep green:** `make test` (red-team, one-door, no-send, fail-safe, masking), `make check-network`.
 
 ## Build phases

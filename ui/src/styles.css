@@ -252,3 +252,7 @@ table.score td.best { font-weight: 700; color: var(--purple); }
 .cal-block { position: absolute; all: unset; box-sizing: border-box; position: absolute; padding: 2px 5px; border-radius: 6px; background: #dfe4f6; border-left: 3px solid var(--peri); color: #26306a; font-size: 11px; line-height: 1.35; overflow: hidden; cursor: pointer; } .cal-block:hover { background: #cfd7f3; z-index: 2; } .cal-block.tent { background: #fff; border: 1px dashed var(--peri); } .cal-block b { margin-right: 3px; }
 .cal-now { position: absolute; left: 0; right: 0; height: 0; border-top: 2px solid #c0392b; z-index: 3; } .cal-now::before { content: ""; position: absolute; left: -4px; top: -5px; width: 8px; height: 8px; border-radius: 4px; background: #c0392b; }
 .cal-detail { display: flex; gap: 14px; align-items: baseline; padding: 10px 14px; border-radius: 10px; background: #f5f6fb; font-size: 13px; } .cal-detail span { color: var(--muted); flex-grow: 1; }
+
+/* audit tile */
+.ring-art { display: flex; align-items: center; justify-content: center; } .ring { width: 58px; height: 58px; border-radius: 50%; display: flex; align-items: center; justify-content: center; } .ring-hole { width: 38px; height: 38px; border-radius: 50%; background: #f5f6fb; }
+.soon.warn { color: #7a5200; }

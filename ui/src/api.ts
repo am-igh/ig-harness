@@ -144,3 +144,14 @@ export const getNotesLog = (days: number, q: string) => j<{ items: Note[] }>(`/a
 export const addNote = (b: { text: string; kind: "note" | "followup"; parent_type?: string | null; parent_id?: number | null; due?: string | null; personal?: boolean }) => jj<Note>("/api/notes", post(b));
 export const deleteNote = (id: number) => j<{ changed: boolean }>(`/api/notes/${id}`, { method: "DELETE" });
 export const revealNote = (id: number) => j<{ text: string }>(`/api/notes/${id}/reveal`);
+
+export type AuditCounts = Record<string, { n: number; total: number }>;
+export type AuditLatest = { id: number; finished_at: string; n_statements: number | null; n_pieces: number | null; n_lines: number; counts: AuditCounts; debits: number; pct_ok: number | null; period_from: string | null; period_to: string | null; statements_to: string | null; accounts: string[] };
+export type AuditStatus = { configured: boolean; year?: string; years: string[]; running: boolean; latest: AuditLatest | null; last_error: string | null; stale: boolean };
+export type AuditLine = { compte: string; periode: string; date_raw: string; date_iso: string | null; beneficiaire: string; devise: string; montant: number; statut: string; source: string; groupe: string };
+export type AuditCompare = { report_found: boolean; readable?: boolean; report?: string; report_modified?: string; same?: boolean; report_counts?: Record<string, number>; run_counts?: Record<string, number>;
+  only_in_report?: { compte: string; date: string; montant: number; beneficiaire: string; statut: string }[]; only_in_run?: { compte: string; date: string; montant: number; beneficiaire: string; statut: string }[] };
+export const getAuditStatus = () => j<AuditStatus>("/api/audit/status");
+export const runAudit = () => jj<{ started: boolean }>("/api/audit/run", { method: "POST" });
+export const getAuditLines = (statut: string) => j<{ items: AuditLine[] }>(`/api/audit/lines?statut=${encodeURIComponent(statut)}`);
+export const getAuditCompare = () => j<AuditCompare>("/api/audit/compare");
