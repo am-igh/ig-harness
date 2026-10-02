@@ -80,7 +80,18 @@ def import_registre(conn: sqlite3.Connection, folder: Path) -> list[Report]:
                                                        "activity_start": iso(parse_date(m["activity start"])), "activity_end": iso(parse_date(m["activity end"])),
                                                        "reporting_deadline": iso(parse_date(m["reporting deadline"])), "status": clean(m["status"]), "close_out_state": clean(m["close-out state"])}
                                                       for m in mandate_info])
+        _mirror(conn, "register_budget", "bkey", _budget_lines(path))
     return [rep]
+
+
+def _budget_lines(path: Path) -> list[dict]:
+    """The Budget sheet's line NAMES only (never its amounts)."""
+    try:
+        rows = read_sheet(path, "Budget", ["code", "budget line", "phase"], optional=("phase",))
+    except KeyError:
+        return []
+    return [{"bkey": f"{clean(r['code'])}|{clean(r['budget line'])}", "code": clean(r["code"]), "budget_line": clean(r["budget line"]), "phase": clean(r["phase"])}
+            for r in rows if clean(r["code"]) and clean(r["budget line"])]
 
 
 def _mirror(conn, table: str, key: str, rows: list[dict]) -> None:

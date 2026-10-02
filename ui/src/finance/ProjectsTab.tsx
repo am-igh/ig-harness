@@ -3,6 +3,7 @@ import { type ProjectCard, type ProjectDetail, type ProjectsOverview, getProject
 import { dayShort } from "../format";
 import { Shell } from "../today/Drawer";
 import AuditDrawer from "./AuditDrawer";
+import ChecksBox from "./ChecksBox";
 import StatementsBox from "./StatementsBox";
 import ScanTile from "./ScanTile";
 import ScansDrawer, { useScans } from "./ScansDrawer";
@@ -82,6 +83,7 @@ export default function ProjectsTab() {
       <StatementsBox onFiled={a.reload} />
       <section className="card-box"><div className="stmt-head"><h3>Invoices and receipts</h3><button type="button" className="btn-small" onClick={() => setScansOpen(true)}>Add invoices and receipts</button></div>
         <div className="note">Scans saved by Image Capture in Scan-Inbox appear by themselves; you can also choose PDFs here. Each is read on this Mac, shown as a preview, and filed as a new file in Expenses or Income only after you approve it.</div></section>
+      <ChecksBox />
       {err && <p className="muted">Could not load projects.</p>}
       {data && (
         <>

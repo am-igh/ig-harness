@@ -459,6 +459,19 @@ MIGRATIONS: list[str] = [
         result TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')), decided_at TEXT, written_at TEXT
     );
     """,
+    # 24: costs.csv mirror (read-only) and the register's budget line NAMES (no amounts) for the project checks
+    """
+    CREATE TABLE costs (
+        row_key TEXT PRIMARY KEY,
+        date TEXT, project TEXT, budget_line TEXT, supplier TEXT, amount REAL, currency TEXT, amount_chf REAL,
+        invoice_reference TEXT, payment_date TEXT, account TEXT, justificatif TEXT, entered_on TEXT,
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE TABLE register_budget (
+        bkey TEXT PRIMARY KEY, code TEXT NOT NULL, budget_line TEXT NOT NULL, phase TEXT,
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    """,
 ]
 
 

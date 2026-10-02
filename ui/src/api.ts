@@ -215,3 +215,8 @@ export const editHourPass = (id: number, f: { hours?: string | number | null; pr
   j<HourProposal>(`/api/hours/pass/${id}/edit`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(f) });
 export const approveHourPass = (id: number) => j<HourProposal>(`/api/hours/pass/${id}/approve`, { method: "POST" });
 export const skipHourPass = (id: number) => j<HourProposal>(`/api/hours/pass/${id}/skip`, { method: "POST" });
+
+// ---- Project checks
+export type CheckFinding = { area: string; severity: "error" | "warning" | "info"; code: string | null; message: string; count: number; refs: string[] };
+export type ProjectChecks = { findings: CheckFinding[]; counts: { error: number; warning: number; info: number }; checked: { hours: number; costs: number; mandates: number }; ok: boolean };
+export const getProjectChecks = () => j<ProjectChecks>("/api/projects-check");

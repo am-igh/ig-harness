@@ -958,3 +958,10 @@ def hours_pass_approve(pid: int) -> dict:
 @app.post("/api/hours/pass/{pid}/skip")
 def hours_pass_skip(pid: int) -> dict:
     return _hp(lambda c, HP: HP.skip(c, pid))
+
+
+@app.get("/api/projects-check")
+def projects_check() -> dict:
+    from harness import projects_check as PC
+    from harness.config import now_local
+    return _with_conn(lambda c: PC.build_checks(c, now_local().date()))

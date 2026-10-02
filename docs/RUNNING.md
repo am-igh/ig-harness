@@ -176,3 +176,11 @@ An approved entry is appended to the **end** of `hours.csv` by a small Mac-side 
 changes an existing line, makes a backup first (`~/IG-Harness-data/hours/backups`, last 20), waits while the file was changed in the last 90 seconds, checks
 the result afterwards and puts the original back if anything looks wrong. `entered_on` is the day you approved it and `source` is `harness`.
 Stop it with `make hours-pause`, restart with `make hours-resume`; `make hours-now` writes approved entries immediately.
+
+## Project checks
+
+On **Projects & finance**, the **Project checks** box is the harness's own version of the `controle_projets` checker (your folder has no such script). It is
+read-only and lists, in plain language: hours without evidence or an `entered_on` date, late entries, unknown project codes, duplicate entries, budget lines
+that are not in the register's Budget sheet, hours outside a mandate's activity period; costs without a justificatif, without the CHF amount, payment date or
+invoice reference; and mandate rows with empty details, an ended activity period, or a reporting deadline within 30 days (or passed). Projects that are not
+in the register yet appear under "notes for information". It refreshes with the other imports and never changes your files.

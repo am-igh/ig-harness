@@ -5,6 +5,7 @@ from pathlib import Path
 from harness import db
 from harness.config import DATA_DIR
 from harness.importers.calendar import import_calendar
+from harness.importers.costs import import_costs
 from harness.importers.gmail import import_gmail
 from harness.importers.hours import import_hours
 from harness.importers.correspondence import import_correspondence
@@ -25,6 +26,7 @@ def run_all(conn=None, suivi_dir: Path = None, projets_dir: Path = None, data_di
             ("suivi", import_suivi, suivi_dir or SUIVI_DIR),
             ("registre", import_registre, projets_dir or PROJETS_DIR),
             ("hours", import_hours, projets_dir or PROJETS_DIR),
+            ("costs", import_costs, projets_dir or PROJETS_DIR),
             ("calendar", import_calendar, data_dir or DATA_DIR),
             ("gmail", import_gmail, data_dir or DATA_DIR),
             ("correspondence", import_correspondence, data_dir or DATA_DIR),
