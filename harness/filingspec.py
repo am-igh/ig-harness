@@ -57,3 +57,46 @@ def create_new_file(dest: Path, content: bytes) -> None:
             os.fsync(f.fileno())
     except BaseException:
         raise
+
+
+# ---- Scanned invoices, receipts and other justificatifs ("documents") -------------------------------------------------
+# Decided with Anne-Marie on 2 Oct 2026: a simple rule decides the folder (expenses -> Expenses, income -> Income); contracts and
+# anything unclear wait for her choice. Only these two existing sub-folders of the connected year folder may ever be written to.
+DOC_FOLDERS = ("Expenses", "Income")
+DOC_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.\-]{2,150}\.pdf$")
+CURRENCIES = ("CHF", "EUR", "USD", "GBP")
+_DOC_TYPE_FOLDER = {"invoice_received": "Expenses", "receipt": "Expenses", "invoice_issued": "Income"}
+_DOC_KIND = {"invoice_received": "Facture", "receipt": "Recu", "invoice_issued": "Facture"}
+
+
+def valid_doc_name(name: str) -> bool:
+    return bool(DOC_NAME_RE.match(name)) and ".." not in name
+
+
+def folder_for_type(doc_type: str | None) -> str | None:
+    return _DOC_TYPE_FOLDER.get(doc_type or "")
+
+
+def _ascii(text: str) -> str:
+    import unicodedata
+    return unicodedata.normalize("NFKD", text or "").encode("ascii", "ignore").decode()
+
+
+def doc_name(doc_type: str | None, supplier: str | None, number: str | None, amount: float | None, currency: str | None,
+             paid_date_iso: str | None, folder: str | None, version: int = 1) -> str | None:
+    """Her convention: Fournisseur_Facture_<n>_CHF<montant>_paye_JJ.MM.AAAA.pdf (income: _recu_). None when something needed is missing.
+    The payment part is added only when the payment is known, so a document is tied to exactly one payment (one document, one payment)."""
+    sup = re.sub(r"_+", "_", re.sub(r"[^A-Za-z0-9]+", "_", _ascii(supplier or ""))).strip("_")[:40]
+    cur = (currency or "").upper()
+    if not sup or amount is None or cur not in CURRENCIES or doc_type not in _DOC_KIND or amount <= 0:
+        return None
+    parts = [sup, _DOC_KIND[doc_type]]
+    num = re.sub(r"[^A-Za-z0-9\-]+", "", _ascii(number or ""))[:30]
+    if num:
+        parts.append(num)
+    parts.append(f"{cur}{amount:.2f}")
+    if paid_date_iso and re.match(r"^\d{4}-\d{2}-\d{2}$", paid_date_iso):
+        y, m, d = paid_date_iso.split("-")
+        parts += ["recu" if folder == "Income" else "paye", f"{d}.{m}.{y}"]
+    name = "_".join(parts) + (f"_v{version}" if version > 1 else "") + ".pdf"
+    return name if valid_doc_name(name) else None

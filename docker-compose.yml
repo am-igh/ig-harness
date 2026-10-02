@@ -26,6 +26,8 @@ services:
       # Her spreadsheets, mounted READ-ONLY. Paths come from .env (see .env.example).
       - ${SUIVI_DIR:-./tests/fixtures/suivi}:/sources/suivi:ro
       - ${PROJETS_DIR:-./tests/fixtures/projets}:/sources/projets:ro
+      # The Scan-Inbox folder Image Capture saves into, READ-ONLY: the harness looks at scans, it never changes or deletes them.
+      - ${SCAN_INBOX_DIR:-./tests/fixtures/scan}:/sources/scan:ro
       # Audit: ONLY the 2026 year folder and the Outils folder (the checker script), read-only. Contracts and salary slips in other years stay unmounted.
       - ${AUDIT_YEAR_DIR:-./tests/fixtures/audit/2026}:/sources/audit/2026:ro
       - ${AUDIT_TOOLS_DIR:-./tests/fixtures/audit/Outils}:/sources/audit/Outils:ro

@@ -136,7 +136,7 @@ def reconcile(conn: sqlite3.Connection, data_dir: Path | None = None) -> list[in
     data_dir = data_dir or DATA_DIR
     _, _, done = _dirs(data_dir)
     newly = []
-    for f in sorted(done.glob("*.json")):
+    for f in sorted(p for p in done.glob("*.json") if not p.name.startswith("doc-")):      # doc-*.json belong to scans.reconcile
         try:
             res = json.loads(f.read_text())
             fid = int(res["id"])

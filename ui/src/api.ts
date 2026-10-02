@@ -181,3 +181,20 @@ export async function uploadStatement(file: File): Promise<Filing> {
   if (!r.ok) throw new Error((await r.json().catch(() => ({ detail: "Upload failed" }))).detail);
   return r.json();
 }
+
+// ---- Scanned invoices and receipts
+export type Scan = { id: number; source: "folder" | "upload"; original_name: string; size: number; status: "found" | "reading" | "proposed" | "duplicate" | "approved" | "filed" | "failed" | "skipped" | "unreadable";
+  doc_type: string | null; type_label: string | null; supplier: string | null; number: string | null; amount: number | null; currency: string | null; doc_date: string | null; paid_date: string | null;
+  folder: "Expenses" | "Income" | null; proposed_name: string | null; year: string | null; note: string | null; result: string | null };
+export type ScanSummary = { to_confirm: number; reading: number; approved: number; filed_this_week: number; duplicates: number; failed: number };
+export const getScans = () => j<{ items: Scan[]; summary: ScanSummary }>("/api/scans");
+export const getScanSummary = () => j<ScanSummary>("/api/scans/summary");
+export const editScan = (id: number, fields: Partial<Pick<Scan, "doc_type" | "supplier" | "number" | "currency" | "doc_date" | "paid_date" | "folder">> & { amount?: string | number | null }) =>
+  j<Scan>(`/api/scans/${id}/edit`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(fields) });
+export const approveScan = (id: number) => j<Scan>(`/api/scans/${id}/approve`, { method: "POST" });
+export const skipScan = (id: number) => j<Scan>(`/api/scans/${id}/skip`, { method: "POST" });
+export async function uploadScan(file: File): Promise<{ id: number; new: boolean }> {
+  const r = await fetch("/api/scans/upload", { method: "POST", headers: { "X-Filename": encodeURIComponent(file.name), "Content-Type": "application/pdf" }, body: file });
+  if (!r.ok) throw new Error((await r.json().catch(() => ({ detail: "Upload failed" }))).detail);
+  return r.json();
+}

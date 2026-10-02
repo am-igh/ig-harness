@@ -128,3 +128,20 @@ recorded anywhere yet, and the harness never writes to the register. Hours, Budg
    approval and the file's fingerprint, and verifies the copy afterwards. The audit check then re-runs by itself.
 
 The agent must have been restarted once after this update: `make refresh-install`. To file by hand: `make filing-now`.
+
+## Scans: invoices, receipts and other justificatifs
+
+**Setup (once):** in Image Capture choose *Scan To: Scan-Inbox* (the `Scan-Inbox` folder in your home folder) and *Format: PDF*. The harness
+looks at that folder read-only; it never changes, moves or deletes your scans.
+
+**Each scan:** within a few seconds a new scan is read on this Mac (text recognition + the local model; nothing leaves the Mac) and appears under
+**Scan inbox** (Today and Projects & finance) as *to confirm*. Click it to see, for each scan: type, supplier, number, amount, currency, payment
+date, folder and the **exact file name it would get**. Correct any field (the name updates). Then **Add to folder**, or **Skip**.
+
+- Name: `Fournisseur_Facture_<n>_CHF<montant>_paye_JJ.MM.AAAA.pdf` (income: `_recu_`). The payment date is filled in only when exactly one
+  unjustified payment of that amount (matching the supplier) exists in your latest audit check; otherwise you are asked, or the name has no date yet.
+- Folder: invoices and receipts → `Expenses`, invoices you issued → `Income`; contracts and unclear documents wait for your choice.
+- Duplicates (identical content already in your folder) are set aside; a different file with the same name is saved as `_v2`, `_v3`… Nothing is ever overwritten or deleted.
+- After filing, the audit check re-runs by itself. The original scan stays in Scan-Inbox; tidy it by hand when you like.
+- No scanner at hand? **Add invoices and receipts** lets you choose PDFs directly.
+- After updating: `docker compose build` is needed once (text recognition was added to the image); `make refresh-install` is already done.

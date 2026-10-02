@@ -410,6 +410,26 @@ MIGRATIONS: list[str] = [
         decided_at TEXT, filed_at TEXT
     );
     """,
+    # 18: scanned invoices and receipts (justificatifs): read locally, previewed, filed only after her approval
+    """
+    CREATE TABLE scans (
+        id INTEGER PRIMARY KEY,
+        source TEXT NOT NULL CHECK (source IN ('folder','upload')),
+        original_name TEXT NOT NULL,
+        sha256 TEXT NOT NULL UNIQUE,
+        size INTEGER NOT NULL,
+        found_at TEXT NOT NULL DEFAULT (datetime('now')),
+        status TEXT NOT NULL DEFAULT 'found' CHECK (status IN ('found','reading','proposed','duplicate','approved','filed','failed','skipped','unreadable')),
+        doc_type TEXT,                -- invoice_received / receipt / invoice_issued / contract / other
+        supplier TEXT, number TEXT, amount REAL, currency TEXT, doc_date TEXT, paid_date TEXT,
+        paid_manual INTEGER NOT NULL DEFAULT 0,
+        folder TEXT,                  -- Expenses / Income / NULL (she chooses)
+        proposed_name TEXT, year TEXT,
+        note TEXT,                    -- plain-language line shown under the preview
+        model TEXT, result TEXT,
+        decided_at TEXT, filed_at TEXT
+    );
+    """,
 ]
 
 

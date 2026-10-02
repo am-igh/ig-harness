@@ -1,5 +1,7 @@
 """IG Harness API. Phase 1 skeleton: health check only."""
+import os
 import threading
+import time
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Request
@@ -25,6 +27,21 @@ def _collector() -> None:
         time.sleep(3)
 
 
+def _scan_watcher():
+    """Every few seconds: notice new scans in the Scan-Inbox folder and read them (on this Mac, with the local model)."""
+    from harness import scans
+    while True:
+        try:
+            c = db.connect()
+            try:
+                scans.tick(c)
+            finally:
+                c.close()
+        except Exception:
+            pass
+        time.sleep(8)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Create or upgrade the database when the API starts.
@@ -32,6 +49,8 @@ async def lifespan(app: FastAPI):
     db.migrate(conn)
     conn.close()
     threading.Thread(target=_collector, daemon=True).start()
+    if os.environ.get("IG_SCAN_WATCH", "1") != "0":
+        threading.Thread(target=_scan_watcher, daemon=True).start()
     yield
 
 
@@ -706,7 +725,7 @@ def filing_list() -> dict:
         newly = filing.reconcile(c)
         return newly, filing.recent(c)
     newly, items = _with_conn(go)
-    if newly and audit.configured():                       # new statements: re-run her checker so the tile includes them
+    if newly and audit.configured(audit.ROOT):                       # new statements: re-run her checker so the tile includes them
         years = audit.years_available(audit.ROOT)
         audit.start_background(db.connect, audit.ROOT, years[-1])
     return {"items": items}
@@ -730,5 +749,99 @@ def filing_skip(fid: int) -> dict:
         return _with_conn(lambda c: filing.skip(c, fid))
     except KeyError:
         raise HTTPException(404, "No such filing")
+    except ValueError as e:
+        raise HTTPException(409, str(e))
+
+
+# --- Scanned invoices and receipts ---
+class ScanEdit(BaseModel):
+    doc_type: str | None = None
+    supplier: str | None = None
+    number: str | None = None
+    amount: float | str | None = None
+    currency: str | None = None
+    doc_date: str | None = None
+    paid_date: str | None = None
+    folder: str | None = None
+
+
+@app.get("/api/scans")
+def scans_list() -> dict:
+    from harness import audit, filing, scans
+    def go(c):
+        newly = scans.reconcile(c)
+        return newly, scans.recent(c), scans.summary(c)
+    newly, items, summary = _with_conn(go)
+    if newly and audit.configured(audit.ROOT):                       # newly filed documents: re-run her checker so the tile includes them
+        audit.start_background(db.connect, audit.ROOT, audit.years_available(audit.ROOT)[-1])
+    return {"items": items, "summary": summary}
+
+
+@app.get("/api/scans/summary")
+def scans_summary() -> dict:
+    from harness import scans
+    return _with_conn(scans.summary)
+
+
+@app.post("/api/scans/upload")
+async def scans_upload(request: Request) -> dict:
+    from urllib.parse import unquote
+    from harness import filingspec, scans
+    name, content = unquote(request.headers.get("x-filename", "document.pdf")), await request.body()
+    if not content or len(content) > filingspec.MAX_BYTES:
+        raise HTTPException(422, "Choose a PDF of at most 25 MB")
+    if not content.startswith(b"%PDF"):
+        raise HTTPException(422, "That file is not a PDF")
+    def go(c):
+        sid, new = scans.register(c, name, content, "upload")
+        return sid, new
+    sid, new = _with_conn(go)
+    if new:
+        threading.Thread(target=lambda: _read_now(sid), daemon=True).start()
+    return {"id": sid, "new": new}
+
+
+def _read_now(sid: int):
+    from harness import scans
+    c = db.connect()
+    try:
+        s = c.execute("SELECT status FROM scans WHERE id=?", (sid,)).fetchone()
+        if s and s["status"] == "found":
+            scans.read_scan(c, scans.Gateway(), sid)
+    except Exception:
+        pass
+    finally:
+        c.close()
+
+
+@app.post("/api/scans/{sid}/edit")
+def scans_edit(sid: int, body: ScanEdit) -> dict:
+    from harness import scans
+    try:
+        return _with_conn(lambda c: scans.edit(c, sid, body.model_dump(exclude_unset=True)))
+    except KeyError:
+        raise HTTPException(404, "No such scan")
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+
+
+@app.post("/api/scans/{sid}/approve")
+def scans_approve(sid: int) -> dict:
+    from harness import scans
+    try:
+        return _with_conn(lambda c: scans.approve(c, sid))
+    except KeyError:
+        raise HTTPException(404, "No such scan")
+    except ValueError as e:
+        raise HTTPException(409, str(e))
+
+
+@app.post("/api/scans/{sid}/skip")
+def scans_skip(sid: int) -> dict:
+    from harness import scans
+    try:
+        return _with_conn(lambda c: scans.skip(c, sid))
+    except KeyError:
+        raise HTTPException(404, "No such scan")
     except ValueError as e:
         raise HTTPException(409, str(e))
