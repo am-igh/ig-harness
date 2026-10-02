@@ -180,3 +180,13 @@ def test_the_api_roundtrip(env, monkeypatch):
         listed = cl.get("/api/filing").json()["items"]
         assert listed[0]["status"] == "filed" and (year / N_Q3).is_file()
         assert cl.post("/api/filing/999/skip").status_code == 404
+
+
+def test_old_filed_statements_leave_the_screen_but_stay_on_record(env):
+    c, root, year, data = env
+    f = stage(env, N_Q3, pdf(Q3)); filing.approve(c, f["id"], data_dir=data)
+    filer.run_once(data, year); filing.reconcile(c, data)
+    assert [i["id"] for i in filing.recent(c)] == [f["id"]]                              # just filed: still shown
+    with c:
+        c.execute("UPDATE filings SET filed_at = datetime('now', '-31 minutes') WHERE id=?", (f["id"],))
+    assert filing.recent(c) == [] and filing.get(c, f["id"])["status"] == "filed"        # tidied away, record kept

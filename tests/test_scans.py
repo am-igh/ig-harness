@@ -400,3 +400,12 @@ def test_statements_contracts_and_other_documents_can_be_named_with_or_without_a
     assert fs.doc_name("other", "Swiss Life", None, None, None, None, "Expenses") == "Swiss_Life_Document.pdf"
     assert fs.doc_name("contract", "Gablinger", None, 20000, "CHF", None, "Income") == "Gablinger_Contrat_CHF20000.00.pdf"
     assert fs.doc_name("other", "X", None, 5, "JPY", None, "Expenses") is None                          # a given amount still needs a real currency
+
+
+def test_old_filed_scans_leave_the_review_panel_but_stay_on_record(env):
+    sid, _, s = approved(env)
+    filer.run_once(env.data, env.year); scans.reconcile(env.c, env.data)
+    assert [x["id"] for x in scans.recent(env.c)] == [sid]
+    with env.c:
+        env.c.execute("UPDATE scans SET filed_at = datetime('now', '-31 minutes') WHERE id=?", (sid,))
+    assert scans.recent(env.c) == [] and scans.get(env.c, sid)["status"] == "filed"

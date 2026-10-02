@@ -153,5 +153,12 @@ def reconcile(conn: sqlite3.Connection, data_dir: Path | None = None) -> list[in
     return newly
 
 
+SHOW_FILED_MINUTES = 30                 # a filed statement stays on screen this long, then it is tidied away (the record stays in the database)
+
+
 def recent(conn: sqlite3.Connection, limit: int = 30) -> list[dict]:
-    return [_row(r) for r in conn.execute("SELECT * FROM filings ORDER BY id DESC LIMIT ?", (limit,))]
+    """What the screen lists: waiting, approved and problem items, plus recently filed ones. Older filed items and set-aside ones that were never dismissed (after a day) disappear."""
+    return [_row(r) for r in conn.execute(
+        "SELECT * FROM filings WHERE NOT (status = 'filed' AND filed_at < datetime('now', ?)) "
+        "AND NOT (status = 'staged' AND state != 'new' AND created_at < datetime('now', '-1 day')) ORDER BY id DESC LIMIT ?",
+        (f"-{SHOW_FILED_MINUTES} minutes", limit))]

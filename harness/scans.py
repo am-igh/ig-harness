@@ -443,7 +443,10 @@ def reconcile(conn: sqlite3.Connection, data_dir: Path | None = None) -> list[in
 
 
 def recent(conn: sqlite3.Connection, limit: int = 40) -> list[dict]:
-    return [get(conn, r["id"]) for r in conn.execute("SELECT id FROM scans WHERE status != 'skipped' ORDER BY id DESC LIMIT ?", (limit,))]
+    """What the review panel lists: scans waiting for her, in progress or in trouble, plus recently filed ones (those disappear after 30 minutes; the record stays)."""
+    return [get(conn, r["id"]) for r in conn.execute(
+        "SELECT id FROM scans WHERE status != 'skipped' AND NOT (status = 'filed' AND filed_at < datetime('now', '-30 minutes')) "
+        "AND NOT (status = 'duplicate' AND found_at < datetime('now', '-1 day')) ORDER BY id DESC LIMIT ?", (limit,))]
 
 
 def summary(conn: sqlite3.Connection) -> dict:
