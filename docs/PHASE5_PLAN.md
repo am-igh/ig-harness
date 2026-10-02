@@ -44,7 +44,14 @@ One **Events** tab (the Geneva tab, enlarged): conferences and events relevant t
 ## Rules that stay
 Drafts only, never send; inbox-derived data local only (S2); public data S0; one model door (gateway, new job `event_extract`); no real data in the repo; nothing in her files changes; calendar stays read-only.
 
-## Open decisions (for Anne-Marie)
+## Decisions (Anne-Marie, 2 Oct 2026)
+1. Tab name: **Geneva and beyond**.
+2. Sources: **both** the public pages and the emails.
+3. Topics: digital and AI governance, cyber, peacebuilding, humanitarian tech, multilateral diplomacy, **harmful information (and all its analogues: mis/disinformation, hate speech, information integrity)**, **technology for good**; more can be added.
+4. Default view: upcoming events, with the past year as a **searchable archive**.
+5. Push the plan commit and start on slice 5.1: approved.
+
+## Original open decisions
 1. Tab name: "Events" with a Geneva filter, or keep "Geneva"?
 2. Public listings: fetch the public pages (slice 5.4), or rely only on the newsletters already in her inbox?
 3. Topics of interest, to rank and filter (e.g. digital and AI governance, cyber, peacebuilding, humanitarian tech, multilateral diplomacy).
