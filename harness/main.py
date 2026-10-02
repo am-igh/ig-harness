@@ -885,3 +885,16 @@ def scans_image(sid: int, page: int = 1, w: int = 700):
     if png is None:
         raise HTTPException(404, "No picture for this scan")
     return Response(png, media_type="image/png", headers={"Cache-Control": "private, max-age=3600"})
+
+
+# --- Hours this week (from hours.csv, read-only) ---
+@app.get("/api/hours")
+def hours_week(day: str | None = None) -> dict:
+    from datetime import date as _date
+    from harness import hours
+    from harness.config import now_local
+    try:
+        d = _date.fromisoformat(day) if day else None
+    except ValueError:
+        raise HTTPException(422, "day must look like 2026-09-30")
+    return _with_conn(lambda c: hours.week_summary(c, now_local().date(), d))

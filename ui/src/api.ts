@@ -200,3 +200,8 @@ export async function uploadScan(file: File): Promise<{ id: number; new: boolean
 }
 export const splitScan = (id: number) => j<{ ids: number[] }>(`/api/scans/${id}/split`, { method: "POST" });
 export const mergeScans = (ids: number[]) => j<{ id: number }>("/api/scans/merge", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ids }) });
+
+// ---- Hours this week
+export type HourEntry = { date: string; project: string | null; budget_line: string | null; hours: number | null; description: string | null; evidence: string | null; source: string | null; entered_on: string | null; problems: string[] };
+export type HoursWeek = { week_start: string; week_end: string; is_current: boolean; total: number; by_project: { project: string; hours: number }[]; entries: HourEntry[]; flagged: number; days_without: string[]; prev: string; next: string | null; has_any: boolean };
+export const getHours = (day?: string) => j<HoursWeek>(`/api/hours${day ? `?day=${day}` : ""}`);

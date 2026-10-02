@@ -8,11 +8,11 @@ import NotesBox from "../notes/NotesBox";
 import QuickNote from "../notes/QuickNote";
 import AuditTile, { useAuditStatus } from "../finance/AuditTile";
 import ScanTile from "../finance/ScanTile";
+import { HoursTile, useHours } from "../finance/HoursDrawer";
 import { useScans } from "../finance/ScansDrawer";
 import Lake from "./Lake";
 
 const WIDGETS = [
-  { title: "Hours this week", sub: "Friday pass fills the gaps", phase: "Phase 4" },
   { title: "Budget burn", sub: "Highest open mandate", phase: "Phase 4" },
 ];
 
@@ -119,6 +119,7 @@ export default function TodayTab() {
   const [settling, setSettling] = useState<Record<string, boolean>>({});
   const audit = useAuditStatus();
   const scanData = useScans();
+  const hoursWeek = useHours();
   const timer = useRef<number>();
 
   const load = useCallback(() => getToday().then((d) => { setData(d); setError(false); }).catch(() => setError(true)), []);
@@ -214,6 +215,7 @@ export default function TodayTab() {
             </div>
           </button>
           <AuditTile st={audit.st} onOpen={() => setPanel({ kind: "audit" })} />
+          <HoursTile w={hoursWeek} onOpen={() => setPanel({ kind: "hours" })} />
           <ScanTile s={scanData.data?.summary ?? null} onOpen={() => setPanel({ kind: "scans" })} />
           {WIDGETS.map((w) => (
             <div key={w.title} className="tile">

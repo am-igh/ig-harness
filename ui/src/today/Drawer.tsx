@@ -7,8 +7,9 @@ import CalendarDrawer from "../calendar/CalendarDrawer";
 import NotesLogDrawer from "../notes/NotesLogDrawer";
 import AuditDrawer from "../finance/AuditDrawer";
 import ScansDrawer from "../finance/ScansDrawer";
+import HoursDrawer from "../finance/HoursDrawer";
 
-export type Panel = { kind: "deadline"; id: number } | { kind: "done" } | { kind: "reminder"; id: number } | { kind: "calendar" } | { kind: "notes" } | { kind: "audit" } | { kind: "scans" } | null;
+export type Panel = { kind: "deadline"; id: number } | { kind: "done" } | { kind: "reminder"; id: number } | { kind: "calendar" } | { kind: "notes" } | { kind: "audit" } | { kind: "scans" } | { kind: "hours" } | null;
 
 export function Shell({ kicker, title, meta, onClose, children, wide }: {
   kicker: string; title: string; meta: string; onClose: () => void; children: React.ReactNode; wide?: boolean;
@@ -129,6 +130,7 @@ export default function Drawer({ panel, today, onClose, onTickDeadline, onChange
   if (panel.kind === "reminder") return <ReminderDrawer waitingId={panel.id} onClose={onClose} />;
   if (panel.kind === "calendar") return <CalendarDrawer today={today} onClose={onClose} />;
   if (panel.kind === "notes") return <NotesLogDrawer today={today} onClose={onClose} onChanged={onChanged} />;
+  if (panel.kind === "hours") return <HoursDrawer onClose={onClose} />;
   if (panel.kind === "scans") return <ScansDrawer onClose={onClose} onChanged={onChanged} />;
   if (panel.kind === "audit") return <AuditDrawer initial={null} onClose={onClose} onChanged={onChanged} />;
   return <DeadlineDrawer id={panel.id} today={today} onClose={onClose} onTick={() => onTickDeadline(panel.id)} />;

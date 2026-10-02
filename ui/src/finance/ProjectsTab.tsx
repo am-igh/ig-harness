@@ -6,6 +6,7 @@ import AuditDrawer from "./AuditDrawer";
 import StatementsBox from "./StatementsBox";
 import ScanTile from "./ScanTile";
 import ScansDrawer, { useScans } from "./ScansDrawer";
+import HoursDrawer, { HoursTile, useHours } from "./HoursDrawer";
 import AuditTile, { useAuditStatus } from "./AuditTile";
 
 function Card({ p, onOpen }: { p: ProjectCard; onOpen: () => void }) {
@@ -56,7 +57,7 @@ function ProjectDrawer({ code, onClose }: { code: string; onClose: () => void })
   );
 }
 
-const SOON = [{ title: "Hours this week", sub: "From hours.csv" }, { title: "Budget burn", sub: "Spend against each mandate" }];
+const SOON = [{ title: "Budget burn", sub: "Spend against each mandate" }];
 
 export default function ProjectsTab() {
   const [data, setData] = useState<ProjectsOverview | null>(null);
@@ -65,6 +66,8 @@ export default function ProjectsTab() {
   const [audit, setAudit] = useState(false);
   const a = useAuditStatus();
   const sc = useScans();
+  const hw = useHours();
+  const [hoursOpen, setHoursOpen] = useState(false);
   const [scansOpen, setScansOpen] = useState(false);
   useEffect(() => { getProjects().then(setData).catch(() => setErr(true)); }, []);
   return (
@@ -72,6 +75,7 @@ export default function ProjectsTab() {
       <h2 className="serif">Projects &amp; finance</h2>
       <div className="proj-tiles">
         <AuditTile st={a.st} onOpen={() => setAudit(true)} />
+        <HoursTile w={hw} onOpen={() => setHoursOpen(true)} />
         <ScanTile s={sc.data?.summary ?? null} onOpen={() => setScansOpen(true)} />
         {SOON.map((w) => <div key={w.title} className="tile"><div className="tile-art" /><div className="tile-text"><span className="tile-title">{w.title}</span><span className="serif tile-head">—</span><span className="tile-sub">{w.sub}</span><span className="soon">Coming soon</span></div></div>)}
       </div>
@@ -92,6 +96,7 @@ export default function ProjectsTab() {
       )}
       {open && <ProjectDrawer code={open} onClose={() => setOpen(null)} />}
       {scansOpen && <ScansDrawer onClose={() => { setScansOpen(false); sc.reload(); }} onChanged={() => { a.reload(); sc.reload(); }} />}
+      {hoursOpen && <HoursDrawer onClose={() => setHoursOpen(false)} />}
       {audit && <AuditDrawer initial={null} onClose={() => setAudit(false)} onChanged={a.reload} />}
     </main>
   );

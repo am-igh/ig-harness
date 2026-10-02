@@ -434,6 +434,16 @@ MIGRATIONS: list[str] = [
     "ALTER TABLE scans ADD COLUMN pages INTEGER; ALTER TABLE scans ADD COLUMN parent_id INTEGER;",
     # 20: a fingerprint of a single page's picture, so a page that comes back unchanged is recognised
     "ALTER TABLE scans ADD COLUMN page_hash TEXT;",
+    # 21: read-only mirror of her hours.csv (hours need an evidence pointer and an entered_on date)
+    """
+    CREATE TABLE hours (
+        row_key TEXT PRIMARY KEY,           -- fingerprint of the whole CSV row: the same row is never added twice
+        date TEXT NOT NULL, project TEXT, budget_line TEXT,
+        hours REAL, rate REAL, description TEXT, evidence TEXT, source TEXT, entered_on TEXT,
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE INDEX idx_hours_date ON hours (date);
+    """,
 ]
 
 

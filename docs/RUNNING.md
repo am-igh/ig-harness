@@ -157,3 +157,10 @@ writer that adds your work notes (every 30 minutes, or at once with ↻ / `make 
 `FIN`, a one-line summary ("Filed invoice: Alber Rolle SA, no. 002131, CHF 2972.75, paid 29.01.2026 (in 2026/Expenses)"), and the evidence
 `Admin/ICT4Peace Audit/2026/Expenses/<file name>`, status `confirmed` (you approved it). Each document is added once. The same pause switch stops it
 (`make suivi-export-pause`). The filed card in the Scan inbox shows the journal id once it is in.
+
+## Hours this week
+
+The **Hours this week** tile (Today and Projects & finance) reads your `hours.csv` (read-only; the harness never changes it): total hours this week, hours per
+project, and the weekdays so far with nothing logged. Click it for the entries (with ← / → to move between weeks). An entry is flagged **to check** when it has
+no evidence pointer, no `entered_on` date, a project code that Suivi's Codes sheet does not know, zero or missing hours, or was entered more than 7 days after
+the day it is for. The data refreshes with the other imports (↻ in the header, or every 30 minutes).
