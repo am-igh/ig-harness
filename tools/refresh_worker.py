@@ -180,6 +180,12 @@ def main(argv: list[str]) -> int:
                     print(f"{now:%H:%M:%S} filing: {line}", flush=True)
             except Exception as e:
                 print(f"filing error: {type(e).__name__}: {e}", file=sys.stderr, flush=True)
+            try:
+                if any((DATA / "hours" / "outbox").glob("*.json")):         # approved hour entries -> appended to hours.csv (tools/hours_writer.py)
+                    rc, line = run_sub([TOOLS / "hours_writer.py", "once"], 120)
+                    print(f"{now:%H:%M:%S} hours: {line}", flush=True)
+            except Exception as e:
+                print(f"hours error: {type(e).__name__}: {e}", file=sys.stderr, flush=True)
             time.sleep(5)
     sys.exit(__doc__)
 

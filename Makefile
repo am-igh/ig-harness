@@ -1,4 +1,4 @@
-.PHONY: ui-test up down test logs import calendar gmail correspondence check-network agent-install agent-uninstall agent-status refresh-install refresh-uninstall refresh-now backup backup-list backup-test suivi-export-dry-run suivi-export-now suivi-export-pause suivi-export-resume filing-now
+.PHONY: ui-test up down test logs import calendar gmail correspondence check-network agent-install agent-uninstall agent-status refresh-install refresh-uninstall refresh-now backup backup-list backup-test suivi-export-dry-run suivi-export-now suivi-export-pause suivi-export-resume filing-now hours-now hours-pause hours-resume
 
 up:      ## Start the harness (UI at http://localhost:5173)
 	docker compose up -d --build
@@ -77,3 +77,12 @@ suivi-export-resume: ## Resume sending notes to Suivi
 
 filing-now: ## File any bank statements you approved (new files only; normally automatic)
 	python3 tools/filer.py once
+
+hours-now: ## Append the hour entries you approved to hours.csv (normally automatic)
+	python3 tools/hours_writer.py once
+
+hours-pause: ## Stop the harness appending to hours.csv
+	mkdir -p ~/IG-Harness-data/hours && touch ~/IG-Harness-data/hours/DISABLED
+
+hours-resume: ## Let the harness append to hours.csv again
+	rm -f ~/IG-Harness-data/hours/DISABLED

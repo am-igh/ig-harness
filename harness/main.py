@@ -898,3 +898,63 @@ def hours_week(day: str | None = None) -> dict:
     except ValueError:
         raise HTTPException(422, "day must look like 2026-09-30")
     return _with_conn(lambda c: hours.week_summary(c, now_local().date(), d))
+
+
+# --- Friday hours pass (suggestions -> her approval -> the Mac-side writer appends to hours.csv) ---
+class HourEdit(BaseModel):
+    hours: float | str | None = None
+    project: str | None = None
+    description: str | None = None
+    budget_line: str | None = None
+
+
+@app.get("/api/hours/pass")
+def hours_pass(day: str | None = None) -> dict:
+    from datetime import date as _date
+    from harness import hours_pass as HP
+    from harness.config import now_local
+    from harness.importers.hours import import_hours
+    from harness.importers.run import PROJETS_DIR
+    d = _date.fromisoformat(day) if day else None
+    def go(c):
+        newly = HP.reconcile(c)
+        if newly:
+            import_hours(c, PROJETS_DIR)                    # the writer added rows: read them back
+        return HP.week_items(c, now_local().date(), d)
+    return {"items": _with_conn(go)}
+
+
+@app.post("/api/hours/pass/find")
+def hours_pass_find(day: str | None = None) -> dict:
+    from datetime import date as _date
+    from harness import hours_pass as HP
+    from harness.config import now_local
+    d = _date.fromisoformat(day) if day else None
+    return {"added": _with_conn(lambda c: HP.find_week(c, now_local().date(), d))}
+
+
+def _hp(fn):
+    from harness import hours_pass as HP
+    try:
+        return _with_conn(lambda c: fn(c, HP))
+    except KeyError:
+        raise HTTPException(404, "No such suggestion")
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+
+
+@app.post("/api/hours/pass/{pid}/edit")
+def hours_pass_edit(pid: int, body: HourEdit) -> dict:
+    from harness.config import now_local
+    return _hp(lambda c, HP: HP.edit(c, pid, body.model_dump(exclude_unset=True), now_local().date()))
+
+
+@app.post("/api/hours/pass/{pid}/approve")
+def hours_pass_approve(pid: int) -> dict:
+    from harness.config import now_local
+    return _hp(lambda c, HP: HP.approve(c, pid, now_local().date()))
+
+
+@app.post("/api/hours/pass/{pid}/skip")
+def hours_pass_skip(pid: int) -> dict:
+    return _hp(lambda c, HP: HP.skip(c, pid))

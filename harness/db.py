@@ -444,6 +444,21 @@ MIGRATIONS: list[str] = [
     );
     CREATE INDEX idx_hours_date ON hours (date);
     """,
+    # 22: the journal's own type, evidence and hours (the Friday pass uses them)
+    "ALTER TABLE journal_entries ADD COLUMN entry_type TEXT; ALTER TABLE journal_entries ADD COLUMN evidence TEXT; ALTER TABLE journal_entries ADD COLUMN hours REAL;",
+    # 23: the Friday hours pass: suggested hour entries, approved one by one, then appended to hours.csv by the Mac-side writer
+    """
+    CREATE TABLE hour_proposals (
+        id INTEGER PRIMARY KEY,
+        pkey TEXT NOT NULL UNIQUE,            -- fingerprint of where it came from: the same journal row or event is never proposed twice
+        week_start TEXT NOT NULL,
+        date TEXT NOT NULL, project TEXT, budget_line TEXT, hours REAL, description TEXT, evidence TEXT,
+        source TEXT NOT NULL,                 -- journal / calendar
+        basis TEXT,                           -- plain-language reason for the hours figure
+        status TEXT NOT NULL DEFAULT 'proposed' CHECK (status IN ('proposed','approved','written','failed','skipped')),
+        result TEXT, created_at TEXT NOT NULL DEFAULT (datetime('now')), decided_at TEXT, written_at TEXT
+    );
+    """,
 ]
 
 

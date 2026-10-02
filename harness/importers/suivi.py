@@ -78,7 +78,7 @@ def _commitments(conn, path) -> Report:
 
 def _journal(conn, path) -> Report:
     rep = Report(source="suivi:journal")
-    rows = read_sheet(path, "Journal", ["id", "date", "domain", "code", "summary"])
+    rows = read_sheet(path, "Journal", ["id", "date", "domain", "code", "summary", "type", "evidence", "hours"], optional=("type", "evidence", "hours"))
     seen: set[str] = set()
     with conn:
         for r in rows:
@@ -89,8 +89,12 @@ def _journal(conn, path) -> Report:
                 continue
             space, tier = _space(r["domain"])
             seen.add(ref)
+            try:
+                hrs = float(str(r["hours"]).replace(",", ".")) if clean(r["hours"]) else None
+            except ValueError:
+                hrs = None
             fields = {"entry_date": iso(d), "text": text, "project_code": clean(r["code"]),
-                      "space": space, "sensitivity": tier}
+                      "space": space, "sensitivity": tier, "entry_type": clean(r["type"]), "evidence": clean(r["evidence"]), "hours": hrs}
             row = conn.execute("SELECT * FROM journal_entries WHERE source=? AND source_ref=?",
                                (SOURCE, ref)).fetchone()
             if row is None:

@@ -164,3 +164,15 @@ The **Hours this week** tile (Today and Projects & finance) reads your `hours.cs
 project, and the weekdays so far with nothing logged. Click it for the entries (with ← / → to move between weeks). An entry is flagged **to check** when it has
 no evidence pointer, no `entered_on` date, a project code that Suivi's Codes sheet does not know, zero or missing hours, or was entered more than 7 days after
 the day it is for. The data refreshes with the other imports (↻ in the header, or every 30 minutes).
+
+### Friday hours pass
+
+Open **Hours this week** → section **Friday pass** → **Find hours for this week**. The harness suggests entries from your Suivi journal rows (using the
+journal's own hours figure when it has one) and from calendar events tagged like `[TK]` (using the event's length). Nothing is invented: when no hours
+are known the field is empty for your own estimate. Each suggestion shows its **evidence pointer** (journal id or calendar event). Edit the project, hours
+or description, then **Add to hours.csv** (or **Skip**). Entries already in `hours.csv` (same evidence) are not suggested again.
+
+An approved entry is appended to the **end** of `hours.csv` by a small Mac-side program (`tools/hours_writer.py`, run by the refresh agent). It never
+changes an existing line, makes a backup first (`~/IG-Harness-data/hours/backups`, last 20), waits while the file was changed in the last 90 seconds, checks
+the result afterwards and puts the original back if anything looks wrong. `entered_on` is the day you approved it and `source` is `harness`.
+Stop it with `make hours-pause`, restart with `make hours-resume`; `make hours-now` writes approved entries immediately.

@@ -205,3 +205,13 @@ export const mergeScans = (ids: number[]) => j<{ id: number }>("/api/scans/merge
 export type HourEntry = { date: string; project: string | null; budget_line: string | null; hours: number | null; description: string | null; evidence: string | null; source: string | null; entered_on: string | null; problems: string[] };
 export type HoursWeek = { week_start: string; week_end: string; is_current: boolean; total: number; by_project: { project: string; hours: number }[]; entries: HourEntry[]; flagged: number; days_without: string[]; prev: string; next: string | null; has_any: boolean };
 export const getHours = (day?: string) => j<HoursWeek>(`/api/hours${day ? `?day=${day}` : ""}`);
+
+// ---- Friday hours pass
+export type HourProposal = { id: number; date: string; project: string | null; budget_line: string | null; hours: number | null; description: string | null; evidence: string | null;
+  source: string; basis: string | null; status: "proposed" | "approved" | "written" | "failed" | "skipped"; result: string | null };
+export const getHourPass = (day?: string) => j<{ items: HourProposal[] }>(`/api/hours/pass${day ? `?day=${day}` : ""}`);
+export const findHourPass = (day?: string) => j<{ added: number }>(`/api/hours/pass/find${day ? `?day=${day}` : ""}`, { method: "POST" });
+export const editHourPass = (id: number, f: { hours?: string | number | null; project?: string; description?: string; budget_line?: string }) =>
+  j<HourProposal>(`/api/hours/pass/${id}/edit`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(f) });
+export const approveHourPass = (id: number) => j<HourProposal>(`/api/hours/pass/${id}/approve`, { method: "POST" });
+export const skipHourPass = (id: number) => j<HourProposal>(`/api/hours/pass/${id}/skip`, { method: "POST" });
