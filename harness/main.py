@@ -2,7 +2,7 @@
 import threading
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 
 from harness import db, deadlines, today as today_view
 from harness.config import DATA_DIR, VERSION
@@ -684,3 +684,51 @@ def project_detail(code: str) -> dict:
     if d is None:
         raise HTTPException(404, "No such project")
     return d
+
+
+# --- Bank statement filing (preview, approve; the Mac-side filer writes the new file) ---
+@app.post("/api/filing/upload")
+async def filing_upload(request: Request) -> dict:
+    from urllib.parse import unquote
+    from harness import audit, filing
+    name = unquote(request.headers.get("x-filename", ""))
+    content = await request.body()
+    try:
+        return _with_conn(lambda c: filing.stage(c, name, content))
+    except (ValueError, audit.AuditError) as e:
+        raise HTTPException(422, str(e))
+
+
+@app.get("/api/filing")
+def filing_list() -> dict:
+    from harness import audit, filing
+    def go(c):
+        newly = filing.reconcile(c)
+        return newly, filing.recent(c)
+    newly, items = _with_conn(go)
+    if newly and audit.configured():                       # new statements: re-run her checker so the tile includes them
+        years = audit.years_available(audit.ROOT)
+        audit.start_background(db.connect, audit.ROOT, years[-1])
+    return {"items": items}
+
+
+@app.post("/api/filing/{fid}/approve")
+def filing_approve(fid: int) -> dict:
+    from harness import filing
+    try:
+        return _with_conn(lambda c: filing.approve(c, fid))
+    except KeyError:
+        raise HTTPException(404, "No such filing")
+    except ValueError as e:
+        raise HTTPException(409, str(e))
+
+
+@app.post("/api/filing/{fid}/skip")
+def filing_skip(fid: int) -> dict:
+    from harness import filing
+    try:
+        return _with_conn(lambda c: filing.skip(c, fid))
+    except KeyError:
+        raise HTTPException(404, "No such filing")
+    except ValueError as e:
+        raise HTTPException(409, str(e))

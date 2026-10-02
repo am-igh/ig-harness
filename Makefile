@@ -1,4 +1,4 @@
-.PHONY: ui-test up down test logs import calendar gmail correspondence check-network agent-install agent-uninstall agent-status refresh-install refresh-uninstall refresh-now backup backup-list backup-test suivi-export-dry-run suivi-export-now suivi-export-pause suivi-export-resume
+.PHONY: ui-test up down test logs import calendar gmail correspondence check-network agent-install agent-uninstall agent-status refresh-install refresh-uninstall refresh-now backup backup-list backup-test suivi-export-dry-run suivi-export-now suivi-export-pause suivi-export-resume filing-now
 
 up:      ## Start the harness (UI at http://localhost:5173)
 	docker compose up -d --build
@@ -74,3 +74,6 @@ suivi-export-pause: ## Stop sending notes to Suivi (nothing is uninstalled)
 
 suivi-export-resume: ## Resume sending notes to Suivi
 	rm -f $(HOME)/IG-Harness-data/suivi_export/DISABLED && echo "Resumed."
+
+filing-now: ## File any bank statements you approved (new files only; normally automatic)
+	python3 tools/filer.py once

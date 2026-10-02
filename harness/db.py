@@ -394,6 +394,22 @@ MIGRATIONS: list[str] = [
         created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
     """,
+    # 17: bank statements offered for filing into the audit folder (preview first; filed only after her approval)
+    """
+    CREATE TABLE filings (
+        id INTEGER PRIMARY KEY,
+        original_name TEXT NOT NULL,
+        sha256 TEXT NOT NULL,
+        size INTEGER NOT NULL,
+        state TEXT NOT NULL,                -- new / duplicate / name_taken / same_period / wrong_year / not_statement / unreadable
+        detail TEXT,                        -- plain-language explanation (existing file it clashes with, etc.)
+        account TEXT, period_from TEXT, period_to TEXT, period_kind TEXT, year TEXT,
+        status TEXT NOT NULL DEFAULT 'staged' CHECK (status IN ('staged','approved','filed','failed','skipped')),
+        result TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        decided_at TEXT, filed_at TEXT
+    );
+    """,
 ]
 
 

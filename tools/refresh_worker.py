@@ -10,6 +10,7 @@ whenever you press "Refresh now" in the app) it
   5. makes the daily backup of the harness database
 It runs on the Mac, outside Docker, because the Google tokens live in the Keychain. It holds only the READ-ONLY
 Google permissions: it has no draft or send capability (those live in tools/draft_worker.py, a separate agent).
+It also runs tools/filer.py every few seconds: that adds approved bank statements to the audit folder as NEW files (never overwrites).
 Each step is recorded in ~/IG-Harness-data/refresh_status.json, which the app shows. A step that fails never
 stops the others.
 
@@ -173,6 +174,12 @@ def main(argv: list[str]) -> int:
                     print(f"{now:%H:%M:%S} refresh ({trigger}): " + ("ok" if not bad else "problems in " + ", ".join(bad)), flush=True)
                 except Exception as e:
                     print(f"refresh error: {type(e).__name__}: {e}", file=sys.stderr, flush=True)
+            try:
+                import filer                                   # approved bank statements -> new files in the audit folder (tools/filer.py)
+                for fid, ok, msg in filer.run_once(DATA):
+                    print(f"{now:%H:%M:%S} filing #{fid}: {'ok' if ok else 'FAILED'} ({msg})", flush=True)
+            except Exception as e:
+                print(f"filing error: {type(e).__name__}: {e}", file=sys.stderr, flush=True)
             time.sleep(5)
     sys.exit(__doc__)
 

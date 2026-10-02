@@ -169,3 +169,15 @@ export type WatchName = { id: number; name: string };
 export const getWatch = () => j<{ items: WatchName[] }>("/api/triage/watch");
 export const addWatch = (text: string) => j<{ id: number }>("/api/triage/watch", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
 export const deleteWatch = (id: number) => j<{ changed: boolean }>(`/api/triage/watch/${id}`, { method: "DELETE" });
+
+// ---- Bank statement filing
+export type Filing = { id: number; original_name: string; size: number; state: "new" | "duplicate" | "name_taken" | "same_period" | "wrong_year" | "not_statement" | "unreadable"; detail: string;
+  account_label: string | null; period_from: string | null; period_to: string | null; period_kind: string | null; year: string | null; status: "staged" | "approved" | "filed" | "failed" | "skipped"; result: string | null };
+export const getFilings = () => j<{ items: Filing[] }>("/api/filing");
+export const approveFiling = (id: number) => j<Filing>(`/api/filing/${id}/approve`, { method: "POST" });
+export const skipFiling = (id: number) => j<Filing>(`/api/filing/${id}/skip`, { method: "POST" });
+export async function uploadStatement(file: File): Promise<Filing> {
+  const r = await fetch("/api/filing/upload", { method: "POST", headers: { "X-Filename": encodeURIComponent(file.name), "Content-Type": "application/pdf" }, body: file });
+  if (!r.ok) throw new Error((await r.json().catch(() => ({ detail: "Upload failed" }))).detail);
+  return r.json();
+}

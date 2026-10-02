@@ -114,3 +114,17 @@ the last journal entry, and tagged calendar events (a `[TK]` in an event title a
 Personal areas never appear. Where Suivi says a project is in the project register but the register has no row yet (today: FAGI, MDH, TK),
 a notice says so; the funders you named (TK: Swiss FDFA; MDH: Gablinger for the course, SmartPeace for the self-hosting build) are not
 recorded anywhere yet, and the harness never writes to the register. Hours, Budget burn and Scan inbox are still "coming soon".
+
+## Adding bank statements (quarterly UBS PDFs)
+
+1. Download the statements from UBS as usual (they land in Downloads).
+2. Projects & finance tab → **Bank statements → Add bank statements**, and select the PDFs (you can select several at once; extra
+   "(1)" copies are fine).
+3. Each file gets a preview: account, period, and one of: **new**, **already in the folder** (identical content, including browser
+   "(1)" copies), **name taken by a different file**, **same account and period as an existing statement**, **wrong year**, or
+   **not a statement**. Only "new" can be added; the others are explained and need nothing from you.
+4. Click **Add to folder** (or **Add all N new statements**). The Mac-side filer (part of the refresh agent, `tools/filer.py`) creates the
+   file as a **new file** in the 2026 audit folder under UBS's own name. It never overwrites, deletes or renames anything, re-checks your
+   approval and the file's fingerprint, and verifies the copy afterwards. The audit check then re-runs by itself.
+
+The agent must have been restarted once after this update: `make refresh-install`. To file by hand: `make filing-now`.

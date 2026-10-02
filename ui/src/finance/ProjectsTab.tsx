@@ -3,6 +3,7 @@ import { type ProjectCard, type ProjectDetail, type ProjectsOverview, getProject
 import { dayShort } from "../format";
 import { Shell } from "../today/Drawer";
 import AuditDrawer from "./AuditDrawer";
+import StatementsBox from "./StatementsBox";
 import AuditTile, { useAuditStatus } from "./AuditTile";
 
 function Card({ p, onOpen }: { p: ProjectCard; onOpen: () => void }) {
@@ -69,6 +70,7 @@ export default function ProjectsTab() {
         <AuditTile st={a.st} onOpen={() => setAudit(true)} />
         {SOON.map((w) => <div key={w.title} className="tile"><div className="tile-art" /><div className="tile-text"><span className="tile-title">{w.title}</span><span className="serif tile-head">—</span><span className="tile-sub">{w.sub}</span><span className="soon">Coming soon</span></div></div>)}
       </div>
+      <StatementsBox onFiled={a.reload} />
       {err && <p className="muted">Could not load projects.</p>}
       {data && (
         <>
