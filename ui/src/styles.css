@@ -278,3 +278,4 @@ table.score td.best { font-weight: 700; color: var(--purple); }
 .scan-name { font-size: 12px; word-break: break-all; }
 .scan-pick { display: flex; align-items: center; } .scan-head { justify-content: flex-start; } .scan-head .chip { margin-left: auto; }
 .scan-pics { display: flex; gap: 8px; flex-wrap: wrap; } .scan-pics img { max-height: 190px; border: 1px solid var(--line); border-radius: 6px; background: #fff; display: block; } .scan-pics a { line-height: 0; }
+.btn-primary:disabled { opacity: .4; cursor: not-allowed; }

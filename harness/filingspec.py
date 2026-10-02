@@ -66,7 +66,8 @@ DOC_FOLDERS = ("Expenses", "Income")
 DOC_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.\-]{2,150}\.pdf$")
 CURRENCIES = ("CHF", "EUR", "USD", "GBP")
 _DOC_TYPE_FOLDER = {"invoice_received": "Expenses", "receipt": "Expenses", "invoice_issued": "Income"}
-_DOC_KIND = {"invoice_received": "Facture", "receipt": "Recu", "invoice_issued": "Facture"}
+_DOC_KIND = {"invoice_received": "Facture", "receipt": "Recu", "invoice_issued": "Facture", "statement": "Releve", "contract": "Contrat", "other": "Document"}
+_AMOUNT_OPTIONAL = ("statement", "contract", "other")           # a contract or a statement may have no single amount
 
 
 def valid_doc_name(name: str) -> bool:
@@ -88,13 +89,19 @@ def doc_name(doc_type: str | None, supplier: str | None, number: str | None, amo
     The payment part is added only when the payment is known, so a document is tied to exactly one payment (one document, one payment)."""
     sup = re.sub(r"_+", "_", re.sub(r"[^A-Za-z0-9]+", "_", _ascii(supplier or ""))).strip("_")[:40]
     cur = (currency or "").upper()
-    if not sup or amount is None or cur not in CURRENCIES or doc_type not in _DOC_KIND or amount <= 0:
+    if not sup or doc_type not in _DOC_KIND:
+        return None
+    has_amount = amount is not None
+    if has_amount and (cur not in CURRENCIES or amount <= 0):
+        return None
+    if not has_amount and doc_type not in _AMOUNT_OPTIONAL:
         return None
     parts = [sup, _DOC_KIND[doc_type]]
     num = re.sub(r"[^A-Za-z0-9\-]+", "", _ascii(number or ""))[:30]
     if num:
         parts.append(num)
-    parts.append(f"{cur}{amount:.2f}")
+    if has_amount:
+        parts.append(f"{cur}{amount:.2f}")
     if paid_date_iso and re.match(r"^\d{4}-\d{2}-\d{2}$", paid_date_iso):
         y, m, d = paid_date_iso.split("-")
         parts += ["recu" if folder == "Income" else "paye", f"{d}.{m}.{y}"]

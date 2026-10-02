@@ -62,7 +62,7 @@ def test_incomplete_or_dangerous_inputs_give_no_name():
     assert fs.doc_name("invoice_received", "", None, 5, "CHF", None, "Expenses") is None
     assert fs.doc_name("invoice_received", "X", None, None, "CHF", None, "Expenses") is None
     assert fs.doc_name("invoice_received", "X", None, 5, "JPY", None, "Expenses") is None
-    assert fs.doc_name("contract", "X", None, 5, "CHF", None, "Expenses") is None
+    assert fs.doc_name("invoice_received", "X", None, None, "CHF", None, "Expenses") is None            # invoices and receipts need an amount
     n = fs.doc_name("receipt", "../../etc/passwd", "a/b", 5, "CHF", None, "Expenses")
     assert n and "/" not in n and ".." not in n and fs.valid_doc_name(n)
 
@@ -393,3 +393,10 @@ def test_a_picture_of_each_page_is_available_and_only_for_real_pages(env):
     png = scans.page_image(env.c, sid, 1, 300, env.data)
     assert png and png.startswith(b"\x89PNG") and scans.page_image(env.c, sid, 2, 300, env.data)
     assert scans.page_image(env.c, sid, 3, 300, env.data) is None and scans.page_image(env.c, 999, 1, 300, env.data) is None
+
+
+def test_statements_contracts_and_other_documents_can_be_named_with_or_without_an_amount():
+    assert fs.doc_name("statement", "Swiss Life", "XP-15576855003", 1860.3, "CHF", None, "Expenses") == "Swiss_Life_Releve_XP-15576855003_CHF1860.30.pdf"
+    assert fs.doc_name("other", "Swiss Life", None, None, None, None, "Expenses") == "Swiss_Life_Document.pdf"
+    assert fs.doc_name("contract", "Gablinger", None, 20000, "CHF", None, "Income") == "Gablinger_Contrat_CHF20000.00.pdf"
+    assert fs.doc_name("other", "X", None, 5, "JPY", None, "Expenses") is None                          # a given amount still needs a real currency
