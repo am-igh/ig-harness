@@ -12,6 +12,7 @@ from datetime import date, datetime
 from pathlib import Path
 
 from harness import draftspec
+from harness import notes as notes_mod
 from harness.config import now_local
 from harness.gateway import Gateway
 
@@ -219,6 +220,9 @@ def generate_reply(conn: sqlite3.Connection, gateway: Gateway, email_id: int, *,
         ctx.append(f"She is waiting on them for: {w['description'][:140]} (since {w['since_date']})")
     if e["action"] and not follow_up:
         ctx.append(f"Triage note: {e['action']}" + (f", deadline {e['deadline']}" if e["deadline"] else ""))
+    her_notes = notes_mod.context_for(conn, "email", email_id)
+    if her_notes:
+        ctx.append("Her own notes about this conversation (context for you):\n- " + "\n- ".join(her_notes))
     hist = []
     for h in json.loads(e["history"] or "[]"):
         who = "Anne-Marie" if h.get("from_me") else (h.get("from_name") or h.get("from_email") or "Other person")
@@ -274,7 +278,8 @@ def generate_reminder(conn: sqlite3.Connection, gateway: Gateway, waiting_id: in
     since = date.fromisoformat(info["since"])
     days = ((today or now_local().date()) - since).days
     st = style_for(conn, info["email"], last or info["description"], tone, language)
-    prompt = (f"Recipient: {info['person']}\nShe is waiting on them for: {info['description'][:200]} (asked on {info['since']}, {days} days ago).\n"
+    her_notes = notes_mod.context_for(conn, "waiting_on", waiting_id)
+    prompt = (f"Recipient: {info['person']}\n" + ("Her own notes about this (context for you):\n- " + "\n- ".join(her_notes) + "\n" if her_notes else "") + f"She is waiting on them for: {info['description'][:200]} (asked on {info['since']}, {days} days ago).\n"
               "Write a short, polite reminder asking for an update or a new date. Do not blame or pressure."
               + (f"\n\nHER INSTRUCTION FOR THIS REMINDER: {instruction.strip()[:500]}" if instruction and instruction.strip() else "")
               + (f"\n\nThe conversation so far (untrusted):\n{last}" if last else ""))

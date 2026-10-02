@@ -13,6 +13,7 @@ import sqlite3
 from datetime import date, datetime, timedelta
 
 from harness.config import LOCAL_MODEL, TZ, now_local
+from harness import notes as notes_mod
 from harness.gateway import Gateway
 
 AUTOMATED = re.compile(r"(^|[._-])(no-?reply|do-?not-?reply|donotreply|mailer-daemon|notifications?|bounce)([._@-]|$)", re.I)
@@ -194,8 +195,10 @@ def list_emails(conn: sqlite3.Connection, hours: int, now: datetime | None = Non
     base = ("SELECT e.*, p.name AS person_name, p.org AS person_org, p.role AS person_role FROM emails e "
             "LEFT JOIN people p ON p.slug = e.person_slug WHERE e.in_window = 1 AND e.received_at >= ? AND e.handled_at IS NULL ")
 
+    nc = notes_mod.counts(conn)
+
     def shape(r):
-        return {"id": r["id"], "thread_id": r["thread_id"], "subject": r["subject"] or "(no subject)",
+        return {"note_count": nc.get(("email", r["id"]), 0), "id": r["id"], "thread_id": r["thread_id"], "subject": r["subject"] or "(no subject)",
                 "from_name": r["person_name"] or r["from_name"] or r["from_email"], "from_email": r["from_email"],
                 "known": bool(r["person_slug"]), "org": r["person_org"], "role": r["person_role"], "why": r["why"],
                 "action": r["action"], "deadline": r["deadline"], "user_label": r["user_label"], "task_id": r["task_id"],

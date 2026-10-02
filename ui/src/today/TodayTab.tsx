@@ -4,6 +4,8 @@ import { dayShort, doneTime, dueLabel, timeOf } from "../format";
 import EmailList from "../email/EmailList";
 import Drawer, { type Panel } from "./Drawer";
 import { useReveal } from "./useReveal";
+import NotesBox from "../notes/NotesBox";
+import QuickNote from "../notes/QuickNote";
 import Lake from "./Lake";
 
 const WIDGETS = [
@@ -56,6 +58,7 @@ function Editor({ it, onClose, onSaved }: { it: Item; onClose: () => void; onSav
 function Row({ it, today, onToggle, fresh, doneRow, onEdited, onRemind }: { it: Item; today: string; onToggle: (it: Item) => void; fresh: boolean; doneRow?: boolean; onEdited?: () => void; onRemind?: (it: Item) => void }) {
   const over = it.days_overdue > 0 && !it.done;
   const [editing, setEditing] = useState(false);
+  const [notesOpen, setNotesOpen] = useState(false);
   const { shown, show, hide } = useReveal(it);
   const [editItemCopy, setEditItemCopy] = useState<Item>(it);
   const startEdit = async () => {
@@ -84,13 +87,18 @@ function Row({ it, today, onToggle, fresh, doneRow, onEdited, onRemind }: { it: 
               {shown?.person && <span className="meta-small">{shown.person}</span>}
               {it.personal && <span className="chip chip-personal">personal</span>}
               {it.edited && <span className="chip chip-edited" title="You changed this here. Open the editor to see the original.">edited</span>}
+              {it.from_note && <span className="chip chip-edited" title="Created from a follow-up note">from a note</span>}
               {doneRow && it.done_at
                 ? <span className="due">done {doneTime(it.done_at)}</span>
                 : <span className={`due ${over ? "due-over" : ""}`}>{dueLabel(it.due, it.days_overdue, today)}</span>}
             </div>
+            {notesOpen && onEdited && <NotesBox parent={{ type: it.type, id: it.id }} onChanged={onEdited} />}
           </>
         )}
       </div>
+      {!doneRow && !it.done && onEdited && !editing && (
+        <button type="button" className={`note-btn ${it.note_count ? "has" : ""}`} onClick={() => setNotesOpen((o) => !o)} aria-expanded={notesOpen} aria-label={`Notes (${it.note_count})`} title="Notes and follow-ups">📝{it.note_count > 0 && <sup>{it.note_count}</sup>}</button>
+      )}
       {!doneRow && !it.done && it.type === "waiting_on" && !it.masked && onRemind && !editing && (
         <button type="button" className="remind-btn" onClick={() => onRemind(it)} title="Draft a reminder to this person">Remind</button>
       )}
@@ -148,6 +156,7 @@ export default function TodayTab() {
         <section className="panel">
           <div className="panel-head"><h2 className="serif">Today &amp; overdue</h2><span className="muted">{open} open</span></div>
           <div className="sub">What you owe and what is owed to you. Tick it and the jet rises.</div>
+          <QuickNote placeholder="A note about today, or a follow-up you want to remember…" onAdded={load} onOpenLog={() => setPanel({ kind: "notes" })} />
 
           {data.events_today.length > 0 && (
             <div className="events">
@@ -187,10 +196,20 @@ export default function TodayTab() {
 
         <section className="panel">
           <div className="panel-head"><h2 className="serif">Emails needing you</h2></div>
+          <QuickNote placeholder="A note about your emails, or a follow-up…" onAdded={load} onOpenLog={() => setPanel({ kind: "notes" })} />
           <EmailList full={false} onChanged={load} />
         </section>
 
         <aside className="widgets" aria-label="Widgets">
+          <button type="button" className="tile tile-live" onClick={() => setPanel({ kind: "calendar" })} aria-label="Open the calendar">
+            <div className="tile-art cal-art"><span className="cal-art-dow">{dayShort(data.today).split(" ")[0]}</span><span className="serif cal-art-day">{Number(data.today.slice(8, 10))}</span></div>
+            <div className="tile-text">
+              <span className="tile-title">Calendar</span>
+              <span className="serif tile-head">{data.events_today.length === 0 ? "Nothing today" : `${data.events_today.length} today`}</span>
+              <span className="tile-sub">{data.next_event ? `Next: ${dayShort(data.next_event.start)} · ${timeOf(data.next_event.start)} · ${data.next_event.title}` : "No upcoming events"}</span>
+              <span className="soon">Day · Week · Month →</span>
+            </div>
+          </button>
           {WIDGETS.map((w) => (
             <div key={w.title} className="tile">
               <div className="tile-art" />

@@ -3,11 +3,13 @@ import { type DeadlineDetail, type DoneItem, getDeadline, getDone, setDone } fro
 import { dayFull, dayHeading, dayShort, doneDay, doneTime } from "../format";
 import { useReveal } from "./useReveal";
 import ReminderDrawer from "../drafts/ReminderDrawer";
+import CalendarDrawer from "../calendar/CalendarDrawer";
+import NotesLogDrawer from "../notes/NotesLogDrawer";
 
-export type Panel = { kind: "deadline"; id: number } | { kind: "done" } | { kind: "reminder"; id: number } | null;
+export type Panel = { kind: "deadline"; id: number } | { kind: "done" } | { kind: "reminder"; id: number } | { kind: "calendar" } | { kind: "notes" } | null;
 
-export function Shell({ kicker, title, meta, onClose, children }: {
-  kicker: string; title: string; meta: string; onClose: () => void; children: React.ReactNode;
+export function Shell({ kicker, title, meta, onClose, children, wide }: {
+  kicker: string; title: string; meta: string; onClose: () => void; children: React.ReactNode; wide?: boolean;
 }) {
   useEffect(() => {
     const h = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -17,7 +19,7 @@ export function Shell({ kicker, title, meta, onClose, children }: {
   return (
     <>
       <button type="button" aria-label="Close panel" className="scrim" onClick={onClose} />
-      <aside className="drawer slide" role="dialog" aria-label={title}>
+      <aside className={`drawer slide ${wide ? "wide" : ""}`} role="dialog" aria-label={title}>
         <div className="drawer-head">
           <div className="drawer-kicker"><span>{kicker}</span>
             <button type="button" aria-label="Close" onClick={onClose}>✕</button></div>
@@ -123,5 +125,7 @@ export default function Drawer({ panel, today, onClose, onTickDeadline, onChange
   if (!panel) return null;
   if (panel.kind === "done") return <DoneDrawer today={today} onClose={onClose} onChanged={onChanged} />;
   if (panel.kind === "reminder") return <ReminderDrawer waitingId={panel.id} onClose={onClose} />;
+  if (panel.kind === "calendar") return <CalendarDrawer today={today} onClose={onClose} />;
+  if (panel.kind === "notes") return <NotesLogDrawer today={today} onClose={onClose} onChanged={onChanged} />;
   return <DeadlineDrawer id={panel.id} today={today} onClose={onClose} onTick={() => onTickDeadline(panel.id)} />;
 }

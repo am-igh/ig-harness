@@ -4,7 +4,7 @@ from datetime import date, datetime, timedelta
 
 from harness.config import now_local
 from harness.deadlines import done_this_week, warning_level, week_start
-from harness import privacy
+from harness import notes as notes_mod, privacy
 from harness.items import overrides_for
 
 LAKE_DAYS = 47          # lake band runs from today to today + 47 days (30 Sep -> 15 Nov in the mockup)
@@ -26,6 +26,7 @@ def _item(r: sqlite3.Row, type_: str, today: date) -> dict:
         "personal": r["space"] == "personal", "due": due,
         "days_overdue": (today - d).days if d and d < today else 0,
         "done": r["status"] == "done", "done_at": r["done_at"], "edited": None, "masked": False,
+        "from_note": r["source"] == "note", "note_count": 0,
     }
     if privacy.is_personal(r["space"]):                  # details only on click (see /api/items/{type}/{id}/reveal)
         out.update(title=privacy.label(type_), code=None, person=None, masked=True)
@@ -38,10 +39,11 @@ def _items(conn, today: date, lo: str | None, hi: str) -> list[dict]:
     lo_clause = "AND due >= :lo" if lo else ""
     params = {"t": t, "hi": hi_, "lo": lo}
     out = []
+    nc = notes_mod.counts(conn)
     sources = [
-        ("task", "SELECT id, title, project_code AS code, due_date AS due, status, done_at, space, NULL AS person, NULL AS importance FROM tasks"),
-        ("deadline", "SELECT id, title, project_code AS code, due_date AS due, status, done_at, space, NULL AS person, importance FROM deadlines"),
-        ("waiting_on", "SELECT id, description AS title, NULL AS code, remind_on AS due, status, done_at, space, person, NULL AS importance FROM waiting_on"),
+        ("task", "SELECT id, title, project_code AS code, due_date AS due, status, done_at, space, source, NULL AS person, NULL AS importance FROM tasks"),
+        ("deadline", "SELECT id, title, project_code AS code, due_date AS due, status, done_at, space, source, NULL AS person, importance FROM deadlines"),
+        ("waiting_on", "SELECT id, description AS title, NULL AS code, remind_on AS due, status, done_at, space, source, person, NULL AS importance FROM waiting_on"),
     ]
     for type_, base in sources:
         # done-today rows only when looking at today's list (lo is None)
@@ -53,6 +55,7 @@ def _items(conn, today: date, lo: str | None, hi: str) -> list[dict]:
         ov = overrides_for(conn, {"task": "tasks", "deadline": "deadlines", "waiting_on": "waiting_on"}[type_])
         for r in rows:
             it = _item(r, type_, today)
+            it["note_count"] = nc.get((type_, r["id"]), 0)
             if r["id"] in ov:                      # edited here: remember what the source still says
                 it["edited"] = {"title": None if it["masked"] else ov[r["id"]].get("title"), "due": ov[r["id"]].get("due"),
                                 "title_changed": "title" in ov[r["id"]], "due_changed": "due" in ov[r["id"]]}

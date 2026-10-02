@@ -538,3 +538,68 @@ def refresh_now() -> dict:
     from harness.config import now_local
     refresh.request_refresh(DATA_DIR, now_local())
     return {"requested": True, "agent_alive": refresh.agent_alive(DATA_DIR)}
+
+
+# --- Notes and follow-ups ---
+class NoteIn(BaseModel):
+    text: str
+    kind: str = "note"
+    parent_type: str | None = None
+    parent_id: int | None = None
+    due: str | None = None
+    personal: bool = False
+
+
+def _notes(fn):
+    from harness import notes
+    try:
+        return _with_conn(fn)
+    except notes.NoteRefused as e:
+        raise HTTPException(422, str(e))
+
+
+@app.post("/api/notes")
+def create_note(body: NoteIn) -> dict:
+    from harness import notes
+    return _notes(lambda c: notes.add_note(c, body.text, kind=body.kind, parent_type=body.parent_type, parent_id=body.parent_id, due=body.due, personal=body.personal))
+
+
+@app.get("/api/notes/log")
+def notes_log(days: int = 30, q: str = "") -> dict:
+    from harness import notes
+    return {"items": _with_conn(lambda c: notes.log(c, days or None, q))}
+
+
+@app.get("/api/notes")
+def notes_for(parent_type: str, parent_id: int) -> dict:
+    from harness import notes
+    if parent_type not in notes.PARENT_TYPES:
+        raise HTTPException(404, "Unknown item type")
+    return {"items": _with_conn(lambda c: notes.for_parent(c, parent_type, parent_id))}
+
+
+@app.get("/api/notes/{note_id}/reveal")
+def reveal_note(note_id: int) -> dict:
+    from harness import notes
+    d = _with_conn(lambda c: notes.reveal(c, note_id))
+    if d is None:
+        raise HTTPException(404, "No such note")
+    return d
+
+
+@app.delete("/api/notes/{note_id}")
+def remove_note(note_id: int) -> dict:
+    from harness import notes
+    return {"changed": _with_conn(lambda c: notes.delete_note(c, note_id))}
+
+
+# --- Calendar widget ---
+@app.get("/api/calendar")
+def calendar_range(start: str, end: str) -> dict:
+    from datetime import date
+    from harness import calendar_view
+    try:
+        a, b = date.fromisoformat(start), date.fromisoformat(end)
+        return _with_conn(lambda c: calendar_view.build_range(c, a, b))
+    except (ValueError, calendar_view.BadRange) as e:
+        raise HTTPException(422, str(e))

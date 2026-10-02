@@ -39,7 +39,7 @@ BODY_CHARS_CORR = 1500
 GMAIL_QUERY = "in:inbox newer_than:3d -category:promotions -category:social -category:forums"
 GMAIL_MAX_THREADS = 100
 BODY_CHARS = 3000
-DAYS_BACK, DAYS_AHEAD = 7, 90
+DAYS_BACK, DAYS_AHEAD = 35, 120      # wide enough for the calendar widget's month view
 
 
 def _ssl_context() -> ssl.SSLContext:

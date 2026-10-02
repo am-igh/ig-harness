@@ -83,3 +83,15 @@ Needed once and refreshed now and then: `make gmail` (so replies can be threaded
 - **`make backup`**: a snapshot now. **`make backup-list`**: what exists. **`make backup-test`**: restores the newest into a throwaway folder, opens it the way the harness does, and compares it with the live data. It should say `RESULT: PASS`.
 - **If something goes wrong:** `make down`, then `python3 tools/backup.py restore <snapshot file> --yes`, then `make up`. Your current database is kept next to it as `harness.db.before-restore-…`, never deleted.
 - What is *not* in the backup: your Google tokens (Keychain; you would log in again with `login`, `login-gmail` and `draft_worker.py login`), and your spreadsheets (they stay where they are).
+
+
+## Notes and follow-ups
+
+- **On an item:** click the **📝** on any open item in Today & overdue, or open an email, and write a **note** (context) or a **follow-up**. A follow-up also becomes a task in Today & overdue (due today, or the date you pick), tagged "from a note". Ticking it off shows on the note ("follow-up done"), and removing the note drops an open follow-up.
+- **Free-standing:** **＋ Add a note or follow-up** at the top of the Today & overdue and the Emails needing you panels. Tick *personal* for a private one.
+- **The record:** **All notes →** lists everything, newest first, with search and the follow-up status. Notes live in the harness database, so they are in your backups. Your notes on an email or a waiting-on item are also given to the model as context when it drafts a reply or reminder (never personal notes).
+- Notes on personal items are masked like the items themselves: "Personal note", details only on click, never matched by search.
+
+## The calendar widget
+
+The **Calendar** tile (top of the right-hand column) shows today's count and your next event. Click it for a full **Day / Week / Month** view of your Google Calendar. **Deadlines** and **Tasks & chase dates** can be switched on or off. Click a day to open it, an event for its details, and use the arrow keys or the ‹ › buttons to move. Times are Geneva time. It is read-only: the harness never changes your calendar. It shows from 35 days back to 120 days ahead, and it remembers your last view.

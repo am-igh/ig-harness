@@ -1,7 +1,7 @@
 export type Item = {
   key: string; type: "task" | "deadline" | "waiting_on" | "email"; id: number; title: string;
   code: string | null; weight: "major" | "hard" | "soft" | "waiting"; person: string | null;
-  personal: boolean; due: string | null; days_overdue: number; done: boolean; done_at: string | null; masked: boolean;
+  personal: boolean; due: string | null; days_overdue: number; done: boolean; done_at: string | null; masked: boolean; from_note: boolean; note_count: number;
   edited: null | { title: string | null; due: string | null; title_changed: boolean; due_changed: boolean };
 };
 export type Mark = {
@@ -36,7 +36,7 @@ export type Email = {
   id: number; thread_id: string; subject: string; from_name: string; from_email: string; known: boolean;
   org: string | null; role: string | null; why: string | null; urgency: number | null; received_at: string;
   snippet: string | null; hours_ago: number; direct: boolean; status: string;
-  action: string | null; deadline: string | null; user_label: "yes" | "no" | null; task_id: number | null; handled_at: string | null; last_from_me: boolean;
+  action: string | null; deadline: string | null; user_label: "yes" | "no" | null; task_id: number | null; handled_at: string | null; last_from_me: boolean; note_count: number;
 };
 export type EmailsResponse = {
   needs_reply: Email[]; not_needing_reply?: Email[]; handled?: Email[];
@@ -127,3 +127,19 @@ export const getAgent = () => jj<{ alive: boolean }>("/api/drafts/agent");
 export type ReminderThreads = { person: string; email: string; description: string; since: string; default_thread: string | null;
   threads: { thread_id: string; subject: string; last_at: string; last_from_me: number; n_messages: number }[] };
 export const getReminderThreads = (wid: number) => jj<ReminderThreads>(`/api/waiting/${wid}/threads`);
+
+export type CalEventFull = { id: number; title: string; start: string; end: string | null; all_day: boolean; tentative: boolean };
+export type CalItem = { type: "deadline" | "task" | "waiting_on"; id: number; title: string; due: string; masked: boolean; importance?: string };
+export type CalRange = { start: string; end: string; events: CalEventFull[]; deadlines: CalItem[]; tasks: CalItem[]; waiting: CalItem[]; coverage: { from: string | null; to: string | null } };
+export const getCalendar = (start: string, end: string) => j<CalRange>(`/api/calendar?start=${start}&end=${end}`);
+
+export type Note = {
+  id: number; created_at: string; kind: "note" | "followup"; text: string; masked: boolean; personal: boolean; due_date: string | null;
+  follow_up: null | { task_id: number; status: string; due: string | null; done_at: string | null };
+  parent: null | { type: string; id: number; title: string; masked?: boolean };
+};
+export const getNotes = (type: string, id: number) => j<{ items: Note[] }>(`/api/notes?parent_type=${type}&parent_id=${id}`);
+export const getNotesLog = (days: number, q: string) => j<{ items: Note[] }>(`/api/notes/log?days=${days}&q=${encodeURIComponent(q)}`);
+export const addNote = (b: { text: string; kind: "note" | "followup"; parent_type?: string | null; parent_id?: number | null; due?: string | null; personal?: boolean }) => jj<Note>("/api/notes", post(b));
+export const deleteNote = (id: number) => j<{ changed: boolean }>(`/api/notes/${id}`, { method: "DELETE" });
+export const revealNote = (id: number) => j<{ text: string }>(`/api/notes/${id}/reveal`);

@@ -1,4 +1,4 @@
-.PHONY: up down test logs import calendar gmail correspondence check-network agent-install agent-uninstall agent-status refresh-install refresh-uninstall refresh-now backup backup-list backup-test
+.PHONY: ui-test up down test logs import calendar gmail correspondence check-network agent-install agent-uninstall agent-status refresh-install refresh-uninstall refresh-now backup backup-list backup-test
 
 up:      ## Start the harness (UI at http://localhost:5173)
 	docker compose up -d --build
@@ -7,8 +7,12 @@ up:      ## Start the harness (UI at http://localhost:5173)
 down:    ## Stop the harness
 	docker compose down
 
-test:    ## Run the automated tests (synthetic data only)
+test:    ## Run the automated tests (synthetic data only): back end, then the screen's calendar logic
 	docker compose run --rm --no-deps api pytest -q
+	docker compose run --rm --no-deps ui node --test src/calendar/layout.test.ts
+
+ui-test: ## Only the screen's own tests (calendar logic)
+	docker compose run --rm --no-deps ui node --test src/calendar/layout.test.ts
 
 logs:    ## Show recent logs
 	docker compose logs --tail=50

@@ -322,6 +322,25 @@ MIGRATIONS: list[str] = [
     ALTER TABLE emails ADD COLUMN cc_addrs TEXT;            -- JSON list
     ALTER TABLE emails ADD COLUMN history TEXT;             -- JSON list: up to 3 earlier messages, newest first
     """,
+    # 13: notes: context and follow-ups she writes, attached to an item or free-standing; follow-ups become tasks
+    """
+    CREATE TABLE notes (
+        id INTEGER PRIMARY KEY,
+        created_at TEXT NOT NULL,                       -- Geneva time
+        text TEXT NOT NULL,
+        kind TEXT NOT NULL DEFAULT 'note' CHECK (kind IN ('note','followup')),
+        parent_type TEXT CHECK (parent_type IN ('task','deadline','waiting_on','email')),
+        parent_id INTEGER,
+        due_date TEXT,                                  -- for follow-ups
+        follow_up_task_id INTEGER,                      -- the task a follow-up created (it shows in Today & overdue)
+        project_code TEXT,
+        space TEXT NOT NULL DEFAULT 'work' CHECK (space IN ('work','personal')),
+        sensitivity TEXT NOT NULL DEFAULT 'S2',
+        deleted_at TEXT
+    );
+    CREATE INDEX idx_notes_parent ON notes (parent_type, parent_id);
+    CREATE INDEX idx_notes_created ON notes (created_at);
+    """,
 ]
 
 
