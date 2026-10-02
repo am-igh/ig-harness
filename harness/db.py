@@ -385,6 +385,15 @@ MIGRATIONS: list[str] = [
         updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
     """,
+    # 16: always-show-me list: a name on a thread makes the email show up, no model involved
+    """
+    CREATE TABLE watch_names (
+        id INTEGER PRIMARY KEY,
+        name TEXT NOT NULL,
+        active INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    """,
 ]
 
 

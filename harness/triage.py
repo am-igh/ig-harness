@@ -8,6 +8,7 @@ unknown senders. Her standing rules (table triage_rules) are added to the instru
 "this needs me / doesn't" verdicts (emails.user_label) feed the model scoreboard.
 Email text is untrusted data and is never treated as instructions."""
 import json
+import unicodedata
 import re
 import sqlite3
 from datetime import date, datetime, timedelta
@@ -76,6 +77,35 @@ def _thread_people(e: sqlite3.Row) -> list[str]:
         if a.lower() not in seen:
             seen.add(a.lower()); uniq.append(a)
     return uniq[:25]
+
+
+def _norm(text: str) -> str:
+    """Lower case, accents removed, anything that is not a letter or digit becomes a space ('Félix.Staehli@x.org' -> 'felix staehli x org')."""
+    t = unicodedata.normalize("NFKD", text or "").encode("ascii", "ignore").decode().lower()
+    return " " + re.sub(r"[^a-z0-9]+", " ", t).strip() + " "
+
+
+def watched_names(conn: sqlite3.Connection) -> list[str]:
+    return [r["name"] for r in conn.execute("SELECT name FROM watch_names WHERE active = 1 ORDER BY id")]
+
+
+def watch_hit(e: sqlite3.Row, names: list[str]) -> str | None:
+    """The first watched name that is on this thread, or None. A name matches when ALL its words appear in one person's name or address (sender,
+    To/Cc or an earlier sender) (so 'Felix Staehli' matches felix.staehli@x.org), or when the full name
+    is written out in the message text. Word-for-word, accents and case ignored; no model involved."""
+    persons = [_norm(f"{e['from_name'] or ''} {e['from_email'] or ''}"), *(_norm(a) for a in _thread_people(e))]
+    hay_text = _norm(" ".join(filter(None, [e["subject"], e["body"], e["snippet"]])))
+    try:
+        hay_text += _norm(" ".join(h.get("body") or "" for h in json.loads(e["history"] or "[]")))
+    except ValueError:
+        pass
+    for name in names:
+        words = _norm(name).split()
+        if words and any(all(f" {w} " in person for w in words) for person in persons):
+            return name
+        if words and _norm(name) in hay_text:
+            return name
+    return None
 
 
 def _context(conn: sqlite3.Connection, e: sqlite3.Row) -> tuple[str, bool]:
@@ -154,8 +184,10 @@ def triage_pending(conn: sqlite3.Connection, gateway: Gateway | None = None, lim
     out = {"skipped": 0, "done": 0, "error": 0}
     rows = conn.execute("SELECT * FROM emails WHERE triage_status IN ('pending','error') AND in_window = 1 "
                         "ORDER BY received_at DESC LIMIT ?", (limit,)).fetchall()
+    names = watched_names(conn)
     for e in rows:
-        skip = prefilter(e)
+        hit = watch_hit(e, names) if names and not e["last_from_me"] else None
+        skip = None if hit else prefilter(e)
         if skip:
             with conn:
                 conn.execute("UPDATE emails SET triage_status='skipped', needs_reply=0, why=?, action=NULL, deadline=NULL, score=NULL, triaged_at=?, updated_at=datetime('now') WHERE id=?",
@@ -163,6 +195,10 @@ def triage_pending(conn: sqlite3.Connection, gateway: Gateway | None = None, lim
             out["skipped"] += 1
             continue
         parsed, reason, waiting = ask_model(conn, gateway, e, now)
+        if hit:                                   # her always-show-me list beats the model's opinion
+            parsed = parsed or {"action": "reply", "urgency": 2, "deadline": None, "model": "watch list"}
+            parsed.update(needs_reply=True, why=f"On your watch list: {hit}"[:60])
+            reason = ""
         if not parsed:
             with conn:
                 conn.execute("UPDATE emails SET triage_status='error', why=?, updated_at=datetime('now') WHERE id=?", (reason[:80], e["id"]))

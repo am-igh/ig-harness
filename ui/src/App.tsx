@@ -5,6 +5,7 @@ import EmailList from "./email/EmailList";
 import ModelPicker from "./ModelPicker";
 import RefreshChip from "./RefreshChip";
 import Rules from "./email/Rules";
+import WatchList from "./email/WatchList";
 import Scoreboard from "./email/Scoreboard";
 import StyleProfiles from "./email/StyleProfiles";
 
@@ -50,7 +51,7 @@ export default function App() {
         <ModelPicker backendDown={health === "down"} />
       </header>
       {tab === "today" ? <TodayTab /> : tab === "inbox" ? (
-        <main className="page inbox-page"><section className="panel inbox"><div className="panel-head"><h2 className="serif">Inbox</h2></div><EmailList full /></section><div className="side-col"><StyleProfiles /><Rules /><Scoreboard /></div></main>
+        <main className="page inbox-page"><section className="panel inbox"><div className="panel-head"><h2 className="serif">Inbox</h2></div><EmailList full /></section><div className="side-col"><StyleProfiles /><WatchList /><Rules /><Scoreboard /></div></main>
       ) : tab === "projects" ? <ProjectsTab /> : (
         <main className="page"><h2 className="serif">{current.label}</h2><p className="muted">Placeholder. Coming in {current.phase}.</p></main>
       )}

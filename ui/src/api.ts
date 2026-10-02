@@ -165,3 +165,7 @@ export type ProjectDetail = { code: string; name: string; kind: string; registry
   items: { type: string; id: number; title: string; due: string | null; importance: string | null; days_overdue: number }[]; journal: { date: string; text: string }[]; events: { id: number; title: string; start: string }[]; gaps: string[] };
 export const getProjects = () => j<ProjectsOverview>("/api/projects");
 export const getProject = (code: string) => j<ProjectDetail>(`/api/projects/${encodeURIComponent(code)}`);
+export type WatchName = { id: number; name: string };
+export const getWatch = () => j<{ items: WatchName[] }>("/api/triage/watch");
+export const addWatch = (text: string) => j<{ id: number }>("/api/triage/watch", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
+export const deleteWatch = (id: number) => j<{ changed: boolean }>(`/api/triage/watch/${id}`, { method: "DELETE" });

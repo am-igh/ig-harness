@@ -227,6 +227,30 @@ def delete_rule(rule_id: int) -> dict:
     return {"changed": bool(_with_conn(go))}
 
 
+@app.get("/api/triage/watch")
+def get_watch() -> dict:
+    return {"items": _with_conn(lambda c: [dict(r) for r in c.execute("SELECT id, name FROM watch_names WHERE active=1 ORDER BY id")])}
+
+
+@app.post("/api/triage/watch")
+def add_watch(body: RuleIn) -> dict:
+    name = " ".join(body.text.split())
+    if not 3 <= len(name) <= 80:
+        raise HTTPException(422, "Give a person's name (3 to 80 characters)")
+    def go(c):
+        with c:
+            return c.execute("INSERT INTO watch_names (name) VALUES (?)", (name,)).lastrowid
+    return {"id": _with_conn(go)}
+
+
+@app.delete("/api/triage/watch/{watch_id}")
+def delete_watch(watch_id: int) -> dict:
+    def go(c):
+        with c:
+            return c.execute("UPDATE watch_names SET active=0 WHERE id=?", (watch_id,)).rowcount
+    return {"changed": bool(_with_conn(go))}
+
+
 # --- Model scoreboard ---
 _score = {"running": False}
 _score_lock = threading.Lock()
