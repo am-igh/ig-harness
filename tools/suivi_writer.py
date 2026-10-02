@@ -263,13 +263,31 @@ def pending_notes(db_path: Path, state: dict) -> list[dict]:
         conn.close()
 
 
+DOCS_SQL = """
+SELECT id, filed_at, doc_type, supplier, number, amount, currency, paid_date, folder, proposed_name, year
+FROM scans WHERE status = 'filed' AND proposed_name IS NOT NULL AND folder IS NOT NULL AND year IS NOT NULL ORDER BY id
+"""
+
+
+def pending_docs(db_path: Path, state: dict) -> list[dict]:
+    conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=10)
+    conn.row_factory = sqlite3.Row
+    try:
+        return [dict(r) for r in conn.execute(DOCS_SQL) if str(r["id"]) not in state["docs"]]
+    except sqlite3.OperationalError:                      # database from before the scan inbox existed
+        return []
+    finally:
+        conn.close()
+
+
 def run(dry_run: bool = False, *, data: Path | None = None, suivi: Path | None = None, today=None, status: str = "confirmed") -> str:
     data = data or DATA
     if SE.is_paused(data):
         return "paused (make suivi-export-resume to continue)"
     state = SE.read_state(data)
     notes = pending_notes(data / "harness.db", state)
-    if not notes:
+    docs = pending_docs(data / "harness.db", state)
+    if not notes and not docs:
         return "nothing to add"
     path = (suivi or suivi_dir()) / FILE_NAME
     if not path.exists():
@@ -282,15 +300,23 @@ def run(dry_run: bool = False, *, data: Path | None = None, suivi: Path | None =
         jid = SE.next_journal_id(ids + [m for m in mapping.values()], year)
         mapping[n["id"]] = jid
         rows.append(SE.build_row(n, jid, today, status))
+    dmap = {}
+    for d in docs:
+        jid = SE.next_journal_id(ids + list(mapping.values()) + list(dmap.values()), year)
+        dmap[d["id"]] = jid
+        rows.append(SE.build_document_row(d, jid, today, status))
     if dry_run:
         return "would add:\n" + "\n".join("  " + " | ".join(r[:2] + r[3:6] + r[7:8]) for r in rows)
     used = append_to_suivi(path, rows)
     stamp = datetime.now().astimezone().isoformat(timespec="seconds")
     for n, r in zip(notes, used):
         state["notes"][str(n["id"])] = {"journal_id": mapping[n["id"]], "exported_at": stamp, "row": r}
+    for d, r in zip(docs, used[len(notes):]):
+        state["docs"][str(d["id"])] = {"journal_id": dmap[d["id"]], "exported_at": stamp, "row": r}
     state.update(last_run=stamp, last_error=None)
     SE.write_state(data, state)
-    return f"added {len(rows)} note(s) to Suivi: " + ", ".join(mapping.values())
+    what = (f"{len(notes)} note(s)" if notes else "") + (" and " if notes and docs else "") + (f"{len(docs)} document(s)" if docs else "")
+    return f"added {what} to Suivi: " + ", ".join(list(mapping.values()) + list(dmap.values()))
 
 
 def main(argv: list[str]) -> int:
@@ -302,7 +328,8 @@ def main(argv: list[str]) -> int:
         if cmd == "status":
             state = SE.read_state(DATA)
             pend = pending_notes(DATA / "harness.db", state) if (DATA / "harness.db").exists() else []
-            print(f"exported: {len(state['notes'])} | pending: {len(pend)} | paused: {SE.is_paused(DATA)} | last run: {state.get('last_run')}")
+            pend += pending_docs(DATA / "harness.db", state) if (DATA / "harness.db").exists() else []
+            print(f"exported: {len(state['notes']) + len(state['docs'])} | pending: {len(pend)} | paused: {SE.is_paused(DATA)} | last run: {state.get('last_run')}")
             return 0
     except SuiviBusy as e:
         print(f"waiting: {e}")

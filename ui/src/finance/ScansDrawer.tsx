@@ -47,7 +47,7 @@ function ScanCard({ s, onChange, picked, onPick }: { s: Scan; onChange: (s: Scan
         </>
       )}
       {s.status === "approved" && <span className="soon">Adding to your folder…</span>}
-      {s.status === "filed" && <span className="stmt-ok">✓ Added as {s.year}/{s.folder}/{s.proposed_name}. The original scan stays in Scan-Inbox; you can tidy it when you like.</span>}
+      {s.status === "filed" && <span className="stmt-ok">✓ Added as {s.year}/{s.folder}/{s.proposed_name}. {s.journal_id ? ` Suivi journal entry ${s.journal_id} added.` : " A Suivi journal entry will be added at the next refresh."} The original scan stays in Scan-Inbox; you can tidy it when you like.</span>}
       {s.status === "failed" && <span className="warn-text">Not filed: {s.result}</span>}
       {s.status === "unreadable" && <span className="stmt-detail">{s.note}</span>}
       {err && <div className="edit-err">{err}</div>}

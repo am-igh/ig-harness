@@ -337,3 +337,48 @@ def test_note_status_for_the_screen():
 
 def test_only_work_notes_are_eligible():
     assert SE.eligible("work", False) and not SE.eligible("personal", False) and not SE.eligible("work", True)
+
+
+# ---------------------------------------------------------------- filed documents -> journal rows
+def _filed(data, **kw):
+    c = db.connect(data / "harness.db")
+    row = dict(source="folder", original_name="Scan.pdf", sha256="a" * 64, size=1, status="filed", doc_type="invoice_received", supplier="Alber Rolle SA", number="002131", amount=2972.75,
+               currency="CHF", paid_date="2026-01-29", folder="Expenses", proposed_name="Alber_Rolle_SA_Facture_002131_CHF2972.75_paye_29.01.2026.pdf", year="2026", filed_at="2026-10-02 10:15:00")
+    row.update(kw)
+    c.execute(f"INSERT INTO scans ({','.join(row)}) VALUES ({','.join('?' * len(row))})", list(row.values()))
+    c.commit(); c.close()
+
+
+def test_a_filed_document_becomes_a_journal_row_with_the_file_as_evidence(world):
+    data, suivi = world
+    _filed(data)
+    out = W.run(data=data, suivi=suivi, today=date(2026, 10, 2))
+    assert out == "added 4 note(s) and 1 document(s) to Suivi: J-2026-008, J-2026-009, J-2026-010, J-2026-011, J-2026-012"
+    row = next(r for r in rows_of(suivi / "Suivi.xlsx") if r[0] == "J-2026-012")
+    assert row[1:6] == ["2026-10-02", "W", "FIN", "document", "Filed invoice: Alber Rolle SA, no. 002131, CHF 2972.75, paid 29.01.2026 (in 2026/Expenses)"]
+    assert row[7] == "Admin/ICT4Peace Audit/2026/Expenses/Alber_Rolle_SA_Facture_002131_CHF2972.75_paye_29.01.2026.pdf" and row[9:12] == ["capture", "confirmed", "2026-10-02"]
+    assert SE.read_state(data)["docs"]["1"]["journal_id"] == "J-2026-012"
+
+
+def test_a_document_is_added_once_and_only_when_it_is_really_filed(world):
+    data, suivi = world
+    W.run(data=data, suivi=suivi, today=date(2026, 10, 2))
+    _filed(data, status="approved", sha256="b" * 64)                      # approved but not yet written by the filer
+    _filed(data, status="proposed", sha256="c" * 64)
+    assert W.run(data=data, suivi=suivi, today=date(2026, 10, 2)) == "nothing to add"
+    c = db.connect(data / "harness.db"); c.execute("UPDATE scans SET status='filed' WHERE sha256=?", ("b" * 64,)); c.commit(); c.close()
+    import os, time
+    old = time.time() - 600; os.utime(suivi / "Suivi.xlsx", (old, old))                  # the safeguard waits while the file changed in the last 90 s
+    assert "added 1 document(s)" in W.run(data=data, suivi=suivi, today=date(2026, 10, 2))
+    assert W.run(data=data, suivi=suivi, today=date(2026, 10, 2)) == "nothing to add"
+
+
+def test_income_documents_say_received_and_the_pause_switch_covers_documents_too(world):
+    data, suivi = world
+    _filed(data, doc_type="invoice_issued", folder="Income", supplier="Gablinger", number=None, amount=20000.0, paid_date="2026-01-17", proposed_name="Gablinger_Facture_CHF20000.00_recu_17.01.2026.pdf")
+    (data / SE.STATE_DIR).mkdir(parents=True, exist_ok=True); (data / SE.STATE_DIR / SE.DISABLED_FILE).touch()
+    assert W.run(data=data, suivi=suivi, today=date(2026, 10, 2)).startswith("paused")
+    (data / SE.STATE_DIR / SE.DISABLED_FILE).unlink()
+    assert "added 4 note(s) and 1 document(s)" in W.run(data=data, suivi=suivi, today=date(2026, 10, 2))
+    row = next(r for r in rows_of(suivi / "Suivi.xlsx") if r[4] == "document")
+    assert "Filed invoice issued by ICT4Peace: Gablinger, CHF 20000.00, received 17.01.2026 (in 2026/Income)" == row[5]

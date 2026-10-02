@@ -772,6 +772,10 @@ def scans_list() -> dict:
         newly = scans.reconcile(c)
         return newly, scans.recent(c), scans.summary(c)
     newly, items, summary = _with_conn(go)
+    from harness import suivi_export as SE
+    docs = SE.read_state(DATA_DIR).get("docs", {})
+    for it in items:                                                   # the Suivi journal row each filed document received
+        it["journal_id"] = (docs.get(str(it["id"])) or {}).get("journal_id")
     if newly and audit.configured(audit.ROOT):                       # newly filed documents: re-run her checker so the tile includes them
         audit.start_background(db.connect, audit.ROOT, audit.years_available(audit.ROOT)[-1])
     return {"items": items, "summary": summary}

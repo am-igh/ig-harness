@@ -28,9 +28,10 @@ def read_state(data_dir: Path) -> dict:
     try:
         s = json.loads((data_dir / STATE_DIR / STATE_FILE).read_text())
         s.setdefault("notes", {})
+        s.setdefault("docs", {})
         return s
     except (OSError, ValueError):
-        return {"notes": {}, "last_run": None, "last_error": None}
+        return {"notes": {}, "docs": {}, "last_run": None, "last_error": None}
 
 
 def write_state(data_dir: Path, state: dict) -> None:
@@ -92,3 +93,31 @@ def build_row(note: dict, journal_id: str, today: date, status: str = "confirmed
         status,
         today.isoformat(),
     ]
+
+
+# ---- Filed documents (scanned invoices, receipts...): one journal row each, after the file really exists in her audit folder ----
+DOC_CODE = "FIN"                                  # "Foundation finance and banking" in her Codes sheet
+_DOC_LABEL = {"invoice_received": "invoice", "receipt": "receipt", "invoice_issued": "invoice issued by ICT4Peace", "contract": "contract", "other": "document"}
+AUDIT_PREFIX = "Admin/ICT4Peace Audit"
+
+
+def document_evidence(doc: dict) -> str:
+    return f"{AUDIT_PREFIX}/{doc['year']}/{doc['folder']}/{doc['proposed_name']}"
+
+
+def document_summary(doc: dict) -> str:
+    who = doc.get("supplier") or "unknown"
+    parts = [f"Filed {_DOC_LABEL.get(doc.get('doc_type') or '', 'document')}: {who}"]
+    if doc.get("number"):
+        parts.append(f"no. {doc['number']}")
+    if doc.get("amount") is not None and doc.get("currency"):
+        parts.append(f"{doc['currency']} {doc['amount']:.2f}")
+    if doc.get("paid_date"):
+        y, m, d = doc["paid_date"].split("-")
+        parts.append(f"{'received' if doc.get('folder') == 'Income' else 'paid'} {d}.{m}.{y}")
+    return clean_summary(", ".join(parts) + f" (in {doc['year']}/{doc['folder']})")
+
+
+def build_document_row(doc: dict, journal_id: str, today: date, status: str = "confirmed") -> list[str]:
+    """The twelve cells for a document she approved and the filer wrote. Evidence is the file's place in her audit folder."""
+    return [journal_id, (doc.get("filed_at") or today.isoformat())[:10], "W", DOC_CODE, "document", document_summary(doc), "", document_evidence(doc), "", "capture", status, today.isoformat()]

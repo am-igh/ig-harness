@@ -183,7 +183,7 @@ export async function uploadStatement(file: File): Promise<Filing> {
 }
 
 // ---- Scanned invoices and receipts
-export type Scan = { id: number; pages: number | null; source: "folder" | "upload"; original_name: string; size: number; status: "found" | "reading" | "proposed" | "duplicate" | "approved" | "filed" | "failed" | "skipped" | "unreadable";
+export type Scan = { id: number; pages: number | null; journal_id?: string | null; source: "folder" | "upload"; original_name: string; size: number; status: "found" | "reading" | "proposed" | "duplicate" | "approved" | "filed" | "failed" | "skipped" | "unreadable";
   doc_type: string | null; type_label: string | null; supplier: string | null; number: string | null; amount: number | null; currency: string | null; doc_date: string | null; paid_date: string | null;
   folder: "Expenses" | "Income" | null; proposed_name: string | null; year: string | null; note: string | null; result: string | null };
 export type ScanSummary = { to_confirm: number; reading: number; approved: number; filed_this_week: number; duplicates: number; failed: number };

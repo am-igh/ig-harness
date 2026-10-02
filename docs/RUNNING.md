@@ -151,3 +151,9 @@ date, folder and the **exact file name it would get**. Correct any field (the na
 repeats an earlier scan is flagged ("looks like the same document as scan #…"); skip one of them. For a multi-page PDF that is really one document,
 nothing is split; use **Split into single pages** on a card only when its pages are different documents.
 Tip: once a scan is filed, move its file from Scan-Inbox to the Trash yourself, so the next scan starts with a fresh `Scan.pdf`.
+
+**Suivi journal rows for filed documents.** After a scanned document has really been added to your audit folder (not merely approved), the same safeguarded
+writer that adds your work notes (every 30 minutes, or at once with ↻ / `make suivi-export-now`) adds one row to Suivi's Journal: type `document`, code
+`FIN`, a one-line summary ("Filed invoice: Alber Rolle SA, no. 002131, CHF 2972.75, paid 29.01.2026 (in 2026/Expenses)"), and the evidence
+`Admin/ICT4Peace Audit/2026/Expenses/<file name>`, status `confirmed` (you approved it). Each document is added once. The same pause switch stops it
+(`make suivi-export-pause`). The filed card in the Scan inbox shows the journal id once it is in.
