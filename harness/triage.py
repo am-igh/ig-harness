@@ -57,6 +57,27 @@ def prefilter(e: sqlite3.Row) -> str | None:
     return None
 
 
+def _thread_people(e: sqlite3.Row) -> list[str]:
+    """Addresses in To/Cc and the names/addresses of earlier senders, so her rules about a person can match a thread
+    where that person is copied or wrote earlier, not only when they sent the newest message. Addresses only, no text."""
+    out: list[str] = []
+    for col in ("to_addrs", "cc_addrs"):
+        try:
+            out += [str(a) for a in json.loads(e[col] or "[]")]
+        except ValueError:
+            pass
+    try:
+        for h in json.loads(e["history"] or "[]"):
+            out += [x for x in (h.get("from_name"), h.get("from_email")) if x]
+    except ValueError:
+        pass
+    seen, uniq = set(), []
+    for a in out:
+        if a.lower() not in seen:
+            seen.add(a.lower()); uniq.append(a)
+    return uniq[:25]
+
+
 def _context(conn: sqlite3.Connection, e: sqlite3.Row) -> tuple[str, bool]:
     lines, waiting = [], False
     if e["person_slug"]:
@@ -67,6 +88,9 @@ def _context(conn: sqlite3.Connection, e: sqlite3.Row) -> tuple[str, bool]:
             lines.append(f"She is waiting on this person for: {w['description'][:140]}")
     else:
         lines.append("Sender is not in her contacts list.")
+    people = _thread_people(e)
+    if people:
+        lines.append("Everyone on this thread (To, Cc and earlier messages): " + ", ".join(people) + ".")
     lines.append("Addressed to her directly." if e["direct"] else "She is only copied (cc)." if e["cc_only"] else "Not clearly addressed to her.")
     return "\n".join(lines), waiting
 
