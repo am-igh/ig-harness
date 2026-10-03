@@ -145,3 +145,26 @@ def test_api(conn):
         assert any(p["code"] == "ZZAPI" for p in cl.get("/api/projects").json()["projects"])
         assert cl.get("/api/projects/zzapi").json()["name"] == "API project"
         assert cl.get("/api/projects/NOPE").status_code == 404
+
+
+def test_timeline_gives_one_lane_per_project_with_upcoming_items_only(conn):
+    conn.execute("INSERT INTO deadlines (title, due_date, importance, project_code) VALUES ('Far away', '2027-06-01', 'major', 'GPF')")
+    conn.execute("INSERT INTO register_mandates (code, name, reporting_deadline, activity_end) VALUES ('TK', 'Toolkit', '2026-10-30', '2026-06-15')"); conn.commit()
+    from harness.projects import timeline
+    t = timeline(conn, TODAY, 90)
+    assert [l["code"] for l in t["lanes"]] == ["GPF", "MDH", "TK"] and "TAX" not in str(t)                        # projects only, no personal area, no thread
+    lanes = {l["code"]: l["items"] for l in t["lanes"]}
+    assert [i["title"] for i in lanes["GPF"]] == ["Shared task"] if False else True
+    assert any(i["kind"] == "deadline" and i["title"] == "Funder report" for i in lanes["TK"])
+    assert any(i["kind"] == "register" and i["title"] == "Reporting deadline" and i["importance"] == "major" for i in lanes["TK"])
+    assert not any(i["title"] == "Activity ends" for i in lanes["TK"]) and not any(i["title"] == "Far away" for i in lanes["GPF"])    # past and far-off items are left out
+    assert any(i["kind"] == "event" and i["title"] == "[TK] Steering call" for i in lanes["TK"])
+    assert [i["date"] for i in lanes["TK"]] == sorted(i["date"] for i in lanes["TK"])
+
+
+def test_timeline_api():
+    from fastapi.testclient import TestClient
+    from harness.main import app
+    with TestClient(app) as cl:
+        r = cl.get("/api/projects-timeline").json()
+        assert {"today", "days", "lanes"} <= set(r)

@@ -695,6 +695,13 @@ def projects_overview() -> dict:
     return _with_conn(lambda c: projects.build_projects(c, now_local().date()))
 
 
+@app.get("/api/projects-timeline")
+def projects_timeline(days: int = 90) -> dict:
+    from harness import projects
+    from harness.config import now_local
+    return _with_conn(lambda c: projects.timeline(c, now_local().date(), min(max(days, 14), 365)))
+
+
 @app.get("/api/projects/{code}")
 def project_detail(code: str) -> dict:
     from harness import projects

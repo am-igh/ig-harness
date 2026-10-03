@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import { type ProjectCard, type ProjectDetail, type ProjectsOverview, getProject, getProjects } from "../api";
+import { type ProjectCard, type ProjectDetail, type ProjectsOverview, type ProjectsTimeline, getProject, getProjects, getProjectsTimeline } from "../api";
+import { todayIso } from "../format";
+import Scene from "../scenes/Scene";
 import { dayShort } from "../format";
 import { Shell } from "../today/Drawer";
 import AuditDrawer from "./AuditDrawer";
@@ -62,6 +64,7 @@ const SOON = [{ title: "Budget burn", sub: "Spend against each mandate" }];
 
 export default function ProjectsTab() {
   const [data, setData] = useState<ProjectsOverview | null>(null);
+  const [tl, setTl] = useState<ProjectsTimeline | null>(null);
   const [err, setErr] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
   const [audit, setAudit] = useState(false);
@@ -70,10 +73,15 @@ export default function ProjectsTab() {
   const hw = useHours();
   const [hoursOpen, setHoursOpen] = useState(false);
   const [scansOpen, setScansOpen] = useState(false);
-  useEffect(() => { getProjects().then(setData).catch(() => setErr(true)); }, []);
+  useEffect(() => { getProjects().then(setData).catch(() => setErr(true)); getProjectsTimeline(90).then(setTl).catch(() => setTl(null)); }, []);
+  const lanes = (tl?.lanes ?? []).map((l) => ({ code: l.code, name: l.name, marks: l.items.map((i, n) => ({ id: `${l.code}-${n}`, label: i.title, date: i.date, tone: (i.importance === "major" ? "major" : "normal") as "major" | "normal", ring: i.kind === "register", onClick: () => setOpen(l.code), title: `${l.code} · ${i.title} · ${i.date}` })) }));
+  const coming = lanes.reduce((n, l) => n + l.marks.length, 0);
   return (
+    <>
+    <Scene variant="rhone" today={tl?.today ?? todayIso()} kicker="PROJECTS · NEXT 90 DAYS" headline="Projects & finance" sub="One stream per project, flowing from the lake"
+      stat={{ value: coming, label: "coming up", hint: "deadlines, reports, events" }} lanes={lanes} minSpan={45} maxSpan={90} note="click any marker for the project"
+      legend={[{ color: "#E8A300", label: "major" }, { color: "#AEB9E8", label: "deadline or event" }, { color: "#E8A300", label: "mandate date", ring: true }]} />
     <main className="page proj-page">
-      <h2 className="serif">Projects &amp; finance</h2>
       <div className="proj-tiles">
         <AuditTile st={a.st} onOpen={() => setAudit(true)} />
         <HoursTile w={hw} onOpen={() => setHoursOpen(true)} />
@@ -101,5 +109,6 @@ export default function ProjectsTab() {
       {hoursOpen && <HoursDrawer onClose={() => setHoursOpen(false)} />}
       {audit && <AuditDrawer initial={null} onClose={() => setAudit(false)} onChanged={a.reload} />}
     </main>
+    </>
   );
 }

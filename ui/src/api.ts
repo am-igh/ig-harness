@@ -242,3 +242,8 @@ export const getEvent = (id: number) => j<EventDetail>(`/api/events/${id}`);
 export const setEventStatus = (id: number, status: "interested" | "confirmed" | "declined" | null) =>
   j<{ ok: boolean }>(`/api/events/${id}/status`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
 export const hideEvent = (id: number, hidden = true) => j<{ ok: boolean }>(`/api/events/${id}/hide?hidden=${hidden}`, { method: "POST" });
+
+// ---- Projects timeline (the Rhône band)
+export type TimelineItem = { kind: "deadline" | "register" | "event"; id: number | null; title: string; date: string; importance: string };
+export type ProjectsTimeline = { today: string; days: number; lanes: { code: string; name: string; items: TimelineItem[] }[] };
+export const getProjectsTimeline = (days = 90) => j<ProjectsTimeline>(`/api/projects-timeline?days=${days}`);

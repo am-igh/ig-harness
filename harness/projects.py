@@ -102,3 +102,28 @@ def project_detail(conn: sqlite3.Connection, code: str, today: date) -> dict | N
     reg = _register(conn, code)
     return {"code": code, "name": row["name"], "kind": row["kind"], "registry_link": row["registry_link"], "register": reg, "items": mine,
             "journal": entries, "events": _tagged_events(conn, today).get(code, [])[:8], "gaps": _gaps(row["registry_link"], reg)}
+
+
+def timeline(conn: sqlite3.Connection, today: date, days: int = 90) -> dict:
+    """One lane per project with what is coming up in the next `days` days: deadlines, mandate reporting dates and ends, and calendar events tagged [CODE].
+    Work items only; personal areas never appear. Used by the 'Rhône' band on the Projects & finance tab."""
+    from datetime import timedelta
+    start, end = (today - timedelta(days=7)).isoformat(), (today + timedelta(days=days)).isoformat()
+    lanes = {r["code"]: {"code": r["code"], "name": r["name"], "items": []} for r in conn.execute("SELECT code, name FROM project_codes WHERE kind='project' AND domain != 'P' ORDER BY code")}
+    for r in conn.execute("SELECT id, title, due_date, importance, project_code FROM deadlines WHERE status='open' AND space='work' AND project_code IS NOT NULL AND due_date BETWEEN ? AND ?", (start, end)):
+        for c in _split(r["project_code"]):
+            if c in lanes:
+                lanes[c]["items"].append({"kind": "deadline", "id": r["id"], "title": r["title"], "date": r["due_date"], "importance": r["importance"] or "normal"})
+    for r in conn.execute("SELECT code, reporting_deadline, activity_end FROM register_mandates"):
+        if r["code"] in lanes:
+            for col, label in (("reporting_deadline", "Reporting deadline"), ("activity_end", "Activity ends")):
+                if r[col] and start <= r[col] <= end:
+                    lanes[r["code"]]["items"].append({"kind": "register", "id": None, "title": label, "date": r[col], "importance": "major" if col == "reporting_deadline" else "normal"})
+    for tag, evs in _tagged_events(conn, today).items():
+        if tag in lanes:
+            for e in evs:
+                if e["start"][:10] <= end:
+                    lanes[tag]["items"].append({"kind": "event", "id": e["id"], "title": e["title"], "date": e["start"][:10], "importance": "normal"})
+    for lane in lanes.values():
+        lane["items"].sort(key=lambda i: (i["date"], i["title"]))
+    return {"today": today.isoformat(), "days": days, "lanes": list(lanes.values())}

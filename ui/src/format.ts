@@ -33,3 +33,6 @@ export function dayHeading(day: string, today: string): string {
   const diff = daysBetween(day, today);
   return diff === 0 ? "Today" : diff === 1 ? "Yesterday" : dayShort(day);
 }
+
+/** Today's date in Geneva as YYYY-MM-DD. */
+export const todayIso = () => new Intl.DateTimeFormat("en-CA", { timeZone: TZ }).format(new Date());

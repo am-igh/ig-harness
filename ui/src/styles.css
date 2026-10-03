@@ -300,3 +300,22 @@ table.score td.best { font-weight: 700; color: var(--purple); }
 .chip-topic { background: #eef6d0; color: #4b6b00; } .chip-clash { background: #fdf1d6; color: #7a4a00; }
 @media (max-width: 640px) { .ev-card { flex-direction: column; gap: 4px; } .ev-when { flex-basis: auto; } }
 .chip-src { background: #eef0f8; color: #4f5fa8; }
+
+/* scenes: Geneva and beyond (horizon), Projects & finance (Rhône), Inbox (harbour) */
+.scene .sc-headline { font-size: 23px; white-space: normal; max-width: 260px; }
+.scene .lake-greet { top: 18px; } .scene .sc-stat { cursor: default; top: 112px; } .scene .sc-legend { top: 18px; flex-wrap: wrap; max-width: calc(100% - 360px); row-gap: 4px; }
+.sc-empty { position: absolute; left: 340px; top: 96px; font-size: 13px; color: #c5cee4; }
+.mk-dot.sc-glow { box-shadow: 0 0 0 4px rgba(184, 69, 184, .28), 0 0 14px 4px rgba(184, 69, 184, .5); }
+.rv-code { position: absolute; font-family: "IBM Plex Mono", monospace; font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 5px; background: rgba(106,123,193,.35); color: #fff; }
+.rv-mark { position: absolute; width: 14px; height: 14px; padding: 0; background: transparent; border: none; cursor: pointer; color: #fff; }
+.rv-dot { display: block; width: 14px; height: 14px; border-radius: 999px; border: 3px solid; box-sizing: border-box; }
+.rv-mark:hover .rv-dot { transform: scale(1.3); }
+.rv-label { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); font-size: 11px; font-weight: 700; white-space: nowrap; text-shadow: 0 0 4px var(--deep), 0 0 4px var(--deep); }
+.sc-waves { animation: sc-drift 9s ease-in-out infinite alternate; } .sc-contrail { animation: sc-dash 12s linear infinite; }
+.sc-flow { animation: sc-flow 3.2s linear infinite; } .sc-boat { animation: sc-bob 5s ease-in-out infinite; transform-box: fill-box; }
+.sc-gull { animation: sc-drift 7s ease-in-out infinite alternate; } .sc-beam { animation: sc-pulse 3.4s ease-in-out infinite; transform-origin: 300px 98px; } .sc-beam2 { animation-delay: 1.2s; }
+@keyframes sc-drift { from { transform: translateX(-10px); } to { transform: translateX(10px); } }
+@keyframes sc-dash { to { stroke-dashoffset: -90; } } @keyframes sc-flow { to { stroke-dashoffset: -44; } }
+@keyframes sc-bob { 0%, 100% { translate: 0 0; } 50% { translate: 0 -2.5px; } } @keyframes sc-pulse { 0%, 100% { opacity: .5; transform: scale(.92); } 50% { opacity: 1; transform: scale(1.08); } }
+@media (prefers-reduced-motion: reduce) { .sc-waves, .sc-contrail, .sc-flow, .sc-boat, .sc-gull, .sc-beam { animation: none; } }
+@media (max-width: 1100px) { .scene .sc-legend { max-width: calc(100% - 40px); top: 150px; } }

@@ -201,3 +201,13 @@ Google Calendar: entries whose title looks like an event (summit, forum, panel, 
   with all the evidence ("Your Google Calendar: accepted; Luma registration email: registration approved"). A registration beats "not yet answered" in your calendar.
 - **International Geneva listings** are shown only when they match your topics; the chip "Also other International Geneva listings (N)" shows the rest.
 - Emails that look like invitations or registrations but have no readable date are kept as *candidates*; reading them with your local model is the next step (see `docs/PHASE5_PLAN.md`).
+
+## The bands: a landscape for each tab
+
+Each tab opens with a dark-blue landscape in the style of the Jet d'eau lake on Today, with its own timeline (click any marker):
+- **Today:** the lake and the Jet d'eau, with deadlines along the water (the jet rises with each item you finish).
+- **Geneva and beyond:** the lake, the Alps with Mont Blanc and a contrail towards the wider world. Your upcoming events are markers along the horizon: **confirmed ones glow purple**,
+  maybe/invited/interested are lighter, and a hollow ring means the event is outside Geneva. The nearest weeks get the most room.
+- **Projects & finance:** the Rhône leaving the lake under the Pont du Mont-Blanc, with vineyard terraces on the hill. One stream per project; deadlines, mandate dates and tagged calendar events flow along it.
+- **Inbox:** the Pâquis lighthouse and boats at anchor. The lighthouse counts the emails that need you; a boat on the water marks a reply deadline.
+The movement (waves, flow, boats, the lighthouse beam) stops if your computer is set to "reduce motion".

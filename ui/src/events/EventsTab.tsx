@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { type EventDetail, type EventItem, type EventsResponse, getEvent, getEvents, hideEvent, setEventStatus } from "../api";
-import { dayMonth, dayShort, timeOf } from "../format";
+import { dayMonth, dayShort, timeOf, todayIso } from "../format";
+import Scene, { type SceneMark } from "../scenes/Scene";
 import { Shell } from "../today/Drawer";
 
 const STATUS_LABEL: Record<string, string> = { confirmed: "You're in", tentative: "Maybe", invited: "Invited", interested: "Interested", declined: "Not going", none: "" };
@@ -88,9 +89,16 @@ export default function EventsTab() {
   const [topic, setTopic] = useState("");
   const [allListings, setAllListings] = useState(false);
   const [data, setData] = useState<EventsResponse | null>(null);
+  const [band, setBand] = useState<EventsResponse | null>(null);
   const [open, setOpen] = useState<number | null>(null);
   const load = useCallback(() => getEvents({ scope, q: q || undefined, status: status || undefined, geneva: geneva || undefined, topic: topic || undefined, allListings }).then(setData).catch(() => setData(null)), [scope, q, status, geneva, topic, allListings]);
   useEffect(() => { const t = setTimeout(load, q ? 250 : 0); return () => clearTimeout(t); }, [load, q]);
+  const loadBand = useCallback(() => getEvents({ scope: "upcoming" }).then(setBand).catch(() => setBand(null)), []);
+  useEffect(() => { loadBand(); }, [loadBand]);
+  const today = todayIso();
+  const TONE_OF: Record<string, SceneMark["tone"]> = { confirmed: "confirmed", tentative: "maybe", invited: "invited", interested: "info" };
+  const marks: SceneMark[] = (band?.items ?? []).filter((e) => TONE_OF[e.status] && e.start.slice(0, 10) <= new Date(Date.now() + 118 * 86400000).toISOString().slice(0, 10))
+    .map((e) => ({ id: String(e.id), label: e.title, date: e.start.slice(0, 10) < today ? today : e.start.slice(0, 10), tone: TONE_OF[e.status], ring: !e.geneva, onClick: () => setOpen(e.id), title: `${e.title} · ${when(e)}` }));
 
   const groups: [string, EventItem[]][] = [];
   for (const e of data?.items ?? []) {
@@ -100,9 +108,15 @@ export default function EventsTab() {
   }
   const chip = (label: string, on: boolean, fn: () => void) => <button type="button" key={label} className={`ev-filter ${on ? "on" : ""}`} aria-pressed={on} onClick={fn}>{label}</button>;
   return (
+    <>
+    <Scene variant="horizon" today={today} kicker="EVENTS AHEAD" headline="Geneva and beyond" sub="Where you will be, and who has asked"
+      stat={{ value: band?.counts.confirmed ?? "·", label: "confirmed", hint: `${band?.counts.invited ?? 0} invited · glowing purple` }}
+      marks={marks} maxSpan={120} minSpan={35} note="click any marker"
+      legend={[{ color: "#B845B8", label: "you're in" }, { color: "#D9A6D9", label: "maybe" }, { color: "#AEB9E8", label: "invited" }, { color: "#8F9DD6", label: "interested" }, { color: "#AEB9E8", label: "outside Geneva", ring: true }]}
+      empty="No events with a response yet." />
     <main className="page ev-page">
       <div className="ev-head">
-        <h2 className="serif">Geneva and beyond</h2>
+        <h2 className="serif">Events</h2>
         <div className="ev-seg" role="tablist" aria-label="Which events">
           {chip("Upcoming", scope === "upcoming", () => setScope("upcoming"))}{chip("Past year · archive", scope === "archive", () => setScope("archive"))}
         </div>
@@ -121,7 +135,8 @@ export default function EventsTab() {
       {data && data.items.length === 0 && <p className="muted">{scope === "upcoming" ? "No events match." : "Nothing in the archive matches."} Events come from your Google Calendar, event emails and the Genève internationale newsletter.</p>}
       {groups.map(([g, items]) => <section key={g} className="ev-group"><h3 className="ev-week">{g}</h3>{items.map((e) => <Card key={e.id} e={e} onOpen={() => setOpen(e.id)} />)}</section>)}
       {data && data.total > data.items.length && <p className="muted">Showing the first {data.items.length} of {data.total}. Narrow the search to see the rest.</p>}
-      {open !== null && <EventDrawer id={open} onClose={() => setOpen(null)} onChanged={load} />}
+      {open !== null && <EventDrawer id={open} onClose={() => setOpen(null)} onChanged={() => { load(); loadBand(); }} />}
     </main>
+    </>
   );
 }
