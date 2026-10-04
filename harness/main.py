@@ -28,18 +28,18 @@ def _collector() -> None:
 
 
 def _event_reader():
-    """Slowly read the emails that look like invitations with the local model (a couple a minute, most personal first)."""
+    """Read the emails that look like invitations with the local model, one pair at a time, most personal first (a pause of a few seconds between pairs)."""
     from harness import events_ai
     while True:
         try:
             c = db.connect()
             try:
-                events_ai.tick(c, limit=2)
+                n = events_ai.tick(c, limit=2)
             finally:
                 c.close()
         except Exception:
-            pass
-        time.sleep(30)
+            n = 0
+        time.sleep(4 if n else 30)               # keep going while there is work; rest when the queue is empty or the model is away
 
 
 def _scan_watcher():
