@@ -313,9 +313,9 @@ table.score td.best { font-weight: 700; color: var(--purple); }
 .rv-label { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); font-size: 11px; font-weight: 700; white-space: nowrap; text-shadow: 0 0 4px var(--deep), 0 0 4px var(--deep); }
 .sc-waves { animation: sc-drift 9s ease-in-out infinite alternate; } .sc-contrail { animation: sc-dash 12s linear infinite; }
 .sc-flow { animation: sc-flow 3.2s linear infinite; } .sc-boat { animation: sc-bob 5s ease-in-out infinite; transform-box: fill-box; }
-.sc-gull { animation: sc-drift 7s ease-in-out infinite alternate; } 
+.sc-gull { animation: sc-drift 7s ease-in-out infinite alternate; } .sc-beam { animation: sc-pulse 3.4s ease-in-out infinite; transform-origin: 300px 98px; } .sc-beam2 { animation-delay: 1.2s; }
 @keyframes sc-drift { from { transform: translateX(-10px); } to { transform: translateX(10px); } }
 @keyframes sc-dash { to { stroke-dashoffset: -90; } } @keyframes sc-flow { to { stroke-dashoffset: -44; } }
 @keyframes sc-bob { 0%, 100% { translate: 0 0; } 50% { translate: 0 -2.5px; } } @keyframes sc-pulse { 0%, 100% { opacity: .5; transform: scale(.92); } 50% { opacity: 1; transform: scale(1.08); } }
-@media (prefers-reduced-motion: reduce) { .sc-waves, .sc-contrail, .sc-flow, .sc-boat, .sc-gull { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .sc-waves, .sc-contrail, .sc-flow, .sc-boat, .sc-gull, .sc-beam { animation: none; } }
 @media (max-width: 1100px) { .scene .sc-legend { max-width: calc(100% - 40px); top: 150px; } }

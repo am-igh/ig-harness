@@ -3,7 +3,7 @@ import { type EmailsResponse, getEmails } from "../api";
 import { todayIso } from "../format";
 import Scene, { type SceneMark } from "./Scene";
 
-/** The harbour: the Jet d'eau and the boats at anchor; the emails that need you are counted, and those with a deadline are boats on the water. */
+/** The harbour: the lighthouse watches the emails that need you; the ones with a deadline are boats on the water. */
 export default function InboxScene() {
   const [d, setD] = useState<EmailsResponse | null>(null);
   useEffect(() => { getEmails(72, false).then(setD).catch(() => setD(null)); }, []);
@@ -14,7 +14,7 @@ export default function InboxScene() {
   const undated = open.length - dated.length;
   return (
     <Scene variant="harbor" today={today} kicker="THE HARBOUR" headline="Inbox" sub={open.length ? `${undated} at anchor without a date` : "Calm water"}
-      stat={{ value: open.length, label: "need you", hint: "waiting for your reply" }} marks={marks} minSpan={21} maxSpan={60}
+      stat={{ value: open.length, label: "need you", hint: "the lighthouse is watching" }} marks={marks} minSpan={21} maxSpan={60}
       legend={[{ color: "#E8A300", label: "urgent deadline" }, { color: "#AEB9E8", label: "reply by" }]} empty={open.length ? "No reply deadlines yet; the boats stay at anchor." : undefined} />
   );
 }

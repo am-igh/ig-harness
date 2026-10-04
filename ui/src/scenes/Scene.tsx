@@ -4,7 +4,7 @@ import { jetPaths } from "../today/Lake";
 
 /** The shared "band" that echoes the Jet d'eau lake on Today: a deep navy landscape with a time axis and clickable marks.
  *  Three landscapes: "horizon" (Geneva and beyond: the lake, the Alps and the world beyond), "rhone" (Projects & finance: the river that leaves the lake, one stream per project),
- *  "harbor" (Inbox: the Jet d'eau and the boats at anchor). */
+ *  "harbor" (Inbox: the Pâquis lighthouse and the boats at anchor). */
 export type Tone = "confirmed" | "maybe" | "invited" | "info" | "major" | "normal" | "done";
 export type SceneMark = { id: string; label: string; date: string; tone: Tone; ring?: boolean; onClick?: () => void; title?: string };
 export type SceneLane = { code: string; name: string; marks: SceneMark[] };
@@ -75,6 +75,21 @@ function HarborArt() {
       {gull(520, 52)}{gull(560, 38, 0.8)}{gull(790, 30, 1.1)}{gull(1030, 60)}{gull(1180, 42, 0.9)}
       {boat(470, 0.9, 0)}{boat(720, 1.1, 1.2)}{boat(1010, 0.8, 2.4)}{boat(1230, 1, 0.6)}
       <Water />
+    </svg>
+  );
+}
+
+function HarborLight() {
+  return (
+    <svg width="360" height="220" viewBox="0 0 360 220" className="lake-jet" aria-hidden="true">
+      <circle className="sc-beam" cx="300" cy="98" r="46" fill="#E8A300" fillOpacity=".16" />
+      <circle className="sc-beam sc-beam2" cx="300" cy="98" r="26" fill="#E8A300" fillOpacity=".26" />
+      <path d="M312 160 L309 118 L291 118 L288 160 Z" fill="#DDE3F6" fillOpacity=".92" />
+      <rect x="289" y="107" width="22" height="11" fill="#fff" fillOpacity=".95" />
+      <rect x="293" y="109" width="14" height="7" fill="#E8A300" fillOpacity=".95" />
+      <path d="M287 107 L300 94 L313 107 Z" fill="#AEB9E8" />
+      <path d="M255 160 L300 160 L330 160" stroke="#8F9DD6" strokeOpacity=".7" strokeWidth="3" strokeLinecap="round" />
+      <ellipse cx="300" cy="162" rx="40" ry="5" fill="#fff" fillOpacity=".1" />
     </svg>
   );
 }
@@ -200,7 +215,7 @@ export default function Scene({ variant, today, kicker, headline, sub, stat, mar
   return (
     <section ref={ref} className={`lake scene scene-${variant}`} aria-label={headline}>
       {variant === "horizon" && <HorizonArt />}{variant === "harbor" && <HarborArt />}{variant === "rhone" && <RhoneArt ys={ys} />}
-      {variant === "harbor" || variant === "horizon" ? <Jet /> : null}
+      {variant === "harbor" ? <HarborLight /> : variant === "horizon" ? <Jet /> : null}
       <div className="lake-greet">
         <div className="kicker-light">{kicker}</div>
         <div className="serif greet sc-headline">{headline}</div>
