@@ -48,6 +48,8 @@ One **Events** tab (the Geneva tab, enlarged): conferences and events relevant t
 
 - 5.3 built: candidates are read by the local model (job `event_extract`, S2) with a background reader (2 per 30 s, most personal first), roles, reply-by dates, retries (3), progress line, and 'Ignore this sender'. The helper keeps a trimmed body only for senders the rules cannot read; `make` target: `python3 tools/google_helper.py backfill-event-bodies` for the first run.
 
+- 5.4 built: `tools/events_helper.py` (allow-list of three hosts, robots.txt, crawl delay, honest User-Agent, https only, redirects stay on the list) writes `public_events.json`; `harness/importers/public_events.py` merges the listings with emails and the calendar (an invitation's time refines a date-only listing). First real run: 602 events in about 30 s.
+
 ## Rules that stay
 Drafts only, never send; inbox-derived data local only (S2); public data S0; one model door (gateway, new job `event_extract`); no real data in the repo; nothing in her files changes; calendar stays read-only.
 

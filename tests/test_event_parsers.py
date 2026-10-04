@@ -84,3 +84,48 @@ def test_the_geneve_internationale_tables_are_read_with_themes_organizers_dates_
     assert (b["organizer"], b["location"], b["end"]) == ("stockholm_convention", "International Environment House - II", "2026-09-16")
     assert (c["theme"], c["title"], c["start"], c["end"], c["location"]) == ("Digital and Technology", "AI Governance Day", "2026-09-16", "2026-09-16", "Online")
     assert parse_geneve_int("") == [] and parse_geneve_int("<html>nothing</html>") == []
+
+
+# ------------------------------------------------------------------ public web pages
+GI_WEB = """<table><thead><tr><th>Organizer</th></tr></thead><tbody>
+<tr><td class="views-field views-field-field-organizer-logo"><div class="wrapper-image"><img src="x.png" alt="UN HRC" /></div></td>
+<td class="views-field views-field-field-title"><div class="taxonomy-term"><span class="bullet"></span></div><div class="event-title">Human Rights Council / HRC 63rd session</div></td>
+<td class="views-field views-field-field-date"><time datetime="2026-09-07T12:00:00Z" class="datetime">07.09.2026</time><br><time datetime="2026-10-07T12:00:00Z">07.10.2026</time><br></td>
+<td class="views-field views-field-event-address">Palais des Nations </td>
+<td class="views-field views-field-field-link"><a href="https://hrc63.sched.com/" target="_blank">https://hrc63.sched.com/</a> </td></tr>
+<tr><td><img alt="GESDA_Logo.png"></td><td><div class="event-title">The Anticipation Summit</div></td><td><time datetime="2026-10-14T12:00:00Z">14.10.2026</time><br><time datetime="2026-10-15T12:00:00Z">15.10.2026</time></td>
+<td class="views-field-event-address">Palexpo Geneva</td><td class="views-field-field-link"><a href="https://gesda.global/?a=1&amp;b=2">x</a></td></tr>
+<tr><td>no title here</td></tr></tbody></table>"""
+
+
+def test_the_geneve_internationale_calendar_page():
+    from harness.event_parsers import parse_geneve_int_web
+    rows = parse_geneve_int_web(GI_WEB)
+    assert rows[0] == {"title": "Human Rights Council / HRC 63rd session", "start": "2026-09-07", "end": "2026-10-07", "organizer": "UN HRC", "venue": "Palais des Nations", "url": "https://hrc63.sched.com/"}
+    assert (rows[1]["organizer"], rows[1]["url"]) == ("GESDA", "https://gesda.global/?a=1&b=2") and len(rows) == 2 and parse_geneve_int_web("") == []
+
+
+CLUB_WEB = """<article id="post-1"><a href="https://club/x" title="t"></a><div><p>ANG</p><h6><a href="https://club/dialogue-sierra-leone/" rel="bookmark">Dialogue exclusif avec le Président de la Sierra Leone </a></h6>
+<p>lundi 12 octobre 2026</p><p>Portail des Nations</p></div></article>
+<article id="post-2"><div><p>ANG/FR</p><h6><a href="https://club/visite/">Visite privée &ndash; Grand Prix d&rsquo;Horlogerie</a></h6><p>mardi 3 novembre 2026</p><p>Musée d'art et d'histoire (MAH)</p></div></article>
+<article id="post-3"><h6><a href="https://club/undated/">No date line</a></h6><p>Somewhere</p></article>"""
+
+
+def test_the_club_diplomatique_events_page():
+    from harness.event_parsers import parse_club_events
+    rows = parse_club_events(CLUB_WEB)
+    assert rows[0] == {"title": "Dialogue exclusif avec le Président de la Sierra Leone", "start": "2026-10-12", "end": None, "organizer": "Club Diplomatique de Genève", "venue": "Portail des Nations", "url": "https://club/dialogue-sierra-leone/"}
+    assert rows[1]["title"] == "Visite privée – Grand Prix d’Horlogerie" and rows[1]["start"] == "2026-11-03" and rows[1]["venue"] == "Musée d'art et d'histoire (MAH)" and len(rows) == 2
+
+
+UNOG = """<table><tr><td><p><strong>Committee on the Rights of the Child</strong></p><p><a href="https://x/sess?a=1&amp;b=2">100th session</a></p></td><td>12-Jan</td><td>30-Jan</td></tr>
+<tr><td><strong>World Health Assembly</strong><br><a href="https://who/wha">79th session</a></td><td><span>18-May</span></td><td><span>23-May</span></td></tr>
+<tr><td><strong>Conference on Disarmament</strong></td><td>&nbsp;11-May</td><td>26-June</td></tr><tr><td>Header</td><td>Start</td><td>End</td></tr></table>"""
+
+
+def test_the_un_geneva_calendar_of_major_meetings():
+    from harness.event_parsers import parse_unog
+    rows = parse_unog(UNOG, 2026)
+    assert [(r["title"], r["start"], r["end"]) for r in rows] == [("Committee on the Rights of the Child – 100th session", "2026-01-12", "2026-01-30"), ("World Health Assembly – 79th session", "2026-05-18", "2026-05-23"),
+                                                                    ("Conference on Disarmament", "2026-05-11", "2026-06-26")]
+    assert rows[0]["url"] == "https://x/sess?a=1&b=2" and rows[0]["venue"] == "Palais des Nations"

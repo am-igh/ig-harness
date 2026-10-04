@@ -37,6 +37,7 @@ API = os.environ.get("IG_API", "http://127.0.0.1:5173")
 TOOLS = ROOT / "tools"
 CORR_FILE = DATA / "correspondence.json"
 EVENT_FILE = DATA / "event_mail.json"
+PUBLIC_FILE = DATA / "public_events.json"
 
 
 def _now() -> datetime:
@@ -85,7 +86,14 @@ def event_age() -> timedelta | None:
         return None
 
 
-def run_cycle(data_dir: Path, trigger: str, *, sub=run_sub, call=http, backup=backup_daily, age=corr_age, now=_now, force_correspondence: bool = False, event_age_fn=event_age) -> dict:
+def public_age() -> timedelta | None:
+    try:
+        return datetime.now() - datetime.fromtimestamp(PUBLIC_FILE.stat().st_mtime)
+    except OSError:
+        return None
+
+
+def run_cycle(data_dir: Path, trigger: str, *, sub=run_sub, call=http, backup=backup_daily, age=corr_age, now=_now, force_correspondence: bool = False, event_age_fn=event_age, public_age_fn=public_age) -> dict:
     """One refresh. Every step is recorded as it happens; one failing step never stops the next."""
     prev = R.read_status(data_dir) or {}
     status = {"running": True, "trigger": trigger, "started_at": now().isoformat(timespec="seconds"), "finished_at": None, "ok": None,
@@ -118,6 +126,13 @@ def run_cycle(data_dir: Path, trigger: str, *, sub=run_sub, call=http, backup=ba
     ea = event_age_fn()
     if ea is None or ea > timedelta(hours=6):                   # event emails: a few times a day is plenty
         step("events", helper("sync-events", 2400))
+
+    pa = public_age_fn()
+    if pa is None or pa > timedelta(hours=20):                  # public listings: about once a day, politely
+        def do_public():
+            rc, line = sub([TOOLS / "events_helper.py", "pull"], 600)
+            return ("ok" if rc == 0 else "error"), line
+        step("public-events", do_public)
 
     def do_reminders():
         """Phone to-dos: read the Reminders list "Harness" (read-only)."""

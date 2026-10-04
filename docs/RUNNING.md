@@ -199,6 +199,8 @@ Google Calendar: entries whose title looks like an event (summit, forum, panel, 
 - **From your inbox** (read-only, over the past year, then the last three weeks every few hours; run `make events-mail` to do it now): the Club Diplomatique invitations and reminders,
   Luma "registration approved/confirmed" emails, organisers' registration confirmations, and the weekly **Genève internationale** newsletter tables. The same event seen in several places is **one card**
   with all the evidence ("Your Google Calendar: accepted; Luma registration email: registration approved"). A registration beats "not yet answered" in your calendar.
+- **Public listings** (once a day, `make events-public` to do it now): the geneve-int.ch calendar, the Club Diplomatique events page (including its archive back to 2019) and the UN Geneva calendar of major meetings.
+  They are fetched politely by a small program on your Mac (only those three websites, robots.txt obeyed, the Club's 10-second delay honoured, nothing sent), so events show up even when no email mentions them.
 - **International Geneva listings** are shown only when they match your topics; the chip "Also other International Geneva listings (N)" shows the rest.
 - Emails that look like invitations or registrations but cannot be read by rule (personal invitations, speaking requests, confirmations without a date) are **read by your local model, on this Mac**, a couple a minute, the
   most personal first. A line on the tab shows the progress. The model only extracts what the email says (title, date, place, your role, a reply-by date); dates that make no sense are refused, and marketing is dropped.

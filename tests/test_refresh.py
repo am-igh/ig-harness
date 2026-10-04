@@ -105,7 +105,7 @@ class Fakes:
 
 def cycle(tmp_path, f, **kw):
     kw.setdefault("age", lambda: timedelta(hours=1))
-    return W.run_cycle(tmp_path, "manual", sub=f.sub, call=f.call, backup=f.backup, now=lambda: T(9), **{"event_age_fn": lambda: timedelta(hours=1), **kw})
+    return W.run_cycle(tmp_path, "manual", sub=f.sub, call=f.call, backup=f.backup, now=lambda: T(9), **{"event_age_fn": lambda: timedelta(hours=1), "public_age_fn": lambda: timedelta(hours=1), **kw})
 
 
 def test_a_full_cycle_runs_every_step_in_order_and_records_success(tmp_path):
@@ -137,7 +137,7 @@ def test_one_failing_step_never_stops_the_others(tmp_path):
 def test_last_success_is_kept_when_a_later_cycle_fails(tmp_path):
     cycle(tmp_path, Fakes())
     first = R.read_status(tmp_path)["last_success_at"]
-    st = W.run_cycle(tmp_path, "schedule", sub=Fakes(fail={"sync"}).sub, call=Fakes().call, backup=Fakes().backup, now=lambda: T(10), age=lambda: timedelta(hours=1), event_age_fn=lambda: timedelta(hours=1))
+    st = W.run_cycle(tmp_path, "schedule", sub=Fakes(fail={"sync"}).sub, call=Fakes().call, backup=Fakes().backup, now=lambda: T(10), age=lambda: timedelta(hours=1), event_age_fn=lambda: timedelta(hours=1), public_age_fn=lambda: timedelta(hours=1))
     assert st["ok"] is False and st["last_success_at"] == first
 
 
@@ -209,5 +209,5 @@ def test_refresh_api_endpoints(tmp_path):
 def test_event_emails_are_read_when_missing_or_older_than_six_hours(tmp_path):
     for age, expect in ((None, True), (timedelta(hours=7), True), (timedelta(hours=2), False)):
         f = Fakes()
-        st = W.run_cycle(tmp_path, "manual", sub=f.sub, call=f.call, backup=f.backup, now=lambda: T(9), age=lambda: timedelta(hours=1), event_age_fn=lambda a=age: a)
+        st = W.run_cycle(tmp_path, "manual", sub=f.sub, call=f.call, backup=f.backup, now=lambda: T(9), age=lambda: timedelta(hours=1), event_age_fn=lambda a=age: a, public_age_fn=lambda: timedelta(hours=1))
         assert ("events" in [s["name"] for s in st["steps"]]) is expect

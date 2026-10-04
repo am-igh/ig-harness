@@ -8,8 +8,9 @@ const STATUS_LABEL: Record<string, string> = { confirmed: "You're in", tentative
 const ROLE_LABEL: Record<string, string> = { moderator: "Moderating", facilitator: "Facilitating", speaker: "Speaking", panelist: "Panelist", judge: "Judging", mentor: "Mentoring" };
 
 const EVIDENCE_LABEL: Record<string, string> = { calendar: "Your Google Calendar", "email-club": "Club Diplomatique email", "email-luma": "Luma registration email", "email-registration": "Registration confirmation email",
-  "listing-geneve-int": "Genève internationale listing", "email-model": "Email read by your local model" };
-const SOURCE_LABEL: Record<string, string> = { "email-model": "From an email", "email-club": "Club Diplomatique", "listing-geneve-int": "International Geneva listing", "email-luma": "Registration", "email-registration": "Registration" };
+  "listing-geneve-int": "Genève internationale listing", "email-model": "Email read by your local model",
+  "listing-web-geneve-int": "geneve-int.ch calendar (public)", "listing-web-club": "Club Diplomatique website (public)", "listing-web-unog": "UN Geneva calendar (public)" };
+const SOURCE_LABEL: Record<string, string> = { "web-club": "Club Diplomatique", "web-geneve-int": "International Geneva", "web-unog": "UN Geneva", "email-model": "From an email", "email-club": "Club Diplomatique", "listing-geneve-int": "International Geneva listing", "email-luma": "Registration", "email-registration": "Registration" };
 
 function when(e: EventItem): string {
   const d1 = e.start.slice(0, 10);

@@ -1,4 +1,4 @@
-.PHONY: ui-test up down test logs import calendar gmail correspondence check-network agent-install agent-uninstall agent-status refresh-install refresh-uninstall refresh-now backup backup-list backup-test suivi-export-dry-run suivi-export-now suivi-export-pause suivi-export-resume events-mail reminders-pull filing-now hours-now hours-pause hours-resume
+.PHONY: ui-test up down test logs import calendar gmail correspondence check-network agent-install agent-uninstall agent-status refresh-install refresh-uninstall refresh-now backup backup-list backup-test suivi-export-dry-run suivi-export-now suivi-export-pause suivi-export-resume events-mail events-public reminders-pull filing-now hours-now hours-pause hours-resume
 
 up:      ## Start the harness (UI at http://localhost:5173)
 	docker compose up -d --build
@@ -92,3 +92,6 @@ events-mail: ## Read the past year of event emails (read-only Gmail) for the Gen
 
 reminders-pull: ## Read your phone to-dos now (Reminders list "Harness"); macOS asks once for permission
 	python3 tools/reminders_helper.py pull
+
+events-public: ## Fetch the public International Geneva listings (geneve-int.ch, Club Diplomatique, UN Geneva), politely
+	python3 tools/events_helper.py pull

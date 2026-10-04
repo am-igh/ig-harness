@@ -245,3 +245,70 @@ def parse_geneve_int(html: str) -> list[dict]:
         if k not in seen:
             seen.add(k); out.append(r)
     return out
+
+
+# ------------------------------------------------------------------ public web pages (fetched by tools/events_helper.py; S0 data)
+def _text(fragment: str) -> str:
+    import html as _h
+    return re.sub(r"\s+", " ", _h.unescape(re.sub(r"(?s)<[^>]+>", " ", fragment or ""))).strip()
+
+
+def _organizer(alt: str | None) -> str | None:
+    """'Logo WMO', 'Logo-ITU', 'GESDA_Logo.png', 'UN HRC' -> the organizer's name."""
+    t = re.sub(r"(?i)\.(png|jpe?g|svg|gif)$", "", (alt or "").strip())
+    t = re.sub(r"(?i)[\s_\-]*\blogo\b[\s_\-]*", " ", t.replace("_", " ").replace("-", " ") if re.search(r"(?i)logo", t) else t)
+    return re.sub(r"\s+", " ", t).strip() or None
+
+
+def parse_geneve_int_web(page_html: str) -> list[dict]:
+    """The calendar page of geneve-int.ch: one table row per event (organizer logo alt, title, start and end <time datetime>, address, link)."""
+    out = []
+    for row in re.findall(r"(?is)<tr\b.*?</tr>", page_html or ""):
+        title = re.search(r'(?is)class="event-title"[^>]*>(.*?)</div>', row)
+        times = re.findall(r'(?is)<time[^>]*datetime="(\d{4}-\d{2}-\d{2})', row)
+        if not title or not times:
+            continue
+        org = re.search(r'(?is)<img[^>]*\balt="([^"]*)"', row)
+        addr = re.search(r'(?is)views-field-event-address[^>]*>(.*?)</td>', row)
+        link = re.search(r'(?is)views-field-field-link[^>]*>\s*<a[^>]*href="([^"]+)"', row)
+        out.append({"title": _text(title.group(1)), "start": times[0], "end": times[-1], "organizer": _organizer(_text(org.group(1))) if org else None,
+                    "venue": _text(addr.group(1)) if addr else None, "url": _text(link.group(1)) if link else None})
+    return out
+
+
+def parse_club_events(page_html: str) -> list[dict]:
+    """clubdiplomatique.ch/evenements: one <article> per event with the title, a French date line ('lundi 12 octobre 2026') and the venue."""
+    out = []
+    for art in re.findall(r"(?is)<article\b.*?</article>", page_html or ""):
+        a = re.search(r'(?is)<h\d[^>]*>\s*<a[^>]*href="([^"]+)"[^>]*>(.*?)</a>', art)
+        paras = [_text(p) for p in re.findall(r"(?is)<p[^>]*>(.*?)</p>", art)]
+        rng = next((extract_date_range(p, date.today()) for p in paras if re.search(r"\d{4}", p)), None)
+        if not a or not rng or not rng[0]:
+            continue
+        venue = next((p for p in paras if p and not re.search(r"\d{4}", p) and p.upper() not in ("ANG", "FR", "ANG/FR", "FR/ANG", "EN")), None)
+        start, end = rng
+        out.append({"title": _text(a.group(2)), "start": start, "end": end, "organizer": "Club Diplomatique de Genève", "venue": venue, "url": a.group(1)})
+    return out
+
+
+def parse_unog(page_html: str, year: int) -> list[dict]:
+    """The UN Geneva calendar of major meetings: rows of (body and session, start 'd-Mon', end 'd-Mon'); the year is the calendar's."""
+    out = []
+    for row in re.findall(r"(?is)<tr\b.*?</tr>", page_html or ""):
+        cells = re.findall(r"(?is)<t[dh][^>]*>(.*?)</t[dh]>", row)
+        if len(cells) < 3:
+            continue
+        def dm(s):
+            m = re.search(r"(\d{1,2})\s*[-\s]?\s*([A-Za-z]{3,9})", _text(s))
+            mon = _month(m.group(2)) if m else None
+            return _iso(year, mon, int(m.group(1))) if m and mon else None
+        a, b = dm(cells[1]), dm(cells[2])
+        strong = re.search(r"(?is)<strong[^>]*>(.*?)</strong>|<b>(.*?)</b>", cells[0])
+        body = _text((strong.group(1) or strong.group(2)) if strong else cells[0].split("<")[0])
+        link = re.search(r'(?is)<a[^>]*href="([^"]+)"[^>]*>(.*?)</a>', cells[0])
+        if not body or not a:
+            continue
+        session = _text(link.group(2)) if link else ""
+        out.append({"title": f"{body} – {session}" if session and session not in body else body, "start": a, "end": b if b and b >= a else a, "organizer": "UN Geneva",
+                    "venue": "Palais des Nations", "url": _text(link.group(1)) if link else None})
+    return out

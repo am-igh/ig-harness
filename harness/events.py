@@ -150,6 +150,9 @@ def upsert_external(conn: sqlite3.Connection, *, source_kind: str, tier: str, ti
                                   "source_kind": source_kind, "tier": tier, "relevant": int(relevant)})
     else:
         conn.execute("UPDATE events SET url = coalesce(url, ?), organizer = coalesce(organizer, ?), venue = coalesce(venue, ?), relevant = max(relevant, ?) WHERE id = ?", (url, organizer, venue, int(relevant), eid))
+        cur = conn.execute("SELECT all_day, source_kind FROM events WHERE id = ?", (eid,)).fetchone()
+        if cur["all_day"] and not all_day and cur["source_kind"] != "calendar":              # an invitation gives the time that a date-only listing lacked
+            conn.execute("UPDATE events SET start = ?, end = ?, all_day = 0 WHERE id = ?", (start, end, eid))
     add_evidence(conn, eid, *evidence)
     recompute_status(conn, eid)
     return eid
