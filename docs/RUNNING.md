@@ -200,7 +200,10 @@ Google Calendar: entries whose title looks like an event (summit, forum, panel, 
   Luma "registration approved/confirmed" emails, organisers' registration confirmations, and the weekly **Genève internationale** newsletter tables. The same event seen in several places is **one card**
   with all the evidence ("Your Google Calendar: accepted; Luma registration email: registration approved"). A registration beats "not yet answered" in your calendar.
 - **International Geneva listings** are shown only when they match your topics; the chip "Also other International Geneva listings (N)" shows the rest.
-- Emails that look like invitations or registrations but have no readable date are kept as *candidates*; reading them with your local model is the next step (see `docs/PHASE5_PLAN.md`).
+- Emails that look like invitations or registrations but cannot be read by rule (personal invitations, speaking requests, confirmations without a date) are **read by your local model, on this Mac**, a couple a minute, the
+  most personal first. A line on the tab shows the progress. The model only extracts what the email says (title, date, place, your role, a reply-by date); dates that make no sense are refused, and marketing is dropped.
+  Found events appear with an **Invited** chip, a role (for example Speaking) and **Reply by** when the email gives one. If a sender keeps producing non-events, open one of its events and click **Ignore this sender**;
+  **Not an event** hides a single event.
 
 ## The bands: a landscape for each tab
 

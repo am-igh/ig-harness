@@ -65,6 +65,7 @@ SIGNAL_STATUS = {
     ("email-club", "invitation"): "invited", ("email-club", "reminder"): "invited", ("email-club", "information"): "invited",
     ("email-luma", "registration approved"): "confirmed", ("email-luma", "registration confirmed"): "confirmed", ("email-luma", "registration pending approval"): "tentative",
     ("email-registration", "registration confirmed"): "confirmed",
+    ("email-model", "invited"): "invited", ("email-model", "registered"): "confirmed", ("email-model", "declined"): "declined", ("email-model", "information"): "none",
 }
 
 
@@ -244,7 +245,7 @@ def _view(r, clash_ids: list[int]) -> dict:
     return {"id": r["id"], "title": r["title"], "start": r["start"], "end": r["end"], "all_day": bool(r["all_day"]), "venue": r["venue"], "online": bool(r["online"]), "url": r["url"],
             "organizer": r["organizer"], "topics": (r["topics"] or "").split(",") if r["topics"] else [], "geneva": bool(r["geneva"]), "role": r["role"],
             "status": effective_status(r), "derived_status": r["derived_status"], "overridden": r["user_status"] is not None, "source_kind": r["source_kind"],
-            "hidden": bool(r["hidden"]), "relevant": bool(r["relevant"]), "tier": r["tier"], "clashes": clash_ids}
+            "hidden": bool(r["hidden"]), "relevant": bool(r["relevant"]), "tier": r["tier"], "rsvp_by": r["rsvp_by"], "clashes": clash_ids}
 
 
 def list_events(conn: sqlite3.Connection, today: date, scope: str = "upcoming", q: str | None = None, status: str | None = None,

@@ -46,6 +46,8 @@ One **Events** tab (the Geneva tab, enlarged): conferences and events relevant t
 
 - 5.2 built: Club Diplomatique subjects, Luma, organiser registrations, Genève internationale tables; evidence-based status; merging across sources; helper `sync-events` + agent step. First real run: 1,649 event-related messages in the year, about 600 events in the archive; about 1,500 emails kept as candidates for the model step (mostly noise: prioritise non-bulk, direct, personal invitations).
 
+- 5.3 built: candidates are read by the local model (job `event_extract`, S2) with a background reader (2 per 30 s, most personal first), roles, reply-by dates, retries (3), progress line, and 'Ignore this sender'. The helper keeps a trimmed body only for senders the rules cannot read; `make` target: `python3 tools/google_helper.py backfill-event-bodies` for the first run.
+
 ## Rules that stay
 Drafts only, never send; inbox-derived data local only (S2); public data S0; one model door (gateway, new job `event_extract`); no real data in the repo; nothing in her files changes; calendar stays read-only.
 

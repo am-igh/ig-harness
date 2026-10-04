@@ -224,7 +224,7 @@ export const getProjectChecks = () => j<ProjectChecks>("/api/projects-check");
 // ---- Geneva and beyond (events)
 export type EventStatus = "none" | "invited" | "interested" | "tentative" | "confirmed" | "declined";
 export type EventItem = { id: number; title: string; start: string; end: string | null; all_day: boolean; venue: string | null; online: boolean; url: string | null; organizer: string | null;
-  topics: string[]; geneva: boolean; relevant: boolean; tier: string; role: string | null; status: EventStatus; derived_status: EventStatus; overridden: boolean; source_kind: string; hidden: boolean; clashes: number[] };
+  topics: string[]; geneva: boolean; relevant: boolean; tier: string; role: string | null; rsvp_by: string | null; status: EventStatus; derived_status: EventStatus; overridden: boolean; source_kind: string; hidden: boolean; clashes: number[] };
 export type EventsResponse = { scope: string; items: EventItem[]; total: number; counts: { confirmed: number; tentative: number; invited: number; interested: number }; topics: string[]; other_listings: number; candidates: number };
 export type EventDetail = EventItem & { evidence: { kind: string; signal: string | null; detail: string | null; observed_at: string }[]; forced: boolean };
 export type EventQuery = { scope?: "upcoming" | "archive"; q?: string; status?: string; geneva?: boolean; topic?: string; allListings?: boolean };
@@ -247,3 +247,6 @@ export const hideEvent = (id: number, hidden = true) => j<{ ok: boolean }>(`/api
 export type TimelineItem = { kind: "deadline" | "register" | "event"; id: number | null; title: string; date: string; importance: string };
 export type ProjectsTimeline = { today: string; days: number; lanes: { code: string; name: string; items: TimelineItem[] }[] };
 export const getProjectsTimeline = (days = 90) => j<ProjectsTimeline>(`/api/projects-timeline?days=${days}`);
+export type EventsReading = { total: number; read: number; waiting: number; awaiting_text: number; gave_up: number; events_found: number; personal_waiting: number };
+export const getEventsReading = () => j<EventsReading>("/api/events-reading");
+export const ignoreEventSource = (id: number) => j<{ ignored: string[] }>(`/api/events/${id}/ignore-source`, { method: "POST" });

@@ -423,13 +423,19 @@ EVENT_QUERIES = [
 EVENT_FIRST_DAYS, EVENT_LATER_DAYS = 400, 21
 
 
-def normalize_event_mail(msg: dict, me: str) -> dict | None:
-    """One message -> the few fields the events importer needs. No body is kept (the Genève internationale tables are parsed here and only their rows are kept)."""
+EVENT_BODY_CHARS = 2500
+_KNOWN_PARSED = ("clubdiplomatique.ch", "geneve-int.ch", "luma-mail.com", "lu.ma")      # their emails are read by rules; no body needed
+
+
+def normalize_event_mail(msg: dict, me: str, with_body: bool = False) -> dict | None:
+    """One message -> the few fields the events importer needs. A trimmed plain-text body is kept only for senders the rules cannot read (the local model reads
+    those, on this Mac); the Genève internationale tables are parsed here and only their rows are kept."""
     h = msg.get("payload", {}).get("headers", [])
     name, addr = _parse_from(_header(h, "From"))
     if not addr or addr == me.lower():
         return None
-    return {"id": msg["id"], "thread_id": msg.get("threadId", msg["id"]), "date_ms": int(msg.get("internalDate", 0)), "from_email": addr, "from_name": name,
+    body = " ".join(strip_quoted(_text_of(msg.get("payload", {}))).split())[:EVENT_BODY_CHARS] if with_body and not addr.endswith(_KNOWN_PARSED) else None
+    return {**({"body": body} if body else {}), "id": msg["id"], "thread_id": msg.get("threadId", msg["id"]), "date_ms": int(msg.get("internalDate", 0)), "from_email": addr, "from_name": name,
             "subject": _header(h, "Subject"), "snippet": msg.get("snippet", ""), "direct": me.lower() in _header(h, "To").lower(), "labels": msg.get("labelIds", []),
             "bulk": bool(_header(h, "List-Unsubscribe")) or _header(h, "Precedence").lower() in ("bulk", "list", "junk") or _header(h, "Auto-Submitted").lower().startswith("auto-")}
 
@@ -478,10 +484,10 @@ def sync_event_mail() -> None:
     failed = 0
     for n, mid in enumerate(new_ids, 1):
         try:
-            msg = _get(f"{GMAIL_API}/messages/{mid}", access, {"format": "metadata"})        # headers and snippet only
-            norm = normalize_event_mail(msg, me)
+            msg = _get(f"{GMAIL_API}/messages/{mid}", access, {"format": "full"})
+            norm = normalize_event_mail(msg, me, with_body=True)
             if norm and norm["from_email"].endswith("geneve-int.ch"):                          # only this newsletter needs its body (HTML tables)
-                norm["listing"] = parse_geneve_int(_html_of(_get(f"{GMAIL_API}/messages/{mid}", access, {"format": "full"}).get("payload", {})))
+                norm["listing"] = parse_geneve_int(_html_of(msg.get("payload", {})))
         except GoogleError:
             failed += 1
             continue
@@ -498,6 +504,28 @@ def sync_event_mail() -> None:
     print(f"\nWrote {len(old)} event-related messages to {EVENT_OUT}" + (f" ({failed} skipped)" if failed else ""))
 
 
+def backfill_event_bodies() -> None:
+    """One-off: add the trimmed body to messages already in event_mail.json (non-bulk first), for the local model to read. Read-only; saves as it goes."""
+    import time
+    access = _access_token(GMAIL_TOKEN_ITEM, "login-gmail")
+    me = _get(f"{GMAIL_API}/profile", access)["emailAddress"]
+    data = json.loads(EVENT_OUT.read_text())
+    todo = [m for m in data["messages"] if "body" not in m and not m["from_email"].endswith(_KNOWN_PARSED) and "listing" not in m]
+    todo.sort(key=lambda m: (m.get("bulk", False), -m["date_ms"]))
+    print(f"{len(todo)} messages need a body")
+    for n, m in enumerate(todo, 1):
+        try:
+            full = normalize_event_mail(_get(f"{GMAIL_API}/messages/{m['id']}", access, {"format": "full"}), me, with_body=True)
+        except GoogleError:
+            continue
+        m["body"] = (full or {}).get("body") or ""
+        if n % 50 == 0 or n == len(todo):
+            tmp = EVENT_OUT.with_suffix(".tmp"); tmp.write_text(json.dumps(data, ensure_ascii=False)); tmp.replace(EVENT_OUT)
+            print(f"  {n}/{len(todo)}", end="\r", flush=True)
+        time.sleep(0.05)
+    print("\nDone.")
+
+
 if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else ""
     if cmd == "store-client" and len(sys.argv) == 3: store_client(sys.argv[2])
@@ -507,4 +535,5 @@ if __name__ == "__main__":
     elif cmd == "sync-gmail": sync_gmail()
     elif cmd == "sync-correspondence": sync_correspondence()
     elif cmd == "sync-events": sync_event_mail()
+    elif cmd == "backfill-event-bodies": backfill_event_bodies()
     else: sys.exit(__doc__)

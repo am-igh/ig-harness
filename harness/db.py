@@ -516,6 +516,21 @@ MIGRATIONS: list[str] = [
         created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
     """,
+    # 28: reading candidate invitations with the local model: the email text, when and by which model it was read, retries, the reply-by date of an invitation,
+    # and senders she told us to ignore
+    """
+    ALTER TABLE event_candidates ADD COLUMN body TEXT;
+    ALTER TABLE event_candidates ADD COLUMN read_at TEXT;
+    ALTER TABLE event_candidates ADD COLUMN model TEXT;
+    ALTER TABLE event_candidates ADD COLUMN note TEXT;
+    ALTER TABLE event_candidates ADD COLUMN attempts INTEGER NOT NULL DEFAULT 0;
+    ALTER TABLE events ADD COLUMN rsvp_by TEXT;
+    CREATE TABLE event_sender_rules (
+        sender TEXT PRIMARY KEY,               -- an address or a whole domain
+        rule TEXT NOT NULL DEFAULT 'ignore' CHECK (rule IN ('ignore')),
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    """,
 ]
 
 

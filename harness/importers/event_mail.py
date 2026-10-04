@@ -73,8 +73,10 @@ def import_event_mail(conn: sqlite3.Connection, folder: Path) -> list[Report]:
                     E.upsert_external(conn, source_kind="email-registration", tier="S2", title=r["title"], start=r["start"], end=r["end"], all_day=True, venue=r["venue"], online=False, url=None,
                                       organizer=dom, evidence=("email-registration", ref, "registration confirmed", sent[:10]))
                 elif INVITE.search(subj) or P.is_registration_confirmation(subj):          # a confirmation without a readable date also goes to the model step
-                    conn.execute("INSERT OR IGNORE INTO event_candidates (message_id, thread_id, received_at, sender, subject, snippet, bulk, direct) VALUES (?,?,?,?,?,?,?,?)",
-                                       (ref, m.get("thread_id") or ref, sent[:10], sender, subj[:200], snip[:300], int(bool(m.get("bulk"))), int(bool(m.get("direct")))))
+                    conn.execute("INSERT OR IGNORE INTO event_candidates (message_id, thread_id, received_at, sender, subject, snippet, bulk, direct, body) VALUES (?,?,?,?,?,?,?,?,?)",
+                                       (ref, m.get("thread_id") or ref, sent[:10], sender, subj[:200], snip[:300], int(bool(m.get("bulk"))), int(bool(m.get("direct"))), m.get("body")))
+                    if m.get("body") is not None:                                           # a later sync may bring the body of an earlier candidate ("" = the email has no text)
+                        conn.execute("UPDATE event_candidates SET body = ? WHERE message_id = ? AND body IS NULL", (m["body"], ref))
     after = conn.execute("SELECT COUNT(*) FROM events").fetchone()[0]
     rep.added = max(0, after - before)
     rep.unchanged = max(0, len(data.get("messages", [])) - rep.added - rep.skipped)

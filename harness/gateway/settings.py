@@ -10,7 +10,8 @@ from harness.gateway.tiers import Tier
 JOBS = {
     "email_triage": {"label": "Email triage", "tier": Tier.S2},   # email is confidential: local models only
     "email_draft": {"label": "Draft replies", "tier": Tier.S2},   # drafts quote her correspondence: local models only
-    "doc_read": {"label": "Read scanned invoices and receipts", "tier": Tier.S2},   # invoices and receipts are confidential: local models only
+    "doc_read": {"label": "Read scanned invoices and receipts", "tier": Tier.S2},
+    "event_extract": {"label": "Read event invitations in email", "tier": Tier.S2},   # invitations are partner email: local models only   # invoices and receipts are confidential: local models only
 }
 PROVIDERS = {"local", "infomaniak", "anthropic", "openrouter"}
 

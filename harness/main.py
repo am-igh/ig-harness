@@ -27,6 +27,21 @@ def _collector() -> None:
         time.sleep(3)
 
 
+def _event_reader():
+    """Slowly read the emails that look like invitations with the local model (a couple a minute, most personal first)."""
+    from harness import events_ai
+    while True:
+        try:
+            c = db.connect()
+            try:
+                events_ai.tick(c, limit=2)
+            finally:
+                c.close()
+        except Exception:
+            pass
+        time.sleep(30)
+
+
 def _scan_watcher():
     """Every few seconds: notice new scans in the Scan-Inbox folder and read them (on this Mac, with the local model)."""
     from harness import scans
@@ -51,6 +66,7 @@ async def lifespan(app: FastAPI):
     threading.Thread(target=_collector, daemon=True).start()
     if os.environ.get("IG_SCAN_WATCH", "1") != "0":
         threading.Thread(target=_scan_watcher, daemon=True).start()
+        threading.Thread(target=_event_reader, daemon=True).start()
     yield
 
 
@@ -1016,3 +1032,18 @@ def events_hide(eid: int, hidden: bool = True) -> dict:
     if not _with_conn(lambda c: events.hide(c, eid, hidden)):
         raise HTTPException(404, "No such event")
     return {"ok": True}
+
+
+@app.get("/api/events-reading")
+def events_reading() -> dict:
+    from harness import events_ai
+    return _with_conn(events_ai.progress)
+
+
+@app.post("/api/events/{eid}/ignore-source")
+def events_ignore_source(eid: int) -> dict:
+    from harness import events_ai
+    try:
+        return _with_conn(lambda c: events_ai.ignore_source(c, eid))
+    except ValueError as e:
+        raise HTTPException(422, str(e))

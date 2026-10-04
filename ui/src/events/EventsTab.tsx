@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { type EventDetail, type EventItem, type EventsResponse, getEvent, getEvents, hideEvent, setEventStatus } from "../api";
+import { type EventDetail, type EventItem, type EventsReading, type EventsResponse, getEvent, getEvents, getEventsReading, hideEvent, ignoreEventSource, setEventStatus } from "../api";
 import { dayMonth, dayShort, timeOf, todayIso } from "../format";
 import Scene, { type SceneMark } from "../scenes/Scene";
 import { Shell } from "../today/Drawer";
@@ -8,8 +8,8 @@ const STATUS_LABEL: Record<string, string> = { confirmed: "You're in", tentative
 const ROLE_LABEL: Record<string, string> = { moderator: "Moderating", facilitator: "Facilitating", speaker: "Speaking", panelist: "Panelist", judge: "Judging", mentor: "Mentoring" };
 
 const EVIDENCE_LABEL: Record<string, string> = { calendar: "Your Google Calendar", "email-club": "Club Diplomatique email", "email-luma": "Luma registration email", "email-registration": "Registration confirmation email",
-  "listing-geneve-int": "Genève internationale listing" };
-const SOURCE_LABEL: Record<string, string> = { "email-club": "Club Diplomatique", "listing-geneve-int": "International Geneva listing", "email-luma": "Registration", "email-registration": "Registration" };
+  "listing-geneve-int": "Genève internationale listing", "email-model": "Email read by your local model" };
+const SOURCE_LABEL: Record<string, string> = { "email-model": "From an email", "email-club": "Club Diplomatique", "listing-geneve-int": "International Geneva listing", "email-luma": "Registration", "email-registration": "Registration" };
 
 function when(e: EventItem): string {
   const d1 = e.start.slice(0, 10);
@@ -41,6 +41,7 @@ function Card({ e, onOpen }: { e: EventItem; onOpen: () => void }) {
           {e.geneva && <span className="chip chip-soft">Geneva</span>}
           {SOURCE_LABEL[e.source_kind] && e.status === "none" && <span className="chip chip-src">{SOURCE_LABEL[e.source_kind]}</span>}
           {e.topics.slice(0, 3).map((t) => <span key={t} className="chip chip-topic">{t}</span>)}
+          {e.rsvp_by && e.status === "invited" && <span className="chip chip-clash">Reply by {dayMonth(e.rsvp_by)}</span>}
           {e.clashes.length > 0 && <span className="chip chip-clash">⚠ Clash</span>}
         </div>
       </div>
@@ -63,6 +64,7 @@ function EventDrawer({ id, onClose, onChanged }: { id: number; onClose: () => vo
       </div>
       <div className="facts">
         {d.venue && <><span>Where</span><span>{d.venue}</span></>}
+        {d.rsvp_by && <><span>Reply by</span><span>{dayShort(d.rsvp_by)}</span></>}
         {d.url && <><span>Link</span><span><a href={d.url} target="_blank" rel="noreferrer">{d.url.replace(/^https?:\/\//, "").slice(0, 60)}</a></span></>}
         <span>Status</span><span>{STATUS_LABEL[d.status] || "No response"}{d.overridden ? ` (you set this; your calendar says ${STATUS_LABEL[d.derived_status] || "nothing"})` : ""}</span>
       </div>
@@ -73,6 +75,7 @@ function EventDrawer({ id, onClose, onChanged }: { id: number; onClose: () => vo
         <button type="button" className={d.status === "declined" ? "btn-primary" : "btn-ghost"} onClick={() => set("declined")}>Not going</button>
         {d.overridden && <button type="button" className="btn-ghost" onClick={() => set(null)}>Use my calendar's answer</button>}
         <button type="button" className="btn-ghost" onClick={async () => { await hideEvent(id); onChanged(); onClose(); }}>Not an event</button>
+        {d.evidence.some((e) => e.kind === "email-model") && <button type="button" className="btn-ghost" title="Skip future emails from this sender" onClick={async () => { try { await ignoreEventSource(id); onChanged(); onClose(); } catch { /* shown nowhere: the button only appears for email events */ } }}>Ignore this sender</button>}
       </div>
       <div className="related"><div className="kicker">WHY IT IS HERE</div>
         {d.evidence.map((e, i) => <div key={i} className="related-row"><span>{EVIDENCE_LABEL[e.kind] ?? e.kind}: {e.signal ?? "—"}{e.detail && !/^\d{4}-\d{2}-\d{2}$/.test(e.detail) ? ` · ${e.detail}` : ""}</span><span className="muted">{e.observed_at.slice(0, 10)}</span></div>)}
@@ -90,6 +93,8 @@ export default function EventsTab() {
   const [allListings, setAllListings] = useState(false);
   const [data, setData] = useState<EventsResponse | null>(null);
   const [band, setBand] = useState<EventsResponse | null>(null);
+  const [reading, setReading] = useState<EventsReading | null>(null);
+  useEffect(() => { const f = () => getEventsReading().then(setReading).catch(() => setReading(null)); f(); const t = setInterval(f, 20_000); return () => clearInterval(t); }, []);
   const [open, setOpen] = useState<number | null>(null);
   const load = useCallback(() => getEvents({ scope, q: q || undefined, status: status || undefined, geneva: geneva || undefined, topic: topic || undefined, allListings }).then(setData).catch(() => setData(null)), [scope, q, status, geneva, topic, allListings]);
   useEffect(() => { const t = setTimeout(load, q ? 250 : 0); return () => clearTimeout(t); }, [load, q]);
@@ -131,7 +136,10 @@ export default function EventsTab() {
         {(data?.topics ?? []).map((t) => chip(t, topic === t, () => setTopic(topic === t ? "" : t)))}
         {(data?.other_listings ?? 0) > 0 && chip(`Also other International Geneva listings (${data!.other_listings})`, allListings, () => setAllListings(!allListings))}
       </div>
-      {scope === "upcoming" && (data?.candidates ?? 0) > 0 && <p className="muted">{data!.candidates} more emails look like invitations or registrations that I could not read by rule (no clear date). Reading them with your local model comes next.</p>}
+      {scope === "upcoming" && reading && reading.waiting > 0 && (
+        <p className="muted">Reading your inbox for invitations with the local model, on this Mac: <b>{reading.read}</b> of {reading.total} emails done, <b>{reading.events_found}</b> events found so far
+          {reading.personal_waiting > 0 ? ` · ${reading.personal_waiting} personal emails first` : ""}. New events appear here as they are found.</p>
+      )}
       {data && data.items.length === 0 && <p className="muted">{scope === "upcoming" ? "No events match." : "Nothing in the archive matches."} Events come from your Google Calendar, event emails and the Genève internationale newsletter.</p>}
       {groups.map(([g, items]) => <section key={g} className="ev-group"><h3 className="ev-week">{g}</h3>{items.map((e) => <Card key={e.id} e={e} onOpen={() => setOpen(e.id)} />)}</section>)}
       {data && data.total > data.items.length && <p className="muted">Showing the first {data.items.length} of {data.total}. Narrow the search to see the rest.</p>}
