@@ -7,16 +7,18 @@ function Row({ t, onDone }: { t: PhoneTodo; onDone: () => void }) {
   const [due, setDue] = useState(t.due_date ?? "");
   const [code, setCode] = useState(t.project_code ?? "");
   const [masked, setMasked] = useState(t.masked);
+  const [personal, setPersonal] = useState(t.space === "personal");
   const [err, setErr] = useState("");
   const show = async () => { const d = await revealPhone(t.id); setText(d.text); setCode(d.project_code ?? ""); setMasked(false); };
-  const add = async () => { setErr(""); try { await acceptPhone(t.id, { text, due_date: due || null, project_code: code || null }); onDone(); } catch (e) { setErr((e as Error).message); } };
+  const add = async () => { setErr(""); try { await acceptPhone(t.id, { text, due_date: due || null, project_code: personal ? null : code || null, space: personal ? "personal" : "work" }); onDone(); } catch (e) { setErr((e as Error).message); } };
   return (
     <div className="phone-row">
       <div className="phone-main">
         {masked ? <button type="button" className="btn-ghost" onClick={show}>🔒 Personal to-do · show</button>
           : <input className="phone-text" value={text} onChange={(e) => setText(e.target.value)} aria-label="To-do" />}
         <input className="phone-due" type="date" value={due} onChange={(e) => setDue(e.target.value)} aria-label="Due date" title={due ? dayShort(due) : "No date yet: today"} />
-        {!masked && t.space === "work" && <input className="phone-code" value={code} placeholder="project" onChange={(e) => setCode(e.target.value.toUpperCase())} maxLength={8} aria-label="Project code" />}
+        {!masked && !personal && <input className="phone-code" value={code} placeholder="project" onChange={(e) => setCode(e.target.value.toUpperCase())} maxLength={8} aria-label="Project code" />}
+        <label className="phone-personal" title="Personal to-dos stay on this Mac: masked, never sent to Suivi"><input type="checkbox" checked={personal} onChange={(e) => setPersonal(e.target.checked)} /> Personal</label>
         <button type="button" className="btn-primary" onClick={add} disabled={masked}>Add to Today</button>
         <button type="button" className="btn-ghost" onClick={async () => { await dismissPhone(t.id); onDone(); }}>Dismiss</button>
       </div>
