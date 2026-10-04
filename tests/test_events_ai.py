@@ -84,13 +84,22 @@ def test_date_only_events_are_all_day_with_an_exclusive_end(c):
     assert r["start"] == "2026-07-01T10:00:00+02:00" and r["end"] is None                                                  # summer time
 
 
-def test_model_failures_are_retried_a_few_times_and_the_candidate_stays_waiting(c):
+def test_an_unreadable_answer_is_retried_a_few_times_but_a_missing_model_costs_nothing(c):
     cid = cand(c, "m1")
-    gw = FakeGateway([None, "not json", None])
+    assert A.read_candidate(c, FakeGateway([None, None]), cid, TODAY) == "unavailable" and A.read_candidate(c, FakeGateway([None]), cid, TODAY) == "unavailable"
+    row = c.execute("SELECT status, attempts, note FROM event_candidates").fetchone()
+    assert (row["status"], row["attempts"]) == ("new", 0) and "unavailable" in row["note"]                                 # the model being down is not the email's fault
+    gw = FakeGateway(["not json", "still not json", "no braces here"])
     assert [A.read_candidate(c, gw, cid, TODAY) for _ in range(3)] == ["failed"] * 3
-    row = c.execute("SELECT status, attempts FROM event_candidates").fetchone()
-    assert (row["status"], row["attempts"]) == ("new", 3)
+    assert c.execute("SELECT attempts FROM event_candidates").fetchone()[0] == 3
     assert A.tick(c, FakeGateway([ANS]), 5, TODAY) == 0 and A.progress(c)["gave_up"] == 1                                  # three strikes: no more automatic retries
+
+
+def test_tick_stops_at_the_first_unavailable_model_instead_of_hammering_it(c):
+    for i in range(4):
+        cand(c, f"m{i}")
+    gw = FakeGateway([None, None, None, None])
+    assert A.tick(c, gw, 4, TODAY) == 0 and len(gw.calls) == 1
 
 
 def test_the_most_personal_candidates_are_read_first(c):

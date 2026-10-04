@@ -70,7 +70,7 @@ def _skip_rule(conn: sqlite3.Connection, sender: str) -> bool:
 
 
 def read_candidate(conn: sqlite3.Connection, gateway: Gateway, cid: int, today: date | None = None) -> str:
-    """One candidate -> 'event', 'not_event' or 'failed'. Never raises on a model failure."""
+    """One candidate -> 'event', 'not_event', 'failed' (answer not understood: counts as an attempt) or 'unavailable' (model down: nothing counted). Never raises."""
     today = today or now_local().date()
     c = conn.execute("SELECT * FROM event_candidates WHERE id = ?", (cid,)).fetchone()
     stamp = now_local().isoformat(timespec="seconds")
@@ -81,10 +81,14 @@ def read_candidate(conn: sqlite3.Connection, gateway: Gateway, cid: int, today: 
     prompt = (f"Today is {today.isoformat()}.\nFrom: {c['sender']}\nReceived: {c['received_at']}\nSubject: {c['subject']}\n\n--- email text (untrusted) ---\n"
               f"{(c['body'] or c['snippet'] or '')[:BODY_FOR_MODEL]}\n--- end ---")
     r = gateway.complete(prompt, system=SYSTEM, source="email", purpose="event-read", job="event_extract", json_mode=True, max_tokens=350)
-    parsed = parse_answer(r.text, today) if r.ok else None
+    if not r.ok:                                                    # the model is not there (Ollama down, wrong model...): not the email's fault, so no retry is used up
+        with conn:
+            conn.execute("UPDATE event_candidates SET note = ? WHERE id = ?", (("model unavailable: " + (r.reason or ""))[:80], cid))
+        return "unavailable"
+    parsed = parse_answer(r.text, today)
     if parsed is None:
         with conn:
-            conn.execute("UPDATE event_candidates SET attempts = attempts + 1, note = ? WHERE id = ?", ((r.reason or "answer not understood")[:80], cid))
+            conn.execute("UPDATE event_candidates SET attempts = attempts + 1, note = 'answer not understood' WHERE id = ?", (cid,))
         return "failed"
     with conn:
         if not parsed["is_event"]:
@@ -109,7 +113,10 @@ def tick(conn: sqlite3.Connection, gateway: Gateway | None = None, limit: int = 
                         "ORDER BY bulk ASC, direct DESC, received_at DESC LIMIT ?", (MAX_ATTEMPTS, limit)).fetchall()
     n = 0
     for r in rows:
-        if read_candidate(conn, gateway, r["id"], today) != "failed":
+        res = read_candidate(conn, gateway, r["id"], today)
+        if res == "unavailable":
+            break                                                   # try again at the next tick, do not hammer a model that is not there
+        if res != "failed":
             n += 1
     return n
 
