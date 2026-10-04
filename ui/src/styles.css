@@ -319,3 +319,11 @@ table.score td.best { font-weight: 700; color: var(--purple); }
 @keyframes sc-bob { 0%, 100% { translate: 0 0; } 50% { translate: 0 -2.5px; } } @keyframes sc-pulse { 0%, 100% { opacity: .5; transform: scale(.92); } 50% { opacity: 1; transform: scale(1.08); } }
 @media (prefers-reduced-motion: reduce) { .sc-waves, .sc-contrail, .sc-flow, .sc-boat, .sc-gull, .sc-beam { animation: none; } }
 @media (max-width: 1100px) { .scene .sc-legend { max-width: calc(100% - 40px); top: 150px; } }
+
+/* from your phone */
+.phone-wrap { padding: 12px 32px 0; } .phone-wrap:empty { display: none; }
+.phone-box { background: #fff; border: 1px solid #c9cfe6; border-left: 5px solid var(--peri); border-radius: 14px; padding: 12px 16px; }
+.phone-box h3 { margin: 0; color: var(--navy); } .phone-row { padding: 8px 0; border-top: 1px solid var(--line); } .phone-row:first-of-type { border-top: none; }
+.phone-main { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; } .phone-text { flex: 1 1 280px; min-width: 200px; font: inherit; font-size: 14px; padding: 6px 9px; border: 1px solid var(--line); border-radius: 8px; }
+.phone-due, .phone-code { font: inherit; font-size: 13px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; } .phone-code { width: 84px; }
+.phone-hint { font-size: 12px; color: var(--muted); padding: 8px 32px 0; }

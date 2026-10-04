@@ -1047,3 +1047,46 @@ def events_ignore_source(eid: int) -> dict:
         return _with_conn(lambda c: events_ai.ignore_source(c, eid))
     except ValueError as e:
         raise HTTPException(422, str(e))
+
+
+# --- To-dos from her phone (Reminders list "Harness") ---
+class PhoneEdit(BaseModel):
+    text: str | None = None
+    due_date: str | None = None
+    project_code: str | None = None
+    space: str | None = None
+
+
+@app.get("/api/phone")
+def phone_list() -> dict:
+    from harness import phone
+    return _with_conn(phone.list_new)
+
+
+@app.post("/api/phone/{rid}/accept")
+def phone_accept(rid: str, body: PhoneEdit | None = None) -> dict:
+    from harness import phone
+    from harness.notes import NoteRefused
+    try:
+        return _with_conn(lambda c: phone.accept(c, rid, body.model_dump(exclude_unset=True) if body else None))
+    except KeyError:
+        raise HTTPException(404, "No such to-do")
+    except (ValueError, NoteRefused) as e:
+        raise HTTPException(422, str(e))
+
+
+@app.post("/api/phone/{rid}/dismiss")
+def phone_dismiss(rid: str) -> dict:
+    from harness import phone
+    if not _with_conn(lambda c: phone.dismiss(c, rid)):
+        raise HTTPException(404, "No such waiting to-do")
+    return {"ok": True}
+
+
+@app.get("/api/phone/{rid}/reveal")
+def phone_reveal(rid: str) -> dict:
+    from harness import phone
+    d = _with_conn(lambda c: phone.reveal(c, rid))
+    if d is None:
+        raise HTTPException(404, "No such waiting to-do")
+    return d

@@ -8,6 +8,7 @@ import NotesBox from "../notes/NotesBox";
 import QuickNote from "../notes/QuickNote";
 import AuditTile, { useAuditStatus } from "../finance/AuditTile";
 import ScanTile from "../finance/ScanTile";
+import PhoneBox from "./PhoneBox";
 import { HoursTile, useHours } from "../finance/HoursDrawer";
 import { useScans } from "../finance/ScansDrawer";
 import Lake from "./Lake";
@@ -156,6 +157,7 @@ export default function TodayTab() {
     <>
       <Lake data={data} doneCount={data.done_this_week} celebrate={celebrate}
         onOpenDone={() => setPanel({ kind: "done" })} onOpenDeadline={(id) => setPanel({ kind: "deadline", id })} />
+      <div className="phone-wrap"><PhoneBox onChanged={load} /></div>
       <main className="page grid">
         <section className="panel">
           <div className="panel-head"><h2 className="serif">Today &amp; overdue</h2><span className="muted">{open} open</span></div>

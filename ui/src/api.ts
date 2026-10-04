@@ -250,3 +250,12 @@ export const getProjectsTimeline = (days = 90) => j<ProjectsTimeline>(`/api/proj
 export type EventsReading = { total: number; read: number; waiting: number; awaiting_text: number; gave_up: number; events_found: number; personal_waiting: number };
 export const getEventsReading = () => j<EventsReading>("/api/events-reading");
 export const ignoreEventSource = (id: number) => j<{ ignored: string[] }>(`/api/events/${id}/ignore-source`, { method: "POST" });
+
+// ---- To-dos from her phone (Reminders list "Harness")
+export type PhoneTodo = { id: string; text: string; due_date: string | null; project_code: string | null; space: "work" | "personal"; masked: boolean; created_at: string | null; notes: string | null };
+export type PhoneList = { items: PhoneTodo[]; fetched_at: string | null; error: string | null; list: string | null };
+export const getPhone = () => j<PhoneList>("/api/phone");
+export const acceptPhone = (id: string, edits?: { text?: string; due_date?: string | null; project_code?: string | null }) =>
+  j<{ task_id: number; due: string }>(`/api/phone/${encodeURIComponent(id)}/accept`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(edits ?? {}) });
+export const dismissPhone = (id: string) => j<{ ok: boolean }>(`/api/phone/${encodeURIComponent(id)}/dismiss`, { method: "POST" });
+export const revealPhone = (id: string) => j<PhoneTodo>(`/api/phone/${encodeURIComponent(id)}/reveal`);

@@ -531,6 +531,18 @@ MIGRATIONS: list[str] = [
         created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
     """,
+    # 29: to-dos she dictates on her phone (Reminders list "Harness"): a short list to confirm, then they become tasks
+    """
+    CREATE TABLE phone_todos (
+        reminder_id TEXT PRIMARY KEY,
+        text TEXT NOT NULL, notes TEXT, due_date TEXT, created_at TEXT,
+        space TEXT NOT NULL DEFAULT 'work', project_code TEXT,
+        status TEXT NOT NULL DEFAULT 'new' CHECK (status IN ('new','accepted','dismissed')),
+        task_id INTEGER, note_id INTEGER, gone INTEGER NOT NULL DEFAULT 0,
+        first_seen TEXT NOT NULL DEFAULT (datetime('now')), decided_at TEXT
+    );
+    CREATE TABLE phone_state (k TEXT PRIMARY KEY, v TEXT);
+    """,
 ]
 
 

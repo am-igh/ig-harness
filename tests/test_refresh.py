@@ -111,10 +111,10 @@ def cycle(tmp_path, f, **kw):
 def test_a_full_cycle_runs_every_step_in_order_and_records_success(tmp_path):
     f = Fakes()
     st = cycle(tmp_path, f)
-    assert [s["name"] for s in st["steps"]] == ["calendar", "gmail", "suivi", "import", "triage", "backup"]    # correspondence not due (read 1h ago)
-    assert f.calls == ["sync", "sync-gmail", "run"] and ("POST", "/api/import") in f.http_calls and ("POST", "/api/triage/run") in f.http_calls
+    assert [s["name"] for s in st["steps"]] == ["calendar", "gmail", "reminders", "suivi", "import", "triage", "backup"]    # correspondence not due (read 1h ago)
+    assert f.calls == ["sync", "sync-gmail", "pull", "run"] and ("POST", "/api/import") in f.http_calls and ("POST", "/api/triage/run") in f.http_calls
     assert st["ok"] is True and st["running"] is False and st["last_success_at"] == st["finished_at"]
-    assert st["steps"][3]["note"] == "6 change(s)" and st["backup"]["note"] == "saved harness-x.db"
+    assert st["steps"][4]["note"] == "6 change(s)" and st["backup"]["note"] == "saved harness-x.db"
     assert R.read_status(tmp_path) == st
 
 
@@ -129,7 +129,7 @@ def test_one_failing_step_never_stops_the_others(tmp_path):
     f = Fakes(fail={"sync-gmail"})
     st = cycle(tmp_path, f)
     states = {s["name"]: s["state"] for s in st["steps"]}
-    assert states == {"calendar": "ok", "gmail": "error", "suivi": "ok", "import": "ok", "triage": "ok", "backup": "ok"}
+    assert states == {"calendar": "ok", "gmail": "error", "reminders": "ok", "suivi": "ok", "import": "ok", "triage": "ok", "backup": "ok"}
     assert st["ok"] is False and st["last_success_at"] is None
     assert "Not logged in" in st["steps"][1]["note"]
 
@@ -146,7 +146,7 @@ def test_when_the_harness_is_not_running_the_fetches_still_happen_and_the_rest_i
     st = cycle(tmp_path, f)
     states = {s["name"]: s["state"] for s in st["steps"]}
     assert states["calendar"] == "ok" and states["gmail"] == "ok" and states["import"] == "skipped" and states["triage"] == "skipped"
-    assert st["ok"] is True and "make up" in st["steps"][3]["note"]
+    assert st["ok"] is True and "make up" in st["steps"][4]["note"]
 
 
 def test_import_problems_are_reported_by_name(tmp_path):

@@ -214,3 +214,18 @@ Each tab opens with a dark-blue landscape in the style of the Jet d'eau lake on 
 - **Projects & finance:** the Rhône leaving the lake under the Pont du Mont-Blanc, with vineyard terraces on the hill. One stream per project; deadlines, mandate dates and tagged calendar events flow along it.
 - **Inbox:** the Pâquis lighthouse and boats at anchor. The lighthouse counts the emails that need you; a boat on the water marks a reply deadline.
 The movement (waves, flow, boats, the lighthouse beam) stops if your computer is set to "reduce motion".
+
+## To-dos from your phone (Siri and Reminders)
+
+**One-time setup (2 minutes)**
+1. In **Reminders** (on your iPhone or Mac, with iCloud on) create a list called exactly **Harness**.
+2. Optional but handy: on the iPhone, **Settings → Reminders → Default List → Harness**, so "Hey Siri, remind me to …" lands there.
+3. On the Mac, in Terminal inside the `ig-harness` folder: `make reminders-pull`. If macOS asks whether Terminal may control Reminders, click **OK** (System Settings → Privacy & Security → Automation).
+
+**Each time:** "Hey Siri, add *call Daniel about the survey tomorrow* to my Harness list." (or type it in Reminders). Within a few minutes (the refresh agent reads the list every cycle, or press ↻) it appears on Today under
+**From your phone**. Each one shows its text, a due date (the reminder's own date, or worked out from clear words like *today, tomorrow, by Friday, vendredi*) and a project code if you named one
+(`[TK] …`, `GPF: …` or a code written in capitals). Edit anything, then **Add to Today** (it becomes a follow-up task, and a work to-do reaches Suivi's journal like any note) or **Dismiss**.
+
+- **Personal to-dos:** start with `personal:` or `p:`. They stay personal: masked until you click, kept out of Suivi.
+- The harness only **reads** the list; it never changes, completes or deletes a reminder. Items you delete or complete on the phone before deciding simply disappear.
+- If the list is missing or macOS has not allowed access, Today shows a one-line hint.

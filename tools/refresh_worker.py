@@ -10,7 +10,7 @@ whenever you press "Refresh now" in the app) it
   5. makes the daily backup of the harness database
 It runs on the Mac, outside Docker, because the Google tokens live in the Keychain. It holds only the READ-ONLY
 Google permissions: it has no draft or send capability (those live in tools/draft_worker.py, a separate agent).
-It also runs tools/filer.py every few seconds: that adds approved bank statements to the audit folder as NEW files (never overwrites).
+It reads your phone to-dos (Reminders list "Harness", read-only) every cycle. It also runs tools/filer.py every few seconds: that adds approved bank statements to the audit folder as NEW files (never overwrites).
 Each step is recorded in ~/IG-Harness-data/refresh_status.json, which the app shows. A step that fails never
 stops the others.
 
@@ -118,6 +118,12 @@ def run_cycle(data_dir: Path, trigger: str, *, sub=run_sub, call=http, backup=ba
     ea = event_age_fn()
     if ea is None or ea > timedelta(hours=6):                   # event emails: a few times a day is plenty
         step("events", helper("sync-events", 2400))
+
+    def do_reminders():
+        """Phone to-dos: read the Reminders list "Harness" (read-only)."""
+        rc, line = sub([TOOLS / "reminders_helper.py", "pull"], 90)
+        return ("ok" if rc == 0 else "error"), line
+    step("reminders", do_reminders)
 
     def do_suivi():
         """Her notes into Suivi's journal (work notes only; see tools/suivi_writer.py for the safeguards)."""

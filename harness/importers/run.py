@@ -9,6 +9,7 @@ from harness.importers.calendar import import_calendar
 from harness.importers.costs import import_costs
 from harness.importers.event_mail import import_event_mail
 from harness.importers.gmail import import_gmail
+from harness.importers.phone_todos import import_phone_todos
 from harness.importers.hours import import_hours
 from harness.importers.correspondence import import_correspondence
 from harness.importers.registre import import_registre
@@ -39,6 +40,7 @@ def run_all(conn=None, suivi_dir: Path = None, projets_dir: Path = None, data_di
             ("calendar", import_calendar, data_dir or DATA_DIR),
             ("events", import_events, data_dir or DATA_DIR),
             ("event-mail", import_event_mail, data_dir or DATA_DIR),
+            ("phone", import_phone_todos, data_dir or DATA_DIR),
             ("gmail", import_gmail, data_dir or DATA_DIR),
             ("correspondence", import_correspondence, data_dir or DATA_DIR),
         ):
