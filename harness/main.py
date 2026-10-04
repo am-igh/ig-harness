@@ -1050,11 +1050,17 @@ def events_ignore_source(eid: int) -> dict:
 
 
 # --- To-dos from her phone (Reminders list "Harness") ---
+# The ids Apple gives reminders contain slashes (x-apple-reminder://...), so they travel in the request body or query, never in the address path.
 class PhoneEdit(BaseModel):
+    id: str
     text: str | None = None
     due_date: str | None = None
     project_code: str | None = None
     space: str | None = None
+
+
+class PhoneId(BaseModel):
+    id: str
 
 
 @app.get("/api/phone")
@@ -1063,30 +1069,32 @@ def phone_list() -> dict:
     return _with_conn(phone.list_new)
 
 
-@app.post("/api/phone/{rid}/accept")
-def phone_accept(rid: str, body: PhoneEdit | None = None) -> dict:
+@app.post("/api/phone/accept")
+def phone_accept(body: PhoneEdit) -> dict:
     from harness import phone
     from harness.notes import NoteRefused
+    edits = body.model_dump(exclude_unset=True)
+    edits.pop("id")
     try:
-        return _with_conn(lambda c: phone.accept(c, rid, body.model_dump(exclude_unset=True) if body else None))
+        return _with_conn(lambda c: phone.accept(c, body.id, edits))
     except KeyError:
         raise HTTPException(404, "No such to-do")
     except (ValueError, NoteRefused) as e:
         raise HTTPException(422, str(e))
 
 
-@app.post("/api/phone/{rid}/dismiss")
-def phone_dismiss(rid: str) -> dict:
+@app.post("/api/phone/dismiss")
+def phone_dismiss(body: PhoneId) -> dict:
     from harness import phone
-    if not _with_conn(lambda c: phone.dismiss(c, rid)):
+    if not _with_conn(lambda c: phone.dismiss(c, body.id)):
         raise HTTPException(404, "No such waiting to-do")
     return {"ok": True}
 
 
-@app.get("/api/phone/{rid}/reveal")
-def phone_reveal(rid: str) -> dict:
+@app.get("/api/phone/reveal")
+def phone_reveal(id: str) -> dict:
     from harness import phone
-    d = _with_conn(lambda c: phone.reveal(c, rid))
+    d = _with_conn(lambda c: phone.reveal(c, id))
     if d is None:
         raise HTTPException(404, "No such waiting to-do")
     return d

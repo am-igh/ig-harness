@@ -58,6 +58,14 @@ def test_a_missing_list_or_missing_permission_is_reported_in_plain_words(tmp_pat
 
 
 # ---------------------------------------------------------------- reading the words
+@pytest.mark.parametrize("text,personal,title", [("personal: renew passport", True, "renew passport"), ("Personal Send off pictures of the roof", True, "Send off pictures of the roof"),
+                                                 ("personal, call the dentist", True, "call the dentist"), ("p: buy flowers", True, "buy flowers"), ("Perso - dentiste", True, "dentiste"),
+                                                 ("pay the invoice", False, "pay the invoice"), ("personally thank Daniel", False, "personally thank Daniel"), ("p buy flowers", False, "p buy flowers")])
+def test_the_personal_marker_works_with_or_without_punctuation_as_siri_dictates_it(text, personal, title):
+    r = phone.clean(text, {"TK"})
+    assert (r["space"] == "personal", r["text"]) == (personal, title)
+
+
 @pytest.mark.parametrize("text,expected", [("call Daniel tomorrow", "2026-10-03"), ("send the note today", "2026-10-02"), ("finish report by Monday", "2026-10-05"), ("réunion vendredi", "2026-10-09"),
                                            ("do it next week", "2026-10-05"), ("call Daniel", None), ("Mondial plans", None)])
 def test_due_dates_from_clear_words_only(text, expected):
@@ -138,6 +146,26 @@ def test_dismiss_and_errors_are_shown_plainly(c):
     assert s["error"] == "no list named Harness" and s["items"] == []
 
 
+def test_reminder_ids_with_slashes_work_through_the_api(c, tmp_path, monkeypatch):
+    """Regression: Apple's ids look like x-apple-reminder://UUID, and used to break the address path (404)."""
+    from fastapi.testclient import TestClient
+    from harness import main as m
+    rid = "x-apple-reminder://B9914A5-71C7-4A5B-ADD7-40F6AEE7EB24"
+    phone.import_phone(c, doc([{**item(1, "[TK] Send off pictures", "2026-10-09"), "id": rid}, {**item(2, "personal: renew passport"), "id": "x-apple-reminder://OTHER"}]), TODAY)
+    dbfile = c.execute("PRAGMA database_list").fetchone()[2]
+    monkeypatch.setattr(m, "_with_conn", lambda fn: fn(db.connect(Path(dbfile))))
+    with TestClient(m.app) as cl:
+        listed = cl.get("/api/phone").json()["items"]
+        assert {i["id"] for i in listed} == {rid, "x-apple-reminder://OTHER"}
+        assert cl.get("/api/phone/reveal", params={"id": "x-apple-reminder://OTHER"}).json()["text"] == "renew passport"
+        r = cl.post("/api/phone/accept", json={"id": rid, "text": "Send off the pictures", "due_date": "2026-10-12"})
+        assert r.status_code == 200 and r.json()["due"] == "2026-10-12"
+        assert cl.post("/api/phone/accept", json={"id": rid}).status_code == 422
+        assert cl.post("/api/phone/dismiss", json={"id": "x-apple-reminder://OTHER"}).json() == {"ok": True}
+        assert cl.post("/api/phone/dismiss", json={"id": "x-apple-reminder://OTHER"}).status_code == 404 and cl.post("/api/phone/accept", json={"id": "nope"}).status_code == 404
+    assert tuple(db.connect(Path(dbfile)).execute("SELECT title, due_date, project_code FROM tasks ORDER BY id DESC LIMIT 1").fetchone()) == ("Send off the pictures", "2026-10-12", "TK")
+
+
 def test_importer_and_api(c, tmp_path):
     assert "reminders_helper" in import_phone_todos(c, tmp_path)[0].notes[0]
     (tmp_path / "phone_todos.json").write_text(json.dumps(doc([item(1, "call Daniel")])))
@@ -146,4 +174,4 @@ def test_importer_and_api(c, tmp_path):
     from harness.main import app
     with TestClient(app) as cl:
         assert {"items", "fetched_at", "error", "list"} <= set(cl.get("/api/phone").json())
-        assert cl.post("/api/phone/nope/accept").status_code == 404 and cl.post("/api/phone/nope/dismiss").status_code == 404 and cl.get("/api/phone/nope/reveal").status_code == 404
+        assert cl.post("/api/phone/accept", json={"id": "nope"}).status_code == 404 and cl.post("/api/phone/dismiss", json={"id": "nope"}).status_code == 404 and cl.get("/api/phone/reveal", params={"id": "nope"}).status_code == 404

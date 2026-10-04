@@ -8,7 +8,8 @@ from datetime import date, datetime, timedelta
 from harness import notes as notes_mod
 from harness.config import now_local
 
-_PERSONAL = re.compile(r"^\s*(personal|perso|privat|p)\s*[:\-–]\s*", re.I)
+# "personal: ..." / "p: ..." (punctuation needed for the single letter), and also "personal call the dentist": Siri's dictation drops punctuation, and when unsure it is safer to treat it as personal
+_PERSONAL = re.compile(r"^\s*(?:(?:personal|perso|privat)(?:\s*[:,\-–]\s*|\s+)|p\s*[:\-–]\s*)(?=\S)", re.I)
 _DAYS = {"monday": 0, "mon": 0, "lundi": 0, "tuesday": 1, "tue": 1, "mardi": 1, "wednesday": 2, "wed": 2, "mercredi": 2, "thursday": 3, "thu": 3, "jeudi": 3,
          "friday": 4, "fri": 4, "vendredi": 4, "saturday": 5, "sat": 5, "samedi": 5, "sunday": 6, "sun": 6, "dimanche": 6}
 
