@@ -33,9 +33,9 @@ export default function ModelPicker({ backendDown }: { backendDown: boolean }) {
   return (
     <div className="picker" ref={box}>
       <button type="button" className="badge-model" onClick={() => setOpen((o) => !o)} aria-haspopup="dialog" aria-expanded={open}
-        title="Choose which model does what">
+        title={!backendDown && info?.local.up && job && !job.model_installed ? `The model ${job.model} is not available in the Ollama that is answering on this Mac. Another Ollama (for example the one inside AnythingLLM) may have taken its place: quit AnythingLLM, then reopen the Ollama app.` : "Choose which model does what"}>
         <i className={`dot ${backendDown ? "down" : ok ? "ok" : "warn"}`} />
-        {backendDown ? "Back end not reachable" : !info?.local.up ? "Local model: off" : <>Model: <b>{job?.model ?? "…"}</b></>}
+        {backendDown ? "Back end not reachable" : !info?.local.up ? "Local model: off" : job && !job.model_installed ? <>⚠ Model missing: <b>{job.model}</b> · is another Ollama running?</> : <>Model: <b>{job?.model ?? "…"}</b></>}
         <span className="caret">▾</span>
       </button>
       {open && info && job && (

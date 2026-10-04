@@ -231,3 +231,8 @@ The movement (waves, flow, boats, the lighthouse beam) stops if your computer is
 - **Personal to-dos:** start with `personal:` or `p:`. They stay personal: masked until you click, kept out of Suivi.
 - The harness only **reads** the list; it never changes, completes or deletes a reminder. Items you delete or complete on the phone before deciding simply disappear.
 - If the list is missing or macOS has not allowed access, Today shows a one-line hint.
+
+## If the AI features suddenly stop (the header says "⚠ Model missing")
+
+After a restart, **AnythingLLM** (if it reopens with your windows) can start its own, older Ollama and take over the port, hiding your models. Fix: quit AnythingLLM, then quit and reopen the Ollama app, and run `ollama list`
+in Terminal to see your models again. To avoid it: before you restart the Mac, quit AnythingLLM, or untick "Reopen windows when logging back in" in the Shut Down / Restart dialog.
