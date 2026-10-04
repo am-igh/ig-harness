@@ -209,5 +209,5 @@ Each tab opens with a dark-blue landscape in the style of the Jet d'eau lake on 
 - **Geneva and beyond:** the lake, the Alps with Mont Blanc and a contrail towards the wider world. Your upcoming events are markers along the horizon: **confirmed ones glow purple**,
   maybe/invited/interested are lighter, and a hollow ring means the event is outside Geneva. The nearest weeks get the most room.
 - **Projects & finance:** the Rhône leaving the lake under the Pont du Mont-Blanc, with vineyard terraces on the hill. One stream per project; deadlines, mandate dates and tagged calendar events flow along it.
-- **Inbox:** the Pâquis lighthouse and boats at anchor. The lighthouse counts the emails that need you; a boat on the water marks a reply deadline.
-The movement (waves, flow, boats, the lighthouse beam) stops if your computer is set to "reduce motion".
+- **Inbox:** the Jet d'eau and boats at anchor. The counter shows the emails that need you; a boat on the water marks a reply deadline.
+The movement (waves, flow, boats) stops if your computer is set to "reduce motion".
