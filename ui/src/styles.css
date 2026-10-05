@@ -329,3 +329,5 @@ table.score td.best { font-weight: 700; color: var(--purple); }
 .phone-due, .phone-code { font: inherit; font-size: 13px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; } .phone-code { width: 84px; }
 .phone-hint { font-size: 12px; color: var(--muted); padding: 8px 32px 0; }
 .phone-personal { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 4px; cursor: pointer; }
+
+.brief-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; } .brief-status { font-size: 12px; margin-top: 8px; }

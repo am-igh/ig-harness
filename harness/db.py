@@ -556,6 +556,10 @@ MIGRATIONS: list[str] = [
         draft_note TEXT
     );
     """,
+    # 31: which draft request carries the day's brief to Gmail
+    """
+    ALTER TABLE briefs ADD COLUMN draft_id TEXT;
+    """,
 ]
 
 

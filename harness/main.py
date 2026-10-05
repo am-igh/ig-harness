@@ -42,6 +42,21 @@ def _event_reader():
         time.sleep(4 if n else 30)               # keep going while there is work; rest when the queue is empty or the model is away
 
 
+def _brief_clock():
+    """Every minute: from 08:00 Geneva time, once a day, write the morning brief and queue its Gmail draft (never sent)."""
+    from harness import brief_draft
+    while True:
+        try:
+            c = db.connect()
+            try:
+                brief_draft.tick(c, DATA_DIR / "draft_outbox")
+            finally:
+                c.close()
+        except Exception:
+            pass
+        time.sleep(60)
+
+
 def _scan_watcher():
     """Every few seconds: notice new scans in the Scan-Inbox folder and read them (on this Mac, with the local model)."""
     from harness import scans
@@ -67,6 +82,7 @@ async def lifespan(app: FastAPI):
     if os.environ.get("IG_SCAN_WATCH", "1") != "0":
         threading.Thread(target=_scan_watcher, daemon=True).start()
         threading.Thread(target=_event_reader, daemon=True).start()
+        threading.Thread(target=_brief_clock, daemon=True).start()
     yield
 
 
@@ -1117,4 +1133,42 @@ def brief_get(fresh: bool = False, use_model: bool = True) -> dict:
             b = brief_ai.write_attention(b)
         brief.save(c, b, model=b.get("attention_model"))
         return brief.latest(c, day)
+    return _with_conn(go)
+
+
+class BriefDraftBody(BaseModel):
+    on: bool
+
+
+@app.get("/api/brief/draft")
+def brief_draft_state() -> dict:
+    from harness import brief_draft, drafting
+    def go(c):
+        brief_draft.sync_status(c)
+        r = c.execute("SELECT draft_status, draft_note FROM briefs ORDER BY day DESC LIMIT 1").fetchone()
+        return {"enabled": brief_draft.enabled(c), "agent_alive": drafting.agent_alive(DATA_DIR / "draft_outbox"), "status": r["draft_status"] if r else "none", "note": r["draft_note"] if r else None}
+    return _with_conn(go)
+
+
+@app.post("/api/brief/draft/settings")
+def brief_draft_set(body: BriefDraftBody) -> dict:
+    from harness import brief_draft
+    _with_conn(lambda c: brief_draft.set_enabled(c, body.on))
+    return {"enabled": body.on}
+
+
+@app.post("/api/brief/draft")
+def brief_draft_now() -> dict:
+    """'Save to Gmail now': today's brief (built if need be) as a draft in her own mailbox. Refused if today's is already there."""
+    from harness import brief, brief_draft
+    from harness.config import now_local
+    def go(c):
+        day = now_local().date().isoformat()
+        if brief.latest(c, day) is None:
+            brief.save(c, brief.build(c))
+        try:
+            brief_draft.queue(c, day, DATA_DIR / "draft_outbox")
+        except brief_draft.BriefDraftRefused as e:
+            raise HTTPException(409, str(e))
+        return {"queued": True}
     return _with_conn(go)

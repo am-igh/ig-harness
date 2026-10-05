@@ -137,3 +137,54 @@ def test_the_brief_job_is_local_only():
     assert JOBS["brief_write"]["tier"] == "S2" or str(JOBS["brief_write"]["tier"]).endswith("S2")
     with pytest.raises(SelectionRefused):
         set_selection(None, "brief_write", "anthropic", "x", {"anthropic"})
+
+
+# ---- the Gmail draft of the brief (never sent; same door as every draft)
+def _ready(c):
+    c.execute("INSERT INTO draft_settings (key, value, source) VALUES ('my_address', 'me@ict4peace.org', 'learned')"); c.commit()
+
+
+def test_the_brief_draft_goes_only_to_her_own_address_through_the_normal_approved_path(c, tmp_path):
+    from harness import brief_draft, draftspec
+    from tools import draft_worker as dw
+    _ready(c)
+    brief.save(c, brief.build(c, NOW))
+    rid = brief_draft.queue(c, "2026-10-06", tmp_path)
+    req = json.loads((tmp_path / f"{rid}.json").read_text())
+    assert req["fields"]["to"] == ["me@ict4peace.org"] and req["fields"]["cc"] == [] and req["fields"]["subject"].startswith("[Harness] Morning brief — Tuesday 6 October 2026")
+    assert dw.verify_approval(req, c)["to"] == ["me@ict4peace.org"]                   # the Mac-side agent accepts it by its own re-check
+    assert brief.latest(c, "2026-10-06")["draft_status"] == "queued"
+    with pytest.raises(brief_draft.BriefDraftRefused):                                 # one per day
+        brief_draft.queue(c, "2026-10-06", tmp_path)
+    tampered = {**req, "fields": {**req["fields"], "to": ["someone@else.org"]}}
+    with pytest.raises(dw.NotApproved):
+        dw.verify_approval(tampered, c)
+
+
+def test_the_agents_answer_is_copied_onto_the_brief(c, tmp_path):
+    from harness import brief_draft
+    _ready(c)
+    brief.save(c, brief.build(c, NOW))
+    rid = brief_draft.queue(c, "2026-10-06", tmp_path)
+    c.execute("UPDATE draft_requests SET status='created' WHERE id=?", (rid,)); c.commit()
+    brief_draft.sync_status(c)
+    assert brief.latest(c, "2026-10-06")["draft_status"] == "saved"
+
+
+def test_the_clock_waits_for_eight_runs_once_and_respects_the_switch(c, tmp_path):
+    from harness import brief_draft
+    _ready(c)
+    early, later = datetime(2026, 10, 6, 7, 59, tzinfo=TZ), datetime(2026, 10, 6, 8, 1, tzinfo=TZ)
+    g = _G("", ok=False)
+    assert brief_draft.tick(c, tmp_path, early, g) is None and c.execute("SELECT COUNT(*) FROM briefs").fetchone()[0] == 0
+    brief_draft.set_enabled(c, False)
+    assert brief_draft.tick(c, tmp_path, later, g) is None
+    brief_draft.set_enabled(c, True)
+    assert brief_draft.tick(c, tmp_path, later, g) is not None and len(list(tmp_path.glob("*.json"))) == 1
+    assert brief_draft.tick(c, tmp_path, later, g) is None and len(list(tmp_path.glob("*.json"))) == 1       # not twice
+    assert brief.latest(c, "2026-10-06")["attention_source"] == "rules"                                         # model was down: rules version
+
+
+def test_without_her_address_nothing_is_queued(c, tmp_path):
+    from harness import brief_draft
+    assert brief_draft.tick(c, tmp_path, datetime(2026, 10, 6, 9, 0, tzinfo=TZ), _G("", ok=False)) is None and not list(tmp_path.glob("*.json"))

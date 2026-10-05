@@ -263,3 +263,7 @@ export const revealPhone = (id: string) => j<PhoneTodo>(`/api/phone/reveal?id=${
 // ---- Morning brief
 export type Brief = { day: string; created_at: string; text: string; attention_source: string; draft_status: string; draft_note: string | null };
 export const getBrief = (fresh = false) => j<Brief>(`/api/brief${fresh ? "?fresh=true" : ""}`);
+export type BriefDraftState = { enabled: boolean; agent_alive: boolean; status: "none" | "queued" | "saved" | "failed"; note: string | null };
+export const getBriefDraft = () => j<BriefDraftState>("/api/brief/draft");
+export const setBriefDraft = (on: boolean) => j<{ enabled: boolean }>("/api/brief/draft/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ on }) });
+export const saveBriefDraft = () => jj<{ queued: boolean }>("/api/brief/draft", { method: "POST" });
