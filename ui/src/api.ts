@@ -259,3 +259,7 @@ export const acceptPhone = (id: string, edits?: { text?: string; due_date?: stri
   jj<{ task_id: number; due: string }>("/api/phone/accept", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, ...(edits ?? {}) }) });
 export const dismissPhone = (id: string) => j<{ ok: boolean }>("/api/phone/dismiss", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
 export const revealPhone = (id: string) => j<PhoneTodo>(`/api/phone/reveal?id=${encodeURIComponent(id)}`);
+
+// ---- Morning brief
+export type Brief = { day: string; created_at: string; text: string; attention_source: string; draft_status: string; draft_note: string | null };
+export const getBrief = (fresh = false) => j<Brief>(`/api/brief${fresh ? "?fresh=true" : ""}`);

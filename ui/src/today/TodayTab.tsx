@@ -157,7 +157,7 @@ export default function TodayTab() {
     <>
       <Lake data={data} doneCount={data.done_this_week} celebrate={celebrate}
         onOpenDone={() => setPanel({ kind: "done" })} onOpenDeadline={(id) => setPanel({ kind: "deadline", id })} />
-      <div className="phone-wrap"><PhoneBox onChanged={load} /></div>
+      <div className="phone-wrap"><button type="button" className="btn-ghost brief-link" onClick={() => setPanel({ kind: "brief" })}>☀ Morning brief</button><PhoneBox onChanged={load} /></div>
       <main className="page grid">
         <section className="panel">
           <div className="panel-head"><h2 className="serif">Today &amp; overdue</h2><span className="muted">{open} open</span></div>
