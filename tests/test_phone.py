@@ -36,23 +36,31 @@ def doc(items, error=None):
 
 
 # ---------------------------------------------------------------- the reader
+def osa(*recs):
+    """What the AppleScript prints: records separated by RS, fields by US."""
+    return "\x1e".join("\x1f".join(r) for r in recs) + "\x1e"
+
+
 def test_the_reader_writes_a_private_json_file_and_never_changes_reminders(tmp_path):
     seen = []
     def runner(cmd, **kw):
-        seen.append(cmd)
-        return SimpleNamespace(returncode=0, stdout=json.dumps({"items": [item(1, "Call Daniel", "2026-10-09")]}), stderr="")
+        seen.append((cmd, Path(cmd[1]).read_text()))                       # the script is a temporary file
+        return SimpleNamespace(returncode=0, stdout=osa(("x-apple-reminder://A1", "Call Daniel", "", "2026-10-09 00:00", "2026-10-02T08:00", "false")), stderr="")
     out = tmp_path / "phone_todos.json"
     msg = RH.pull(out, "Harness", runner)
     assert msg == "read 1 reminder(s) from 'Harness'" and json.loads(out.read_text())["items"][0]["name"] == "Call Daniel"
-    assert stat.S_IMODE(out.stat().st_mode) == 0o600 and seen[0][:3] == ["osascript", "-l", "JavaScript"]
+    assert stat.S_IMODE(out.stat().st_mode) == 0o600 and seen[0][0][0] == "osascript" and seen[0][0][1].endswith(".applescript") and 'list "Harness"' in seen[0][1] and not Path(seen[0][0][1]).exists()
+    it = json.loads(out.read_text())["items"][0]
+    assert (it["id"], it["due_date"], it["due_time"], it["completed"]) == ("x-apple-reminder://A1", "2026-10-09", None, False)
     src = Path(RH.__file__).read_text()
-    for banned in (".delete(", "completed = true", "R.make", ".remove(", "setCompleted", ".completed(true"):
-        assert banned not in src, banned
+    import re
+    for banned in (r"\bdelete\b", r"\bset (completed|name|body|due date|priority|flagged) of\b", r"\bmake new\b", r"\bmove\b", r"\bset (completed|name|body|due date) to\b.*\bof (r|rem)"):
+        assert not re.search(banned, src.split("SCRIPT = ")[1].split('"""')[1]), banned
 
 
 def test_a_missing_list_or_missing_permission_is_reported_in_plain_words(tmp_path):
     out = tmp_path / "p.json"
-    assert RH.pull(out, "Harness", lambda cmd, **kw: SimpleNamespace(returncode=0, stdout=json.dumps({"error": "no list named Harness"}), stderr="")) == "no list named Harness"
+    assert RH.pull(out, "Harness", lambda cmd, **kw: SimpleNamespace(returncode=1, stdout="", stderr="execution error: Reminders got an error: Can\'t get list \"Harness\". (-1728)")) == "no list named Harness"
     msg = RH.pull(out, "Harness", lambda cmd, **kw: SimpleNamespace(returncode=1, stdout="", stderr="execution error: Not authorized to send Apple events to Reminders. (-1743)"))
     assert "Automation" in msg and json.loads(out.read_text())["error"] == msg
 
@@ -175,3 +183,30 @@ def test_importer_and_api(c, tmp_path):
     with TestClient(app) as cl:
         assert {"items", "fetched_at", "error", "list"} <= set(cl.get("/api/phone").json())
         assert cl.post("/api/phone/accept", json={"id": "nope"}).status_code == 404 and cl.post("/api/phone/dismiss", json={"id": "nope"}).status_code == 404 and cl.get("/api/phone/reveal", params={"id": "nope"}).status_code == 404
+
+
+def test_the_applescript_output_is_parsed_with_times_completion_bodies_and_odd_characters():
+    text = osa(("id1", "Call Daniel — tomorrow", "line one\nline two", "2026-10-09 14:30", "2026-10-02T08:00", "false"), ("id2", "Done thing", "", "", "2026-09-01T09:00", "true"), ("", "no id", "", "", "", "false"))
+    items = RH.parse_output(text)
+    assert [i["id"] for i in items] == ["id1", "id2"]
+    assert (items[0]["due_date"], items[0]["due_time"], items[0]["body"]) == ("2026-10-09", "14:30", "line one\nline two") and items[1]["completed"] is True and items[1]["due_date"] is None
+    assert RH.parse_output("") == []
+
+
+def test_a_list_name_with_quotes_cannot_break_out_of_the_script():
+    seen = []
+    RH.run_reminders('Har"ness\\', lambda cmd, **kw: seen.append(Path(cmd[1]).read_text()) or SimpleNamespace(returncode=0, stdout="", stderr=""))
+    assert 'list "Har\\"ness\\\\"' in seen[0]
+
+
+def test_project_codes_ignore_hyphens_spaces_and_capitals_and_a_wrong_one_gets_a_helpful_message(c):
+    c.execute("INSERT INTO project_codes (code, name, domain, kind) VALUES ('IGCSC', 'IG cyber centre', 'W', 'thread')"); c.commit()
+    codes = {"TK", "IGCSC"}
+    assert phone.resolve_code(codes, "IG-CSC") == "IGCSC" and phone.resolve_code(codes, "ig csc") == "IGCSC" and phone.resolve_code(codes, "tk") == "TK" and phone.resolve_code(codes, "ZZ") is None
+    assert phone.clean("Reply to Regula about IG-CSC rules", codes)["project_code"] == "IGCSC" and phone.clean("[IG-CSC] reply to Regula", codes) == {"text": "reply to Regula", "space": "work", "project_code": "IGCSC"}
+    phone.import_phone(c, doc([item(1, "Reply to Regula about the board")]), TODAY)
+    rid = phone.list_new(c)["items"][0]["id"]
+    with pytest.raises(ValueError, match="IGCS|IG"):
+        phone.accept(c, rid, {"project_code": "IG-XYZ"})
+    res = phone.accept(c, rid, {"project_code": "IG-CSC"})
+    assert c.execute("SELECT project_code FROM tasks WHERE id=?", (res["task_id"],)).fetchone()[0] == "IGCSC"

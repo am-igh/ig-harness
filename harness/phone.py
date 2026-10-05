@@ -29,19 +29,29 @@ def parse_due_words(text: str, today: date) -> str | None:
     return None
 
 
+def _norm(code: str) -> str:
+    return re.sub(r"[^A-Z0-9]", "", (code or "").upper())
+
+
+def resolve_code(project_codes: set[str], raw: str | None) -> str | None:
+    """'ig-csc', 'IG CSC' and 'IGCSC' all mean the code IGCSC (hyphens, spaces and capitals do not matter)."""
+    n = _norm(raw or "")
+    return next((c for c in project_codes if _norm(c) == n), None) if n else None
+
+
 def clean(text: str, project_codes: set[str]) -> dict:
     """Title without the 'personal:' prefix, its space, and a project code if one is named ('[TK] ...', 'TK: ...' or a code written in capitals)."""
     t = (text or "").strip()
     personal = bool(_PERSONAL.match(t))
     t = _PERSONAL.sub("", t).strip()
     code = None
-    m = re.match(r"^\[?([A-Z0-9]{2,8})\]?\s*[:\-–]?\s+(.*)$", t)
-    if m and m.group(1) in project_codes:
-        code, t = m.group(1), m.group(2).strip()
+    m = re.match(r"^\[?([A-Z][A-Z0-9]*(?:-[A-Z0-9]+)*)\]?\s*[:\-–]?\s+(.*)$", t)
+    if m and resolve_code(project_codes, m.group(1)):
+        code, t = resolve_code(project_codes, m.group(1)), m.group(2).strip()
     else:
-        for w in re.findall(r"\b[A-Z][A-Z0-9]{1,7}\b", t):
-            if w in project_codes:
-                code = w
+        for w in re.findall(r"\b[A-Z][A-Z0-9]*(?:-[A-Z0-9]+)*\b", t):
+            if resolve_code(project_codes, w):
+                code = resolve_code(project_codes, w)
                 break
     return {"text": " ".join(t.split())[:300], "space": "personal" if personal else "work", "project_code": None if personal else code}
 
@@ -113,15 +123,20 @@ def accept(conn: sqlite3.Connection, rid: str, edits: dict | None = None, now: d
     due = e.get("due_date") if "due_date" in e else r["due_date"]
     code = (e.get("project_code") if "project_code" in e else r["project_code"]) or None
     personal = (e["space"] == "personal") if "space" in e else r["space"] == "personal"
-    if code and not personal and not conn.execute("SELECT 1 FROM project_codes WHERE code = ? AND domain != 'P'", (code.upper(),)).fetchone():
-        raise ValueError("Unknown project code")
+    if code and not personal:
+        codes = {r[0] for r in conn.execute("SELECT code FROM project_codes WHERE domain != 'P'")}
+        found = resolve_code(codes, code)
+        if not found:
+            near = sorted(c for c in codes if _norm(c)[:2] == _norm(code)[:2])[:4]
+            raise ValueError(f"“{code}” is not one of your project codes" + (f" (did you mean {', '.join(near)}?)" if near else ""))
+        code = found
     note = notes_mod.add_note(conn, text, kind="followup", due=due or None, personal=personal, now=now)
     with conn:
         if code and not personal:
-            conn.execute("UPDATE notes SET project_code = ? WHERE id = ?", (code.upper(), note["id"]))
-            conn.execute("UPDATE tasks SET project_code = ? WHERE id = ?", (code.upper(), note["follow_up"]["task_id"]))
+            conn.execute("UPDATE notes SET project_code = ? WHERE id = ?", (code, note["id"]))
+            conn.execute("UPDATE tasks SET project_code = ? WHERE id = ?", (code, note["follow_up"]["task_id"]))
         conn.execute("UPDATE phone_todos SET status='accepted', text=?, due_date=?, project_code=?, space=?, note_id=?, task_id=?, decided_at=datetime('now') WHERE reminder_id=?",
-                     (text, note["follow_up"]["due"], code.upper() if code and not personal else None, "personal" if personal else "work", note["id"], note["follow_up"]["task_id"], rid))
+                     (text, note["follow_up"]["due"], code if code and not personal else None, "personal" if personal else "work", note["id"], note["follow_up"]["task_id"], rid))
     return {"note_id": note["id"], "task_id": note["follow_up"]["task_id"], "due": note["follow_up"]["due"]}
 
 

@@ -136,7 +136,7 @@ def run_cycle(data_dir: Path, trigger: str, *, sub=run_sub, call=http, backup=ba
 
     def do_reminders():
         """Phone to-dos: read the Reminders list "Harness" (read-only)."""
-        rc, line = sub([TOOLS / "reminders_helper.py", "pull"], 90)
+        rc, line = sub([TOOLS / "reminders_helper.py", "pull"], 240)
         return ("ok" if rc == 0 else "error"), line
     step("reminders", do_reminders)
 
