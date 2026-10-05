@@ -1102,7 +1102,7 @@ def phone_reveal(id: str) -> dict:
 
 # --- Morning brief ---
 @app.get("/api/brief")
-def brief_get(fresh: bool = False) -> dict:
+def brief_get(fresh: bool = False, use_model: bool = True) -> dict:
     """Today's brief: the saved one, or built now (fresh=true rebuilds it)."""
     from harness import brief
     from harness.config import now_local
@@ -1112,7 +1112,9 @@ def brief_get(fresh: bool = False) -> dict:
         if saved:
             return saved
         b = brief.build(c)
-        text = brief.render_text(b)
-        brief.save(c, b, text)
+        if use_model:
+            from harness import brief_ai
+            b = brief_ai.write_attention(b)
+        brief.save(c, b, model=b.get("attention_model"))
         return brief.latest(c, day)
     return _with_conn(go)

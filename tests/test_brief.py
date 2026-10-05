@@ -100,3 +100,40 @@ def test_api(c):
     with TestClient(app) as cl:
         r = cl.get("/api/brief").json()
         assert r["data"]["title"] and "1. CALENDAR" in r["text"] and cl.get("/api/brief?fresh=true").status_code == 200
+
+
+# ---- section 5 by the local model
+class _R:
+    def __init__(self, text, ok=True): self.text, self.ok, self.model, self.reason = text, ok, "m1", "down"
+
+
+class _G:
+    def __init__(self, text, ok=True): self.r, self.prompt = _R(text, ok), None
+    def complete(self, prompt, **kw): self.prompt, self.kw = prompt, kw; return self.r
+
+
+def test_the_model_only_picks_among_our_facts_and_its_reasons_are_kept(c):
+    from harness import brief_ai
+    b = brief.build(c, NOW)
+    fs = brief_ai.facts(b)
+    assert fs[0]["title"] == "Workshop proposal" and not any("passport" in json.dumps(f).lower() or "Private" in json.dumps(f) for f in fs)
+    g = _G(json.dumps({"picks": [{"n": 2, "why": "Due today."}, {"n": 99, "why": "invented"}, {"n": 2, "why": "dup"}, {"n": 1, "why": "Major, and the clock is ticking."}]}))
+    out = brief_ai.write_attention(b, g)
+    assert [a["title"] for a in out["attention"]] == [fs[1]["title"], fs[0]["title"]] and out["attention_source"] == "model"
+    assert g.kw["job"] == "brief_write" and "Today is Tuesday 6 October 2026" in g.prompt
+    assert "(written by your local model" in brief.render_text(out)
+
+
+def test_when_the_model_is_down_or_unclear_the_rules_list_stays(c):
+    from harness import brief_ai
+    b = brief.build(c, NOW)
+    for g in (_G("", ok=False), _G("not json"), _G('{"picks": []}'), _G('{"picks": [{"n": 500}]}')):
+        out = brief_ai.write_attention(b, g)
+        assert out["attention"] == b["attention"] and out["attention_source"] == "rules"
+
+
+def test_the_brief_job_is_local_only():
+    from harness.gateway.settings import JOBS, SelectionRefused, set_selection
+    assert JOBS["brief_write"]["tier"] == "S2" or str(JOBS["brief_write"]["tier"]).endswith("S2")
+    with pytest.raises(SelectionRefused):
+        set_selection(None, "brief_write", "anthropic", "x", {"anthropic"})
