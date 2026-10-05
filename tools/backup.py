@@ -136,7 +136,7 @@ def verify(path: Path) -> list[str]:
                 problems.append("schema version differs from the manifest")
         finally:
             conn.close()
-    except sqlite3.DatabaseError as e:
+    except (sqlite3.DatabaseError, UnicodeDecodeError) as e:      # damaged text inside a table raises the latter
         problems.append(f"cannot be opened as a database: {e}")
     return problems
 

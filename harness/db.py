@@ -543,6 +543,19 @@ MIGRATIONS: list[str] = [
     );
     CREATE TABLE phone_state (k TEXT PRIMARY KEY, v TEXT);
     """,
+    # 30: the morning brief the harness writes each day (kept so it can be shown, compared with her Claude brief and saved as a Gmail draft)
+    """
+    CREATE TABLE briefs (
+        day TEXT PRIMARY KEY,                    -- the Geneva date the brief is for
+        created_at TEXT NOT NULL,
+        data TEXT NOT NULL,                      -- the structured brief (JSON)
+        text TEXT NOT NULL,                      -- the plain-text version (what the Gmail draft contains)
+        attention_source TEXT NOT NULL DEFAULT 'rules',     -- rules / model
+        model TEXT,
+        draft_status TEXT NOT NULL DEFAULT 'none' CHECK (draft_status IN ('none','queued','saved','failed')),
+        draft_note TEXT
+    );
+    """,
 ]
 
 

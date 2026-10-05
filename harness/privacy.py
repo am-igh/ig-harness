@@ -3,7 +3,7 @@
 What the board shows instead is a generic label and the date. The details (title, project code, person)
 come only from the reveal endpoint, one item at a time."""
 
-LABELS = {"task": "Personal task", "deadline": "Personal task", "waiting_on": "Personal follow-up", "email": "Personal email", "note": "Personal note"}
+LABELS = {"task": "Personal task", "deadline": "Personal task", "waiting_on": "Personal follow-up", "email": "Personal email", "note": "Personal note", "event": "Personal event"}
 
 
 def label(item_type: str) -> str:

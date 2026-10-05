@@ -1098,3 +1098,21 @@ def phone_reveal(id: str) -> dict:
     if d is None:
         raise HTTPException(404, "No such waiting to-do")
     return d
+
+
+# --- Morning brief ---
+@app.get("/api/brief")
+def brief_get(fresh: bool = False) -> dict:
+    """Today's brief: the saved one, or built now (fresh=true rebuilds it)."""
+    from harness import brief
+    from harness.config import now_local
+    def go(c):
+        day = now_local().date().isoformat()
+        saved = None if fresh else brief.latest(c, day)
+        if saved:
+            return saved
+        b = brief.build(c)
+        text = brief.render_text(b)
+        brief.save(c, b, text)
+        return brief.latest(c, day)
+    return _with_conn(go)
