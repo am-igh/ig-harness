@@ -66,3 +66,20 @@ def test_watch_api(tmp_path):
         assert cl.post("/api/triage/watch", json={"text": "ab"}).status_code == 422
         cl.delete(f"/api/triage/watch/{i}")
         assert "Zz Test Person" not in [w["name"] for w in cl.get("/api/triage/watch").json()["items"]]
+
+
+def test_the_cap_counts_model_reads_not_emails_skipped_by_rule(tmp_path):
+    """Regression: 60 newsletters at the top used to use up the whole cap and leave real emails pending."""
+    from harness import db, triage
+    c = db.connect(tmp_path / "t.db"); db.migrate(c)
+    for i in range(8):
+        c.execute("INSERT INTO emails (thread_id, message_id, from_name, from_email, subject, received_at, triage_status, in_window, direct, bulk) VALUES (?,?,?,?,?,?, 'pending', 1, ?, ?)",
+                  (f"t{i}", f"m{i}", "N", "news@x.org", "Newsletter", f"2026-10-06T1{i}:00:00+02:00", 0, 1))
+    c.execute("INSERT INTO emails (thread_id, message_id, from_name, from_email, subject, received_at, triage_status, in_window, direct) VALUES ('r','r','Real','real@x.org','Please reply','2026-10-01T10:00:00+02:00','pending',1,1)")
+    c.commit()
+    class G:
+        def complete(self, *a, **k):
+            class R: ok = False; text = ""; reason = "down"; model = "m"
+            return R()
+    out = triage.triage_pending(c, G(), limit=3)
+    assert out["skipped"] >= 1 and out["error"] == 1                      # the real one was reached (and failed only because this fake model is down)

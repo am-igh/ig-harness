@@ -183,8 +183,9 @@ def triage_pending(conn: sqlite3.Connection, gateway: Gateway | None = None, lim
     now = now or now_local()
     out = {"skipped": 0, "done": 0, "error": 0}
     rows = conn.execute("SELECT * FROM emails WHERE triage_status IN ('pending','error') AND in_window = 1 "
-                        "ORDER BY received_at DESC LIMIT ?", (limit,)).fetchall()
+                        "ORDER BY received_at DESC LIMIT 1000").fetchall()
     names = watched_names(conn)
+    asked = 0
     for e in rows:
         hit = watch_hit(e, names) if names and not e["last_from_me"] else None
         skip = None if hit else prefilter(e)
@@ -194,6 +195,9 @@ def triage_pending(conn: sqlite3.Connection, gateway: Gateway | None = None, lim
                              (skip, now.isoformat(timespec="seconds"), e["id"]))
             out["skipped"] += 1
             continue
+        if asked >= limit:                        # the cap is on model reads: emails skipped by rule cost nothing, so they never crowd out the real ones
+            break
+        asked += 1
         parsed, reason, waiting = ask_model(conn, gateway, e, now)
         if hit:                                   # her always-show-me list beats the model's opinion
             parsed = parsed or {"action": "reply", "urgency": 2, "deadline": None, "model": "watch list"}
