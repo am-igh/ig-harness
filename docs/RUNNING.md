@@ -27,6 +27,16 @@ The Today page reloads its own data every minute. **Personal items** (Suivi doma
    - `python3 tools/google_helper.py login` (approve **read-only** calendar access in the browser)
    - `python3 tools/google_helper.py login-gmail` (approve **read-only** Gmail access; this cannot create drafts or send)
 
+## From your iPad (over Tailscale)
+
+The harness has no password, so it is never put on the open internet: no public tunnels, no router port-forwarding. Tailscale links only your own devices (this Mac, the M5, iPad, iPhone) with an encrypted connection.
+
+1. On the Mac, once, in Terminal: `/Applications/Tailscale.app/Contents/MacOS/Tailscale serve --bg 5173`. If it asks you to enable HTTPS for your Tailscale network, open the link it prints and click enable. It then prints an address like `https://anne-maries-macbook-pro.<name>.ts.net`.
+2. On the iPad, make sure the Tailscale app is connected, then open that address in Safari. "Share → Add to Home Screen" makes an icon.
+3. The Mac must be awake and the harness running (`make up`). To stop sharing: `/Applications/Tailscale.app/Contents/MacOS/Tailscale serve reset`.
+
+Anyone on your Tailscale network can open the page, so keep that network to your own devices. Only names ending in `.ts.net` are accepted besides `localhost` (`ui/vite.config.ts`).
+
 ## Updating the harness
 
 When Claude has made changes and you have agreed to them: `make down`, then `make up`. Docker rebuilds what changed.
