@@ -4,13 +4,14 @@ Read-only. A thread whose newest message changed goes back to 'pending' so it is
 Threads that left the fetched window are kept but marked in_window = 0."""
 import json
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from harness.config import TZ
 from harness.importers.common import Report
 
 FILE = "gmail_recent.json"
+TRUNCATED_AT = 95            # the helper asks Gmail for 100 threads (tools/google_helper.py GMAIL_MAX_THREADS)
 
 
 def import_gmail(conn: sqlite3.Connection, folder: Path) -> list[Report]:
@@ -53,8 +54,16 @@ def import_gmail(conn: sqlite3.Connection, folder: Path) -> list[Report]:
                 rep.updated += 1
             else:
                 rep.unchanged += 1
-        for r in conn.execute("SELECT id, thread_id FROM emails WHERE in_window = 1").fetchall():
-            if r["thread_id"] not in seen:
+        # The helper fetches at most TRUNCATED_AT threads, newest first. When it hit that limit (a burst of automated mail can fill it), threads older than the oldest one
+        # fetched were simply not looked at, so they stay as they were; only threads inside the fetched time range that are missing have really left the inbox.
+        oldest = None
+        if len(data["threads"]) >= TRUNCATED_AT:
+            oldest = datetime.fromtimestamp(min(t["received_ms"] for t in data["threads"]) / 1000, TZ).isoformat(timespec="seconds")
+        for r in conn.execute("SELECT id, thread_id, received_at FROM emails WHERE in_window = 1").fetchall():
+            if r["thread_id"] not in seen and (oldest is None or r["received_at"] >= oldest):
                 conn.execute("UPDATE emails SET in_window = 0 WHERE id = ?", (r["id"],))
                 rep.retired += 1
+        if oldest:                                                  # bring back what an earlier truncated run wrongly retired (last 3 days only, as the query)
+            floor = (datetime.now(TZ) - timedelta(days=3)).isoformat(timespec="seconds")
+            rep.notes.append(f"{conn.execute('UPDATE emails SET in_window = 1 WHERE in_window = 0 AND received_at < ? AND received_at >= ?', (oldest, floor)).rowcount} older threads kept in the window (the Gmail fetch hit its limit)")
     return [rep]
