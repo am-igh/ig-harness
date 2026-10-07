@@ -19,7 +19,7 @@ from harness.gateway import Gateway
 
 AUTOMATED = re.compile(r"(^|[._-])(no-?reply|do-?not-?reply|donotreply|mailer-daemon|notifications?|bounce)([._@-]|$)", re.I)
 # Google's own account and Workspace alerts (spoofing, security, sign-in notices): never worth a place in the list, not even from a watched name
-GOOGLE_ALERT = re.compile(r"(^|[._-])(no-?reply|workspace-?noreply|googlealerts-?noreply)@(accounts\.)?google\.com$|@accounts\.google\.com$", re.I)
+GOOGLE_ALERT = re.compile(r"^[^@]*(no-?reply|alerts?|security)[^@]*@(accounts\.)?google\.com$", re.I)
 BODY_FOR_MODEL = 1500
 
 BASE_SYSTEM = (
@@ -283,7 +283,7 @@ def list_emails(conn: sqlite3.Connection, hours: int, now: datetime | None = Non
                 "urgency": r["urgency"], "received_at": r["received_at"], "snippet": r["snippet"],
                 "hours_ago": round((now - datetime.fromisoformat(r["received_at"])).total_seconds() / 3600, 1),
                 "direct": bool(r["direct"]), "status": r["triage_status"], "handled_at": r["handled_at"], "last_from_me": bool(r["last_from_me"])}
-    need = [shape(r) for r in conn.execute(base + "AND e.triage_status='done' AND e.needs_reply=1 ORDER BY e.score DESC", (cutoff,))]
+    need = [shape(r) for r in conn.execute(base + "AND e.triage_status='done' AND e.needs_reply=1 ORDER BY e.score DESC", (cutoff,)) if not GOOGLE_ALERT.search(r["from_email"] or "")]
     res = {"needs_reply": need,
            "counts": {k: conn.execute("SELECT COUNT(*) FROM emails WHERE in_window=1 AND handled_at IS NULL AND received_at>=? AND triage_status=?", (cutoff, k)).fetchone()[0]
                       for k in ("pending", "skipped", "done", "error")}}

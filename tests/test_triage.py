@@ -101,3 +101,11 @@ def test_google_alerts_are_dropped_even_from_a_watched_name_and_a_copied_watch_n
     triage_pending(c2, type("G", (), {"complete": ok})())
     r2 = c2.execute("SELECT needs_reply FROM emails WHERE thread_id='t9'").fetchone()
     assert r2["needs_reply"] == 0                                                          # the model's 'no' stands for a copied name
+
+
+def test_the_google_alert_pattern_catches_workspace_alerts_but_not_people_at_google():
+    from harness.triage import GOOGLE_ALERT
+    for a in ("no-reply@accounts.google.com", "google-workspace-alerts-noreply@google.com", "workspace-noreply@google.com", "security-noreply@google.com"):
+        assert GOOGLE_ALERT.search(a), a
+    for a in ("jane.doe@google.com", "someone@gmail.com", "alerts@example.org"):
+        assert not GOOGLE_ALERT.search(a), a

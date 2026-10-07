@@ -86,3 +86,9 @@ def test_the_brief_has_the_section_and_puts_it_in_the_attention_facts(c):
     assert "2b. REPLIES ON OPEN ITEMS" in text and "- Sue Wilder — Re: save the date" in text
     assert text.index("2. IMPORTANT MAIL") < text.index("2b. REPLIES") < text.index("3. SUIVI")
     assert any("Sue Wilder replied" in f["title"] for f in brief_ai.facts(b)) and any("Sue Wilder replied" in a["title"] for a in b["attention"])
+
+
+def test_a_sender_with_no_display_name_is_read_from_the_address(c):
+    mail(c, "t7", "", "sue.wilder@b.org")
+    r = replies.find(c, NOW)
+    assert len(r) == 1 and "named in: Org B to confirm" in r[0]["reasons"][0]

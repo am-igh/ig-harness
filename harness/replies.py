@@ -59,6 +59,8 @@ def _open_items(conn: sqlite3.Connection) -> list[dict]:
 
 def _matches(item: dict, name_text: str, addr: str) -> bool:
     n = T._norm(name_text)
+    if len(n.split()) < 2 and addr:                       # no usable display name: read it from the address (susan.wilding@x.org -> "susan wilding")
+        n = T._norm(addr.split("@")[0])
     words = n.split()
     if addr and addr in item["emails"]:
         return True
