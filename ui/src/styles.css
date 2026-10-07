@@ -344,3 +344,9 @@ table.score td.best { font-weight: 700; color: var(--purple); }
 .chat-prop-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 
 .open-items { margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--line); display: flex; flex-direction: column; gap: 6px; } .open-items .kicker { color: var(--purple); }
+.chat-modes { display: flex; gap: 6px; } .chat-modes button { flex: 1; font: inherit; font-size: 12.5px; padding: 5px 8px; border: 1px solid var(--line); border-radius: 99px; background: #fff; color: var(--navy); cursor: pointer; }
+.chat-modes button.on { background: var(--navy); color: #fff; border-color: var(--navy); }
+.chat-research .chatbar { border-color: var(--purple); } .chat-research .chatbar button { background: var(--purple); }
+.chat-research .chat-modes button.on:nth-child(2) { background: var(--purple); border-color: var(--purple); }
+.chat-hint { line-height: 1.4; } .chat-tag { font-size: 10px; letter-spacing: .06em; text-transform: uppercase; background: rgba(255,255,255,.25); border-radius: 4px; padding: 0 4px; margin-right: 6px; }
+.chat-sources { margin: 8px 0 6px; padding-left: 20px; font-size: 12.5px; display: flex; flex-direction: column; gap: 3px; } .chat-sources a { color: var(--navy); overflow-wrap: anywhere; }

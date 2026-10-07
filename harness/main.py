@@ -1202,3 +1202,30 @@ def chat_capture(body: CaptureIn) -> dict:
         except (ValueError, notes.NoteRefused) as e:
             raise HTTPException(422, str(e))
     return _with_conn(go)
+
+
+# --- Web research (chat "Research" mode) ---
+class ResearchIn(BaseModel):
+    query: str
+    confirm: bool = False
+
+
+@app.post("/api/research")
+def research_submit(body: ResearchIn) -> dict:
+    from harness import research
+    return _with_conn(lambda c: research.submit(c, body.query, body.confirm, DATA_DIR / "research_outbox"))
+
+
+@app.get("/api/research/agent")
+def research_agent() -> dict:
+    from harness import research
+    return research.agent_state(DATA_DIR / "research_outbox")
+
+
+@app.get("/api/research/{rid}")
+def research_get(rid: str) -> dict:
+    from harness import research
+    j = research.get(rid)
+    if j is None:
+        raise HTTPException(404, "This search is no longer available. Ask again.")
+    return {k: j[k] for k in ("state", "query", "answer", "sources", "error")}

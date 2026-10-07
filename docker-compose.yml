@@ -52,6 +52,19 @@ services:
       - ./worker:/app/worker
     networks: [backend]
 
+  # Self-hosted web search for the chat's Research mode. It is the ONLY service with internet access besides the UI's edge network, so it is kept on its own network (search_net):
+  # the api and worker are not on it and cannot reach it. Only the Mac-side research helper talks to it, at 127.0.0.1:8888. It is not started by `make up`; use `make searxng-up`.
+  searxng:
+    image: searxng/searxng:latest
+    profiles: ["research"]
+    ports: ["127.0.0.1:8888:8080"]
+    volumes:
+      - ${HOME}/IG-Harness-data/searxng:/etc/searxng
+    cap_drop: [ALL]
+    cap_add: [CHOWN, SETGID, SETUID]
+    restart: unless-stopped
+    networks: [search_net]
+
   ui:
     build: { context: ./ui }
     command: npm run dev -- --host 0.0.0.0 --port 5173
@@ -66,6 +79,7 @@ networks:
   backend: { internal: true }
   ollama_net: { internal: true }   # only the API (gateway) and the Ollama forwarder
   edge: {}
+  search_net: {}                   # internet for the search engine only; nothing of the harness is on it
 
 volumes:
   ui_node_modules:

@@ -273,3 +273,11 @@ export type CaptureProposal = { text: string; due_date: string | null; project_c
 export type ChatReply = { kind: "answer" | "refused" | "unavailable"; text: string; model?: string } | { kind: "capture"; proposal: CaptureProposal };
 export const askChat = (message: string) => jj<ChatReply>("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message }) });
 export const confirmCapture = (p: CaptureProposal) => jj<{ task_id: number; due: string }>("/api/chat/capture", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(p) });
+
+// ---- Web research (chat "Research" mode)
+export type ResearchStart = { state: "blocked"; reasons: string[] } | { state: "needs_confirm"; reasons: string[]; query: string } | { state: "started"; id: string; query: string };
+export type ResearchSource = { n: number; title: string; url: string; fetched_at: string };
+export type ResearchJob = { state: "searching" | "summarising" | "done" | "failed"; query: string; answer: string | null; sources: ResearchSource[]; error: string | null };
+export const startResearch = (query: string, confirm: boolean) => jj<ResearchStart>("/api/research", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query, confirm }) });
+export const getResearch = (id: string) => jj<ResearchJob>(`/api/research/${id}`);
+export const getResearchAgent = () => j<{ alive: boolean }>("/api/research/agent");

@@ -11,6 +11,7 @@ JOBS = {
     "email_triage": {"label": "Email triage", "tier": Tier.S2},   # email is confidential: local models only
     "email_draft": {"label": "Draft replies", "tier": Tier.S2},   # drafts quote her correspondence: local models only
     "doc_read": {"label": "Read scanned invoices and receipts", "tier": Tier.S2},
+    "research": {"label": "Research: summarise web pages", "tier": Tier.S0},   # public web text plus her screened question; local by default, online providers stay locked until Phase 6
     "chat": {"label": "Chat: questions about your own data", "tier": Tier.S2},   # the facts include mail subjects, names and deadlines: local models only
     "brief_write": {"label": "Morning brief: what needs your attention", "tier": Tier.S2},   # mail subjects and names in the brief: local models only
     "event_extract": {"label": "Read event invitations in email", "tier": Tier.S2},   # invitations are partner email: local models only   # invoices and receipts are confidential: local models only

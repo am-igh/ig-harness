@@ -560,6 +560,20 @@ MIGRATIONS: list[str] = [
     """
     ALTER TABLE briefs ADD COLUMN draft_id TEXT;
     """,
+    # 32: web research (chat "Research" mode). A log of every search query that left the Mac, and the approval the Mac-side helper re-checks. Answers are not stored.
+    """
+    CREATE TABLE research_requests (
+        id TEXT PRIMARY KEY,
+        query TEXT NOT NULL,
+        query_hash TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'approved' CHECK (status IN ('approved','done','failed')),
+        confirmed INTEGER NOT NULL DEFAULT 0,        -- she confirmed a screening warning
+        warnings TEXT,                               -- JSON list of what the screen noticed
+        n_results INTEGER, n_pages INTEGER,
+        model TEXT, error TEXT
+    );
+    """,
 ]
 
 

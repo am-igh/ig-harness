@@ -248,6 +248,16 @@ The movement (waves, flow, boats, the lighthouse beam) stops if your computer is
 - **Add a to-do** by starting with "remind me to …", "add a to-do …" or "note to self …" (for example "remind me to call Regula on Friday"). A card appears with the text, due date, project and a Personal tick-box; nothing is created until you click "Add to Today".
 - Personal items are never given to the model (a question about them is refused), nothing you type is kept after you close the page, and the chat cannot send email or change your files.
 
+### Research the web (set up once)
+
+The "Research the web" button under the chat box searches the web for your own words, reads a few public pages and has your local model summarise them with sources. It never uses your emails or records.
+
+1. In Terminal, in the ig-harness folder: `make searxng-up`. The first time, this downloads the search engine (SearXNG, from Docker Hub) and creates its settings. Only this Mac can reach it.
+2. Then `make research-install`. This installs a small background agent (like the draft agent) that does the searching and reading. `make research-uninstall` removes it; `make searxng-down` stops the search engine.
+3. In the chat box choose "Research the web", type your question and press Search. It takes about a minute. If your question contains a name from People, an email address, an amount or something confidential-sounding, you are asked to confirm first; IBANs, AVS numbers and passwords are refused.
+
+Every query is logged in the database (what left the Mac). The answer is shown with its sources and can be copied; it is not saved anywhere. Check the sources before relying on it.
+
 ## If the AI features suddenly stop (the header says "⚠ Model missing")
 
 After a restart, **AnythingLLM** (if it reopens with your windows) can start its own, older Ollama and take over the port, hiding your models. Fix: quit AnythingLLM, then quit and reopen the Ollama app, and run `ollama list`

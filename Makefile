@@ -1,4 +1,4 @@
-.PHONY: ui-test up down test logs import calendar gmail correspondence check-network agent-install agent-uninstall agent-status refresh-install refresh-uninstall refresh-now backup backup-list backup-test suivi-export-dry-run suivi-export-now suivi-export-pause suivi-export-resume events-mail events-public reminders-pull filing-now hours-now hours-pause hours-resume
+.PHONY: ui-test up down test logs import calendar gmail correspondence check-network agent-install agent-uninstall agent-status refresh-install refresh-uninstall refresh-now backup backup-list backup-test suivi-export-dry-run suivi-export-now suivi-export-pause suivi-export-resume events-mail events-public reminders-pull filing-now hours-now hours-pause hours-resume searxng-up searxng-down research-install research-uninstall research-now
 
 up:      ## Start the harness (UI at http://localhost:5173)
 	docker compose up -d --build
@@ -95,3 +95,20 @@ reminders-pull: ## Read your phone to-dos now (Reminders list "Harness"); macOS 
 
 events-public: ## Fetch the public International Geneva listings (geneve-int.ch, Club Diplomatique, UN Geneva), politely
 	python3 tools/events_helper.py pull
+
+searxng-up: ## Start the self-hosted search engine for Research mode (first time: downloads its image)
+	sh scripts/searxng_init.sh
+	docker compose --profile research up -d searxng
+	@echo "Search engine at http://127.0.0.1:8888 (only this Mac can reach it)."
+
+searxng-down: ## Stop the search engine
+	docker compose --profile research stop searxng
+
+research-install: ## Install the background agent that reads public web pages for Research mode
+	sh scripts/install_research_agent.sh
+
+research-uninstall: ## Remove the research agent
+	sh scripts/uninstall_research_agent.sh
+
+research-now: ## Process waiting research requests once, now
+	python3 tools/research_helper.py once

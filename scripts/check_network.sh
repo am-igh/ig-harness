@@ -13,5 +13,7 @@ check "worker cannot reach Ollama"             blocked docker compose exec -T wo
 check "worker cannot reach Gmail's send API"   blocked docker compose exec -T worker python -c "import urllib.request;urllib.request.urlopen('https://gmail.googleapis.com/',timeout=4)"
 check "api cannot reach Gmail's send API"      blocked docker compose exec -T api python -c "import urllib.request;urllib.request.urlopen('https://gmail.googleapis.com/gmail/v1/users/me/messages/send',timeout=4)"
 check "api can reach Ollama (the gateway)"     open    docker compose exec -T api python -c "import urllib.request;urllib.request.urlopen('http://ollama.internal:11434/api/version',timeout=6)"
+check "api cannot reach the search engine"      blocked docker compose exec -T api python -c "import urllib.request;urllib.request.urlopen('http://searxng:8080/',timeout=4)"
+check "worker cannot reach the search engine"   blocked docker compose exec -T worker python -c "import urllib.request;urllib.request.urlopen('http://searxng:8080/',timeout=4)"
 check "ui can reach the api"                   open    docker compose exec -T ui node -e "fetch('http://api:8000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 [ $fail -eq 0 ] && echo "All network checks passed." || { echo "A network check FAILED."; exit 1; }
