@@ -1172,3 +1172,33 @@ def brief_draft_now() -> dict:
             raise HTTPException(409, str(e))
         return {"queued": True}
     return _with_conn(go)
+
+
+# --- Chat box (questions about her own data; capture proposals) ---
+class ChatIn(BaseModel):
+    message: str
+
+
+class CaptureIn(BaseModel):
+    text: str
+    due_date: str | None = None
+    project_code: str | None = None
+    space: str = "work"
+
+
+@app.post("/api/chat")
+def chat_message(body: ChatIn) -> dict:
+    from harness import chat
+    return _with_conn(lambda c: chat.handle(c, body.message))
+
+
+@app.post("/api/chat/capture")
+def chat_capture(body: CaptureIn) -> dict:
+    """She confirmed a capture proposal: create the follow-up."""
+    from harness import chat, notes
+    def go(c):
+        try:
+            return chat.confirm_capture(c, body.text, body.due_date, body.project_code, "personal" if body.space == "personal" else "work")
+        except (ValueError, notes.NoteRefused) as e:
+            raise HTTPException(422, str(e))
+    return _with_conn(go)

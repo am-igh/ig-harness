@@ -267,3 +267,9 @@ export type BriefDraftState = { enabled: boolean; agent_alive: boolean; status: 
 export const getBriefDraft = () => j<BriefDraftState>("/api/brief/draft");
 export const setBriefDraft = (on: boolean) => j<{ enabled: boolean }>("/api/brief/draft/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ on }) });
 export const saveBriefDraft = () => jj<{ queued: boolean }>("/api/brief/draft", { method: "POST" });
+
+// ---- Chat box
+export type CaptureProposal = { text: string; due_date: string | null; project_code: string | null; space: "work" | "personal" };
+export type ChatReply = { kind: "answer" | "refused" | "unavailable"; text: string; model?: string } | { kind: "capture"; proposal: CaptureProposal };
+export const askChat = (message: string) => jj<ChatReply>("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message }) });
+export const confirmCapture = (p: CaptureProposal) => jj<{ task_id: number; due: string }>("/api/chat/capture", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(p) });

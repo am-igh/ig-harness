@@ -90,9 +90,10 @@ nav { display: flex; gap: 4px; height: 72px; margin-left: 28px; }
 .tile-sub { font-size: 11px; color: var(--muted); } .soon { font-size: 11px; font-weight: 700; color: #4f5fa8; }
 .gallery { height: 40px; border-radius: 12px; border: 1.5px dashed #aeb6cf; background: transparent; color: var(--navy); font-size: 12px; font-weight: 700; opacity: .6; }
 
-.chatbar { margin: 6px 0 0; height: 56px; flex: none; background: #fff; border: 1.5px solid var(--navy); border-radius: 16px; padding: 0 10px 0 18px; display: flex; align-items: center; gap: 10px; opacity: .75; }
+.chatbar { margin: 0; height: 56px; flex: none; background: #fff; border: 1.5px solid var(--navy); border-radius: 16px; padding: 0 8px 0 14px; display: flex; align-items: center; gap: 8px; }
+.chatbar input { min-width: 0; }
 .chatbar input { flex-grow: 1; border: none; outline: none; font-size: 14px; background: transparent; font-family: inherit; }
-.chatbar button { height: 44px; padding: 0 20px; border-radius: 10px; border: none; background: var(--navy); color: #fff; font-size: 13px; font-weight: 600; }
+.chatbar button { height: 44px; padding: 0 14px; border-radius: 10px; border: none; background: var(--navy); color: #fff; font-size: 13px; font-weight: 600; } .chatbar button:disabled { opacity: .5; }
 
 /* drawer */
 .scrim { position: fixed; inset: 0; border: none; padding: 0; background: rgba(23,43,77,.4); cursor: default; z-index: 10; }
@@ -331,3 +332,13 @@ table.score td.best { font-weight: 700; color: var(--purple); }
 .phone-personal { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 4px; cursor: pointer; }
 
 .brief-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; } .brief-status { font-size: 12px; margin-top: 8px; }
+
+.chat { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+.chat-log { max-height: 340px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+.chat-turn { display: flex; flex-direction: column; gap: 4px; }
+.chat-me { align-self: flex-end; max-width: 90%; background: var(--navy); color: #fff; border-radius: 12px 12px 3px 12px; padding: 6px 10px; font-size: 13px; overflow-wrap: anywhere; }
+.chat-bot { align-self: flex-start; max-width: 100%; background: #F1F3FA; border-radius: 12px 12px 12px 3px; padding: 8px 10px; font-size: 13.5px; line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; }
+.chat-bot.warn { background: #FFF3D1; }
+.chat-proposal { display: flex; flex-direction: column; gap: 6px; white-space: normal; width: 100%; box-sizing: border-box; }
+.chat-proposal input { font: inherit; font-size: 13px; padding: 5px 8px; border: 1px solid var(--line); border-radius: 8px; min-width: 0; }
+.chat-prop-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }

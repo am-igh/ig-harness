@@ -242,6 +242,12 @@ The movement (waves, flow, boats, the lighthouse beam) stops if your computer is
 - The harness only **reads** the list; it never changes, completes or deletes a reminder. Items you delete or complete on the phone before deciding simply disappear.
 - If the list is missing or macOS has not allowed access, Today shows a one-line hint.
 
+## The chat box (Today, under "Emails needing you")
+
+- **Ask a question** about your own data: "What is overdue?", "Which events am I confirmed for in November?", "What am I waiting on?". The local model answers from what the harness already holds. With the 27B model an answer takes about a minute; pick a smaller model for the "Chat" job in the header's model picker if you want it faster.
+- **Add a to-do** by starting with "remind me to …", "add a to-do …" or "note to self …" (for example "remind me to call Regula on Friday"). A card appears with the text, due date, project and a Personal tick-box; nothing is created until you click "Add to Today".
+- Personal items are never given to the model (a question about them is refused), nothing you type is kept after you close the page, and the chat cannot send email or change your files.
+
 ## If the AI features suddenly stop (the header says "⚠ Model missing")
 
 After a restart, **AnythingLLM** (if it reopens with your windows) can start its own, older Ollama and take over the port, hiding your models. Fix: quit AnythingLLM, then quit and reopen the Ollama app, and run `ollama list`

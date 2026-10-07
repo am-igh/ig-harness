@@ -9,6 +9,7 @@ import QuickNote from "../notes/QuickNote";
 import AuditTile, { useAuditStatus } from "../finance/AuditTile";
 import ScanTile from "../finance/ScanTile";
 import PhoneBox from "./PhoneBox";
+import ChatBox from "./ChatBox";
 import { HoursTile, useHours } from "../finance/HoursDrawer";
 import { useScans } from "../finance/ScansDrawer";
 import Lake from "./Lake";
@@ -204,10 +205,7 @@ export default function TodayTab() {
           <div className="panel-head"><h2 className="serif">Emails needing you</h2></div>
           <QuickNote placeholder="A note about your emails, or a follow-up…" onAdded={load} onOpenLog={() => setPanel({ kind: "notes" })} />
           <EmailList full={false} onChanged={load} />
-          <div className="chatbar" role="group" aria-label="Harness chat">
-            <input type="text" disabled placeholder="Chat, capture and dictation come in Phase 5.6." />
-            <button type="button" disabled>Ask</button>
-          </div>
+          <ChatBox onChanged={load} />
         </section>
 
         <aside className="widgets" aria-label="Widgets">
