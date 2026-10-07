@@ -204,6 +204,10 @@ export default function TodayTab() {
           <div className="panel-head"><h2 className="serif">Emails needing you</h2></div>
           <QuickNote placeholder="A note about your emails, or a follow-up…" onAdded={load} onOpenLog={() => setPanel({ kind: "notes" })} />
           <EmailList full={false} onChanged={load} />
+          <div className="chatbar" role="group" aria-label="Harness chat">
+            <input type="text" disabled placeholder="Chat, capture and dictation come in Phase 5.6." />
+            <button type="button" disabled>Ask</button>
+          </div>
         </section>
 
         <aside className="widgets" aria-label="Widgets">
@@ -230,11 +234,6 @@ export default function TodayTab() {
           <button type="button" className="gallery" disabled>Choose widgets · coming later</button>
         </aside>
       </main>
-
-      <section className="chatbar" aria-label="Harness chat">
-        <input type="text" disabled placeholder="Chat, capture and dictation come in Phase 5." />
-        <button type="button" disabled>Send</button>
-      </section>
 
       <Drawer panel={panel} today={data.today} onClose={() => setPanel(null)} onTickDeadline={tickDeadline} onChanged={() => { load(); audit.reload(); }} />
     </>

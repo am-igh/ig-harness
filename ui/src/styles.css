@@ -90,7 +90,7 @@ nav { display: flex; gap: 4px; height: 72px; margin-left: 28px; }
 .tile-sub { font-size: 11px; color: var(--muted); } .soon { font-size: 11px; font-weight: 700; color: #4f5fa8; }
 .gallery { height: 40px; border-radius: 12px; border: 1.5px dashed #aeb6cf; background: transparent; color: var(--navy); font-size: 12px; font-weight: 700; opacity: .6; }
 
-.chatbar { margin: 0 32px 24px; height: 64px; background: #fff; border: 1.5px solid var(--navy); border-radius: 16px; padding: 0 10px 0 18px; display: flex; align-items: center; gap: 10px; opacity: .75; }
+.chatbar { margin: 6px 0 0; height: 56px; flex: none; background: #fff; border: 1.5px solid var(--navy); border-radius: 16px; padding: 0 10px 0 18px; display: flex; align-items: center; gap: 10px; opacity: .75; }
 .chatbar input { flex-grow: 1; border: none; outline: none; font-size: 14px; background: transparent; font-family: inherit; }
 .chatbar button { height: 44px; padding: 0 20px; border-radius: 10px; border: none; background: var(--navy); color: #fff; font-size: 13px; font-weight: 600; }
 
