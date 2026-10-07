@@ -39,7 +39,9 @@ EVENT_OUT = DATA / "event_mail.json"
 CORR_THREADS = 8
 BODY_CHARS_CORR = 1500
 GMAIL_QUERY = "in:inbox newer_than:3d -category:promotions -category:social -category:forums"
-GMAIL_MAX_THREADS = 100
+GMAIL_MAX_THREADS = 500          # thread ids listed per cycle: a burst of automated mail must never push real mail out of view (listing is cheap)
+GMAIL_FETCH_PER_RUN = 100        # full threads read per cycle (new or changed ones, newest first); the rest follow at the next cycle
+GMAIL_CACHE = DATA / "gmail_cache.json"
 BODY_CHARS = 3000
 DAYS_BACK, DAYS_AHEAD = 400, 180     # a year back for the Events archive, half a year ahead
 
@@ -315,30 +317,44 @@ def _history(earlier: list[dict], me: str) -> list[dict]:
     return out
 
 
+def plan_fetch(listed: list[dict], cache: dict, limit: int) -> list[dict]:
+    """Which listed threads need a full read: new ones, or ones whose historyId changed since the cached copy. Newest first (the list order), at most `limit`."""
+    return [t for t in listed if (cache.get(t["id"]) or {}).get("h") != t.get("historyId")][:limit]
+
+
 def sync_gmail() -> None:
     access = _access_token(GMAIL_TOKEN_ITEM, "login-gmail")
     me = _get(f"{GMAIL_API}/profile", access)["emailAddress"]
-    ids = _get(f"{GMAIL_API}/threads", access, {"q": GMAIL_QUERY, "maxResults": str(GMAIL_MAX_THREADS)}).get("threads", [])
-    threads, failed = [], {}
+    listed = _get(f"{GMAIL_API}/threads", access, {"q": GMAIL_QUERY, "maxResults": str(GMAIL_MAX_THREADS)}).get("threads", [])
+    try:
+        cache = json.loads(GMAIL_CACHE.read_text()) if GMAIL_CACHE.exists() else {}
+    except ValueError:
+        cache = {}
+    todo = plan_fetch(listed, cache, GMAIL_FETCH_PER_RUN)
+    failed = {}
     import time
-    for t in ids:
+    for t in todo:
         try:
             n = normalize_thread(_get(f"{GMAIL_API}/threads/{t['id']}", access, {"format": "full"}), me)
         except GoogleError as e:               # one bad thread must not lose the rest
             failed[e.reason] = failed.get(e.reason, 0) + 1
             continue
-        if n:
-            threads.append(n)
+        cache[t["id"]] = {"h": t.get("historyId"), "t": n}
         time.sleep(0.15)                       # stay well under Gmail's per-user rate limit
     for reason, n in failed.items():
         print(f"Skipped {n} thread(s): {reason}")
+    ids = [t["id"] for t in listed]
+    cache = {i: cache[i] for i in ids if i in cache}                       # what left the window is forgotten
+    threads = [cache[i]["t"] for i in ids if i in cache and cache[i]["t"]]
+    waiting = sum(1 for i in ids if i not in cache)
     DATA.mkdir(parents=True, exist_ok=True)
-    tmp = GMAIL_OUT.with_suffix(".tmp")
-    tmp.write_text(json.dumps({"fetched_at": datetime.now(timezone.utc).isoformat(), "me": me,
-                               "query": GMAIL_QUERY, "threads": threads}, ensure_ascii=False))
-    tmp.replace(GMAIL_OUT)
-    GMAIL_OUT.chmod(0o600)
-    print(f"Wrote {len(threads)} recent inbox threads to {GMAIL_OUT}")
+    for path, doc in ((GMAIL_CACHE, cache), (GMAIL_OUT, {"fetched_at": datetime.now(timezone.utc).isoformat(), "me": me, "query": GMAIL_QUERY, "threads": threads,
+                                                          "truncated": len(listed) >= GMAIL_MAX_THREADS, "not_yet_read": waiting})):
+        tmp = path.with_suffix(".tmp")
+        tmp.write_text(json.dumps(doc, ensure_ascii=False))
+        tmp.replace(path)
+        path.chmod(0o600)
+    print(f"Wrote {len(threads)} recent inbox threads to {GMAIL_OUT} ({len(todo)} read now, {waiting} still to read)")
 
 
 def correspondents(me: str) -> list[str]:

@@ -27,6 +27,8 @@ def facts(b: dict) -> list[dict]:
         out.append({"title": "A clash in today's calendar", "fact": f"“{a}” overlaps “{c}”"})
     for m in b["mail"][:6]:
         out.append({"title": f"Reply to {m['from']}: {m['subject']}", "fact": f"email from {m['from']} waiting for a reply: {m['why'] or m['action'] or ''}" + (f"; wanted by {m['deadline']}" if m["deadline"] else "")})
+    for m in b.get("replies", [])[:4]:
+        out.append({"title": f"{m['from']} replied: {m['subject']}", "fact": f"new mail on something you wait for: {m['why']}"})
     for w in s["waiting"][:4]:
         out.append({"title": f"Chase {w['who'] or 'someone'}", "fact": f"waiting {w['days']} days for: {w['what']}"})
     for m in s["checks"]["major_within_14"]:

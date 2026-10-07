@@ -342,3 +342,5 @@ table.score td.best { font-weight: 700; color: var(--purple); }
 .chat-proposal { display: flex; flex-direction: column; gap: 6px; white-space: normal; width: 100%; box-sizing: border-box; }
 .chat-proposal input { font: inherit; font-size: 13px; padding: 5px 8px; border: 1px solid var(--line); border-radius: 8px; min-width: 0; }
 .chat-prop-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+.open-items { margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--line); display: flex; flex-direction: column; gap: 6px; } .open-items .kicker { color: var(--purple); }

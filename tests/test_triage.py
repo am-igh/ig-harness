@@ -83,3 +83,21 @@ def test_the_cap_counts_model_reads_not_emails_skipped_by_rule(tmp_path):
             return R()
     out = triage.triage_pending(c, G(), limit=3)
     assert out["skipped"] >= 1 and out["error"] == 1                      # the real one was reached (and failed only because this fake model is down)
+
+
+def test_google_alerts_are_dropped_even_from_a_watched_name_and_a_copied_watch_name_is_judged_by_the_model(tmp_path):
+    from types import SimpleNamespace
+    from harness.triage import triage_pending, watch_role
+    c = _watch_conn(tmp_path, from_email="no-reply@accounts.google.com", from_name="Felix Staehli")
+    c.execute("INSERT INTO watch_names (name) VALUES ('Felix Staehli')"); c.commit()
+    triage_pending(c, type("G", (), {"complete": lambda *a, **k: None})())
+    r = c.execute("SELECT triage_status, why FROM emails").fetchone()
+    assert (r["triage_status"], r["why"]) == ("skipped", "Google alert")
+    c2 = _watch_conn(tmp_path / "x" if False else tmp_path, thread_id="t9")             # Felix is only on the thread here (see _watch_conn)
+    e = c2.execute("SELECT * FROM emails WHERE thread_id='t9'").fetchone()
+    assert watch_role(e, "Felix Staehli") == "thread"
+    c2.execute("INSERT OR IGNORE INTO watch_names (name) VALUES ('Felix Staehli')"); c2.commit()
+    ok = lambda *a, **k: SimpleNamespace(ok=True, text='{"needs_action": false, "action": "none", "why": "fyi", "urgency": 1, "deadline": null}', reason="", model="m")
+    triage_pending(c2, type("G", (), {"complete": ok})())
+    r2 = c2.execute("SELECT needs_reply FROM emails WHERE thread_id='t9'").fetchone()
+    assert r2["needs_reply"] == 0                                                          # the model's 'no' stands for a copied name

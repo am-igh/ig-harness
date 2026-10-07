@@ -18,6 +18,8 @@ from harness import notes as notes_mod
 from harness.gateway import Gateway
 
 AUTOMATED = re.compile(r"(^|[._-])(no-?reply|do-?not-?reply|donotreply|mailer-daemon|notifications?|bounce)([._@-]|$)", re.I)
+# Google's own account and Workspace alerts (spoofing, security, sign-in notices): never worth a place in the list, not even from a watched name
+GOOGLE_ALERT = re.compile(r"(^|[._-])(no-?reply|workspace-?noreply|googlealerts-?noreply)@(accounts\.)?google\.com$|@accounts\.google\.com$", re.I)
 BODY_FOR_MODEL = 1500
 
 BASE_SYSTEM = (
@@ -108,6 +110,13 @@ def watch_hit(e: sqlite3.Row, names: list[str]) -> str | None:
     return None
 
 
+def watch_role(e: sqlite3.Row, name: str) -> str:
+    """'sender' when the watched person wrote the newest message, else 'thread' (copied, or wrote earlier). A sender outranks a copied name."""
+    words = _norm(name).split()
+    person = _norm(f"{e['from_name'] or ''} {e['from_email'] or ''}")
+    return "sender" if words and all(f" {w} " in person for w in words) else "thread"
+
+
 def _context(conn: sqlite3.Connection, e: sqlite3.Row) -> tuple[str, bool]:
     lines, waiting = [], False
     if e["person_slug"]:
@@ -169,9 +178,10 @@ def _urgency_from_deadline(parsed: dict, today: date) -> int:
     return max(parsed["urgency"], 2) if days <= 7 else min(parsed["urgency"], 2)
 
 
-def score(e: sqlite3.Row, p: dict, waiting: bool, now: datetime) -> float:
+def score(e: sqlite3.Row, p: dict, waiting: bool, now: datetime, watch_role_: str | None = None) -> float:
     age_h = max(0.0, (now - datetime.fromisoformat(e["received_at"])).total_seconds() / 3600)
     s = (10 if p["needs_reply"] else 0) + p["urgency"] * 2 + (3 if e["person_slug"] else 0) + (3 if waiting else 0) + (1 if e["direct"] else 0)
+    s += {"sender": 3, "thread": 0}.get(watch_role_ or "", 0)             # a watched person who wrote outranks one who is only on the thread
     if p["needs_reply"] and p["deadline"]:
         days = (date.fromisoformat(p["deadline"]) - now.date()).days
         s += 4 if days <= 3 else 2 if days <= 7 else 0
@@ -187,8 +197,11 @@ def triage_pending(conn: sqlite3.Connection, gateway: Gateway | None = None, lim
     names = watched_names(conn)
     asked = 0
     for e in rows:
-        hit = watch_hit(e, names) if names and not e["last_from_me"] else None
-        skip = None if hit else prefilter(e)
+        if GOOGLE_ALERT.search(e["from_email"] or ""):
+            hit, skip = None, "Google alert"
+        else:
+            hit = watch_hit(e, names) if names and not e["last_from_me"] else None
+            skip = None if hit else prefilter(e)
         if skip:
             with conn:
                 conn.execute("UPDATE emails SET triage_status='skipped', needs_reply=0, why=?, action=NULL, deadline=NULL, score=NULL, triaged_at=?, updated_at=datetime('now') WHERE id=?",
@@ -199,7 +212,8 @@ def triage_pending(conn: sqlite3.Connection, gateway: Gateway | None = None, lim
             break
         asked += 1
         parsed, reason, waiting = ask_model(conn, gateway, e, now)
-        if hit:                                   # her always-show-me list beats the model's opinion
+        role = watch_role(e, hit) if hit else None
+        if hit and (role == "sender" or not parsed):      # a watched person who wrote beats the model's opinion; one who is only copied is judged by the model (and forced only if it failed)
             parsed = parsed or {"action": "reply", "urgency": 2, "deadline": None, "model": "watch list"}
             parsed.update(needs_reply=True, why=f"On your watch list: {hit}"[:60])
             reason = ""
@@ -212,7 +226,7 @@ def triage_pending(conn: sqlite3.Connection, gateway: Gateway | None = None, lim
         with conn:
             conn.execute("UPDATE emails SET triage_status='done', needs_reply=?, action=?, why=?, urgency=?, deadline=?, score=?, triaged_model=?, triaged_at=?, updated_at=datetime('now') WHERE id=?",
                          (int(parsed["needs_reply"]), parsed["action"], parsed["why"], parsed["urgency"], parsed["deadline"],
-                          score(e, parsed, waiting, now), parsed.get("model") or LOCAL_MODEL,
+                          score(e, parsed, waiting, now, role), parsed.get("model") or LOCAL_MODEL,
                           now.isoformat(timespec="seconds"), e["id"]))
         out["done"] += 1
     return out
@@ -273,6 +287,14 @@ def list_emails(conn: sqlite3.Connection, hours: int, now: datetime | None = Non
     res = {"needs_reply": need,
            "counts": {k: conn.execute("SELECT COUNT(*) FROM emails WHERE in_window=1 AND handled_at IS NULL AND received_at>=? AND triage_status=?", (cutoff, k)).fetchone()[0]
                       for k in ("pending", "skipped", "done", "error")}}
+    from harness import replies                                    # mail answering something she waits for: separate from the list, never limited by it
+    on_items = []
+    for r in replies.find(conn, now, hours):
+        row = conn.execute("SELECT e.*, p.name AS person_name, p.org AS person_org, p.role AS person_role FROM emails e LEFT JOIN people p ON p.slug = e.person_slug WHERE e.id = ?", (r["email"]["id"],)).fetchone()
+        if any(x["id"] == row["id"] for x in need):
+            continue
+        on_items.append({**shape(row), "why": r["reasons"][0], "open_item": r["item"]})
+    res["on_open_items"] = on_items
     if include_skipped:
         res["handled"] = [shape(r) for r in conn.execute(
             "SELECT e.*, p.name AS person_name, p.org AS person_org, p.role AS person_role FROM emails e "

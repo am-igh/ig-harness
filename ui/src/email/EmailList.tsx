@@ -127,6 +127,13 @@ export default function EmailList({ full, onChanged }: { full: boolean; onChange
       {data.needs_reply.map((e) => <Row key={e.id} e={e} onOpen={setOpen} />)}
       {total > 0 && c.pending === 0 && data.needs_reply.length === 0 && <div className="empty">Nothing needs a reply in this window.</div>}
 
+      {(data.on_open_items?.length ?? 0) > 0 && (
+        <div className="open-items">
+          <div className="kicker">REPLIES ON OPEN ITEMS · NEW MAIL ABOUT SOMETHING YOU WAIT FOR</div>
+          {data.on_open_items!.map((e) => <Row key={e.id} e={e} onOpen={setOpen} />)}
+        </div>
+      )}
+
       {full && (data.not_needing_reply?.length ?? 0) > 0 && (
         <details className="skipped">
           <summary>Not needing a reply ({data.not_needing_reply!.length})</summary>

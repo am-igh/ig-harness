@@ -78,6 +78,8 @@ def rules_attention(b: dict) -> list[dict]:
     if b["calendar"]["clashes"]:
         a, c = b["calendar"]["clashes"][0]
         out.append({"title": "A clash in today's calendar", "why": f"“{a}” overlaps “{c}”: one has to move."})
+    for m in b["replies"][:2]:
+        out.append({"title": f"{m['from']} replied: {m['subject']}", "why": m["why"]})
     for m in b["mail"][:6]:
         if m["deadline"] and m["deadline"] <= (date.fromisoformat(b["day"]) + timedelta(days=2)).isoformat() and len(out) < 4:
             out.append({"title": f"Reply to {m['from']}: {m['subject']}", "why": f"{m['action'] or 'A reply'} is wanted by {m['deadline']}."})
@@ -96,12 +98,14 @@ def build(conn: sqlite3.Connection, now: datetime | None = None) -> dict:
     tomorrow = _calendar(conn, day + timedelta(days=1))
     mail = [{"from": m["from_name"], "org": m["org"], "subject": m["subject"], "why": m["why"], "action": m["action"], "deadline": m["deadline"], "hours_ago": m["hours_ago"], "known": m["known"]}
             for m in list_emails(conn, 72, now)["needs_reply"][:8]]
+    on_items = [{"from": m["from_name"], "subject": m["subject"], "why": m["why"], "item": m["open_item"], "hours_ago": m["hours_ago"]}
+                for m in list_emails(conn, 72, now)["on_open_items"]]
     week_end = (day + timedelta(days=7)).isoformat()
     evs = [e for e in E.list_events(conn, day, "upcoming")["items"] if e["status"] in ("confirmed", "tentative", "invited") and day.isoformat() < e["start"][:10] <= week_end][:8]
     hw = H.week_summary(conn, day)
     b = {"day": day.isoformat(), "title": long_date(day), "calendar": {"today": [{k: v for k, v in e.items() if not k.startswith("_")} for e in cal],
                                                                         "clashes": _clashes(cal), "tomorrow": [{k: v for k, v in e.items() if not k.startswith("_")} for e in tomorrow]},
-         "mail": mail, "suivi": _suivi(conn, tod, day),
+         "mail": mail, "replies": on_items, "suivi": _suivi(conn, tod, day),
          "events_week": [{"title": e["title"], "when": e["start"][:10], "status": e["status"], "role": e["role"], "place": e["venue"], "rsvp_by": e["rsvp_by"]} for e in evs],
          "harness": {"hours_week": hw["total"], "hours_days_without": hw["days_without"], "scans_to_confirm": scans.summary(conn)["to_confirm"], "phone_waiting": len(phone.list_new(conn)["items"]),
                      "friday": day.weekday() == 4}}
@@ -131,6 +135,8 @@ def render_text(b: dict) -> str:
         L.append("EVENTS THIS WEEK: " + "; ".join(f"{e['when'][5:]} {e['title']} ({'you are in' if e['status'] == 'confirmed' else e['status']}{', ' + e['role'] if e['role'] else ''})" for e in b["events_week"]))
     L += ["", "2. IMPORTANT MAIL"]
     L += [f"- {m['from']}{' (' + m['org'] + ')' if m['org'] else ''} — {m['subject']}: {m['why'] or m['action'] or 'needs a reply'}" + (f" (by {m['deadline']})" if m["deadline"] else "") for m in b["mail"]] or ["- Nothing needs a reply."]
+    L += ["", "2b. REPLIES ON OPEN ITEMS (new mail that answers something you wait for, even when it asks nothing)"]
+    L += [f"- {m['from']} — {m['subject']}: {m['why']}" for m in b["replies"]] or ["- None."]
     s = b["suivi"]
     L += ["", "3. SUIVI", "a. Due today or overdue (open)"] + ([_line(i) for i in s["due_today"] + s["overdue"]] or ["- Nothing."])
     L += ["b. Due in the next 7 days"] + ([f"- {i['due']} {_line(i)[2:]}" for i in s["next7"]] or ["- Nothing."])

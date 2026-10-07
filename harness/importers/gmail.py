@@ -57,7 +57,7 @@ def import_gmail(conn: sqlite3.Connection, folder: Path) -> list[Report]:
         # The helper fetches at most TRUNCATED_AT threads, newest first. When it hit that limit (a burst of automated mail can fill it), threads older than the oldest one
         # fetched were simply not looked at, so they stay as they were; only threads inside the fetched time range that are missing have really left the inbox.
         oldest = None
-        if len(data["threads"]) >= TRUNCATED_AT:
+        if data.get("truncated", len(data["threads"]) >= TRUNCATED_AT):
             oldest = datetime.fromtimestamp(min(t["received_ms"] for t in data["threads"]) / 1000, TZ).isoformat(timespec="seconds")
         for r in conn.execute("SELECT id, thread_id, received_at FROM emails WHERE in_window = 1").fetchall():
             if r["thread_id"] not in seen and (oldest is None or r["received_at"] >= oldest):

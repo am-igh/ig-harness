@@ -39,7 +39,7 @@ export type Email = {
   action: string | null; deadline: string | null; user_label: "yes" | "no" | null; task_id: number | null; handled_at: string | null; last_from_me: boolean; note_count: number;
 };
 export type EmailsResponse = {
-  needs_reply: Email[]; not_needing_reply?: Email[]; handled?: Email[];
+  needs_reply: Email[]; on_open_items?: (Email & { open_item: string | null })[]; not_needing_reply?: Email[]; handled?: Email[];
   counts: { pending: number; skipped: number; done: number; error: number };
 };
 export type TriageStatus = { running: boolean; last: Record<string, number | string> | null; finished_at: string | null };
