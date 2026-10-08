@@ -61,7 +61,7 @@ def test_statuses_follow_the_date_and_the_core_deadlines_feed_today(c):
     assert {"accepted", "submitted", "drafting", "todo"} <= statuses
     assert c.execute("SELECT COUNT(*) FROM deadlines WHERE source='pm' AND status='open'").fetchone()[0] >= 5
     assert c.execute("SELECT COUNT(*) FROM deadlines WHERE source='pm' AND status='done'").fetchone()[0] == 0
-    assert c.execute("SELECT COUNT(*) FROM tasks WHERE source='demo'").fetchone()[0] == 4 and c.execute("SELECT COUNT(*) FROM emails").fetchone()[0] == 4
+    assert c.execute("SELECT COUNT(*) FROM tasks WHERE source='demo'").fetchone()[0] == 4 and c.execute("SELECT COUNT(*) FROM emails").fetchone()[0] == 14
 
 
 def test_everything_is_invented(c):
@@ -78,3 +78,23 @@ def test_the_demo_instance_cannot_see_real_data():
     for forbidden in ("SUIVI_DIR", "PROJETS_DIR", "SCAN_INBOX_DIR", "AUDIT_YEAR_DIR", "AUDIT_TOOLS_DIR", "Tresors", "Scan-Inbox", "Backups"):
         assert forbidden not in code, forbidden
     assert code.count("/data") >= 2                                                                   # api and worker both get the demo folder
+
+
+def test_the_invented_mail_is_varied_and_shows_off_the_features(c):
+    from datetime import datetime
+    from harness import chat, replies
+    from harness.config import TZ
+    demo_seed.seed(c, TODAY)
+    rows = c.execute("SELECT subject, triage_status, needs_reply, last_from_me, bulk, body FROM emails").fetchall()
+    assert sum(1 for r in rows if r["needs_reply"]) >= 8 and any(r["triage_status"] == "skipped" for r in rows) and any(r["last_from_me"] for r in rows) and any(r["bulk"] for r in rows)
+    assert any("journée" in r["subject"] for r in rows) and all(len(r["body"]) > 60 for r in rows)                  # a French one, and real-looking bodies
+    now = datetime(2026, 10, 14, 9, 0, tzinfo=TZ)
+    hits = replies.find(c, datetime.fromtimestamp(datetime.now(TZ).timestamp(), TZ), hours=24 * 30)
+    assert any("Hana Petrov" in r["reasons"][0] for r in hits)                                                       # a reply on an open item that asks for nothing
+
+
+def test_the_invented_events_cover_each_status(c):
+    demo_seed.seed(c, TODAY)
+    st = {r["derived_status"] for r in c.execute("SELECT derived_status FROM events WHERE source_kind = 'demo'")}
+    assert {"confirmed", "tentative", "invited", "none"} <= st
+    assert c.execute("SELECT COUNT(*) FROM events WHERE source_kind = 'demo' AND geneva = 1").fetchone()[0] >= 1 and c.execute("SELECT COUNT(*) FROM events WHERE source_kind = 'demo' AND geneva = 0").fetchone()[0] >= 2

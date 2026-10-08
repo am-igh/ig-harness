@@ -161,28 +161,96 @@ def _everyday(conn, today: date) -> None:
                                    ("Quarter-end close with the finance officer", at(7, 10), at(7, 11), "Office")):
         conn.execute("INSERT OR IGNORE INTO calendar_events (title, start, end, all_day, status, space, location, source, source_ref) VALUES (?,?,?,0,'confirmed','work',?,'demo',?)",
                      (title, start.isoformat(), end.isoformat(), loc, title))
+    people = (("priya-ellison", "Priya Ellison", "Albion Cyber Philanthropies", "Programme director", "priya@acp-demo.example"),
+              ("leilani-kahale", "Leilani Kahale", "Kokua Island Network", "Director", "leilani@kin-demo.example"),
+              ("daniel-moreau", "Daniel Moreau", "ICT4Peace (demo finance)", "Finance officer", "daniel@aurora-demo.example"),
+              ("marguerite-faure", "Marguerite Faure", "Faure & Partners (auditors)", "Audit partner", "marguerite@faure-demo.example"))
+    for slug, name, org, role, email in people:
+        conn.execute("INSERT OR IGNORE INTO people (slug, name, org, role, email, space) VALUES (?,?,?,?,?, 'work')", (slug, name, org, role, email))
+    conn.execute("INSERT OR IGNORE INTO waiting_on (description, person, since_date, source, source_ref) VALUES (?, 'camille-roy', ?, 'demo', 'w2')",
+                 ("Lakeside Cyber Dialogue to confirm Hana Petrov or Joao Marques as the AURORA panel moderator, and whether the session is in person or online", (today - timedelta(days=9)).isoformat()))
+    me = "director@aurora-demo.example"
+    earlier_me = [{"from_me": True, "from_email": me, "from_name": "Me", "body": "Thank you, we would be glad to take part. Could you tell us the format and who will moderate?"}]
+    # (id, name, address, subject, hours ago, body, why, action, deadline, urgency, score, person slug, needs reply, status, extras)
     mails = (
-        ("m1", "Ingrid Solheim", "ingrid@nda-demo.example", "Q3 financial report: updated workbook (v4)", 6, "Please use the updated NDA workbook (v4) for the Q3 report. The deadline is unchanged, 30 October. Can you confirm you received it?",
-         "needs confirmation of the new template", "confirm receipt", (today + timedelta(days=16)).isoformat(), 3, 11.5, "ingrid-solheim", 1),
-        ("m2", "Tomas Aranui", "tomas@pdff-demo.example", "Instalment 2 and the first results report", 20, "Our review of the first results report is complete. We will release instalment 2 as soon as you clarify how indicator 3.2 was measured. Thank you.",
-         "asks how an indicator was measured", "reply with clarification", None, 3, 12.0, "tomas-aranui", 1),
-        ("m3", "Mireille Dupont", "mireille@mbcc-demo.example", "Our Q3 report will arrive two days late", 30, "Apologies: our accountant is away, so the Q3 report will reach you on 17 October instead of 15 October.",
-         "partner report will be late", "acknowledge", None, 2, 9.0, "mireille-dupont", 1),
-        ("m4", "Camille Roy", "camille@hdtf-demo.example", "Invitation: HDTF partners' day, 12 November", 52, "We would be delighted if you could join our annual partners' day in Zurich on 12 November, and say a few words about AURORA.",
-         "invitation to speak", "reply to invitation", (today + timedelta(days=30)).isoformat(), 1, 8.0, "camille-roy", 1),
+        ("m1", "Ingrid Solheim", "ingrid@nda-demo.example", "Q3 financial report: updated workbook (v4)", 6,
+         "Dear Anne-Marie, please use the updated NDA workbook (v4) for the Q3 financial report; the v3 file we sent in July has an error in the overhead sheet that would make your 7% cap look breached when it is not. The deadline is unchanged: 30 October. Could you confirm you received v4? Many thanks, Ingrid",
+         "needs confirmation of the new template", "confirm receipt", (today + timedelta(days=16)).isoformat(), 3, 12.5, "ingrid-solheim", 1, "done", {}),
+        ("m2", "Tomas Aranui", "tomas@pdff-demo.example", "Instalment 2 and the first results report", 20,
+         "Anne-Marie, our review of the first results report is complete and the committee was positive. We will release instalment 2 as soon as you clarify how indicator 3.2 (number of officials trained) was measured: the report counts attendance, while the framework says completion of the full course. A short note is enough. Best, Tomas",
+         "asks how an indicator was measured", "reply with clarification", None, 3, 12.0, "tomas-aranui", 1, "done", {}),
+        ("m3", "Mireille Dupont", "mireille@mbcc-demo.example", "Our Q3 report will arrive two days late", 30,
+         "Bonjour Anne-Marie, our accountant is away this week, so the Q3 report for Mer Bleue will reach you on 17 October instead of 15 October. All activity data are ready; only the expense reconciliation is waiting. Apologies for the inconvenience. Mireille",
+         "partner report will be late", "acknowledge", None, 2, 9.0, "mireille-dupont", 1, "done", {}),
+        ("m4", "Camille Roy", "camille@hdtf-demo.example", "Invitation : journée des partenaires de la HDTF, 12 novembre", 52,
+         "Chère Madame Buzatu, nous serions très heureux de vous accueillir à notre journée annuelle des partenaires, le 12 novembre à Zurich, et que vous présentiez AURORA en dix minutes. Merci de nous indiquer votre réponse avant le 30 octobre. Avec nos meilleures salutations, Camille Roy",
+         "invitation to speak (in French)", "reply to invitation", (today + timedelta(days=22)).isoformat(), 1, 8.5, "camille-roy", 1, "done", {}),
+        ("m5", "Hana Petrov", "hana.petrov@lakeside-demo.example", "Re: AURORA panel at the Lakeside Cyber Dialogue", 4,
+         "Dear Anne-Marie, thank you for your patience. We are still finalising the line-up and will come back to you very soon with the format. Warm regards, Hana Petrov, programme committee",
+         "no question asked", None, None, 1, 3.0, None, 0, "done", {"history": earlier_me, "cc": ["camille@hdtf-demo.example"]}),
+        ("m6", "Priya Ellison", "priya@acp-demo.example", "Milestone 2: the evidence we need to see", 14,
+         "Anne-Marie, to accept milestone 2 (regional playbook) our board needs three things: the playbook itself, evidence that at least four island governments adopted it, and a one-page note on what changed after the pilot in Samoa. Please send them by 22 October so we can release the second payment of GBP 70,000 on schedule. Priya",
+         "three items needed by 22 October", "prepare evidence pack", (today + timedelta(days=14)).isoformat(), 3, 13.0, "priya-ellison", 1, "done", {"history": earlier_me}),
+        ("m7", "Leilani Kahale", "leilani@kin-demo.example", "Bank fees on our USD sub-grant payment", 26,
+         "Hello Anne-Marie, the USD 15,000 you sent us arrived as USD 14,790: our bank deducted USD 210 in fees, and we now cannot pay the Tonga training venue in full. Can AURORA cover the difference, and if so under which budget line? I attach the bank advice. Aloha, Leilani",
+         "asks AURORA to cover bank fees", "decide and reply", None, 2, 10.0, "leilani-kahale", 1, "done", {}),
+        ("m8", "Daniel Moreau", "daniel@aurora-demo.example", "NDA reallocation: needs your signature before Friday", 8,
+         "Anne-Marie, moving EUR 18,000 from travel to training is 12% of the travel line, which is above NDA's 10% limit, so we need their written approval before we commit the money. I have drafted the request: it needs your signature and the revised budget table. I can send it to Ingrid as soon as you sign. Daniel",
+         "needs your signature", "sign the request", (today + timedelta(days=2)).isoformat(), 3, 12.8, "daniel-moreau", 1, "done", {}),
+        ("m9", "Sofia Lindqvist", "sofia@nordic-tech-demo.example", "Comment for an article on cyber resilience in island states", 10,
+         "Dear Ms Buzatu, I am writing a piece for Nordic Tech Review about why small island states are targeted by ransomware. Would you give me a short comment on what AURORA has learned so far? My deadline is Friday at noon, and a ten-minute call would also work. Best wishes, Sofia Lindqvist",
+         "press request, Friday deadline", "reply or decline", (today + timedelta(days=3)).isoformat(), 2, 9.5, None, 1, "done", {}),
+        ("m10", "Marguerite Faure", "marguerite@faure-demo.example", "Audit scope for AURORA: does 2026 spending exceed USD 250,000?", 40,
+         "Dear Anne-Marie, to scope the external audit I need to know whether PDFF-funded spending in 2026 will exceed the USD 250,000 threshold in Part E of the grant. If it does, the audit is mandatory and due four months after year end; if not, we can plan a lighter review. Please send the year-to-date PDFF expenditure when you can. Kind regards, Marguerite",
+         "asks for year-to-date PDFF spending", "send expenditure figure", None, 2, 9.0, "marguerite-faure", 1, "done", {}),
+        ("m11", "Ingrid Solheim", "ingrid@nda-demo.example", "FYI: signed copy of amendment no. 1", 90,
+         "For your records: the fully signed copy of amendment no. 1 (no-cost extension to 30 June 2029) is attached. No action needed on your side. Ingrid",
+         "information only", None, None, 1, 0.0, "ingrid-solheim", 0, "done", {}),
+        ("m12", "Digital Trust Weekly", "news@digitaltrust-demo.example", "This week in digital trust: ten stories you may have missed", 12,
+         "Your weekly briefing on digital trust, privacy and cyber policy. Unsubscribe at any time.", "newsletter", None, None, 1, 0.0, None, 0, "skipped", {"bulk": 1}),
+        ("m13", "IT Support", "it-support@mail-secure-login.example", "URGENT: verify your Workspace password within 24 hours", 5,
+         "Your mailbox will be suspended unless you verify your password at the link below.", "looks like phishing", None, None, 1, 0.0, None, 0, "skipped", {"bulk": 1}),
+        ("m14", "Camille Roy", "camille@hdtf-demo.example", "Re: AURORA annual narrative report: French summary", 70,
+         "Merci pour votre message. Nous attendons avec plaisir votre rapport annuel.", "you replied last", None, None, 1, 0.0, "camille-roy", 0, "skipped", {"last_from_me": 1}),
     )
-    for tid, name, addr, subj, hours_ago, body, why, action, deadline, urgency, score, slug, direct in mails:
+    for tid, name, addr, subj, hours_ago, body, why, action, deadline, urgency, score, slug, needs, status, extra in mails:
         rec = datetime.fromtimestamp(datetime.now(TZ).timestamp() - hours_ago * 3600, TZ).isoformat(timespec="seconds")
-        conn.execute("INSERT OR IGNORE INTO emails (thread_id, message_id, from_name, from_email, subject, received_at, snippet, body, direct, triage_status, needs_reply, why, action, deadline, urgency, score, "
-                     "to_addrs, cc_addrs, history, person_slug) VALUES (?,?,?,?,?,?,?,?,?,'done',1,?,?,?,?,?,?,?,?,?)",
-                     (f"demo-{tid}", f"demo-{tid}@aurora-demo.example", name, addr, subj, rec, body[:120], body, direct, why, action, deadline, urgency, score,
-                      json.dumps(["director@aurora-demo.example"]), json.dumps([]), json.dumps([]), slug))
+        conn.execute("INSERT OR IGNORE INTO emails (thread_id, message_id, from_name, from_email, subject, received_at, snippet, body, direct, bulk, last_from_me, triage_status, needs_reply, why, action, deadline, "
+                     "urgency, score, to_addrs, cc_addrs, history, person_slug) VALUES (?,?,?,?,?,?,?,?,1,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                     (f"demo-{tid}", f"demo-{tid}@aurora-demo.example", name, addr, subj, rec, body[:140], body, extra.get("bulk", 0), extra.get("last_from_me", 0), status, needs, why, action, deadline, urgency, score,
+                      json.dumps([me]), json.dumps(extra.get("cc", [])), json.dumps(extra.get("history", [])), slug))
+    # invented events (some confirmed, so the horizon of "Geneva and beyond" shows what confirmed looks like); real public listings are added by `make demo-events`
+    for key, title, start, end, venue, city, geneva, status, role, topics, online in (
+            ("lakeside", "Lakeside Cyber Dialogue", today + timedelta(days=9), today + timedelta(days=10), "Lakeside Convention Centre", "Geneva", 1, "tentative", "panelist", "cyber,peace", 0),
+            ("hdtf", "HDTF Partners' Day", date(2026, 11, 12), date(2026, 11, 12), "Zurich", "Zurich", 0, "invited", "speaker", "tech for good", 0),
+            ("playbook", "AURORA regional playbook workshop", today + timedelta(days=6), today + timedelta(days=6), "Online", None, 0, "confirmed", "facilitator", "cyber,tech for good", 1),
+            ("islands", "Island States Cyber Resilience Forum", today + timedelta(days=30), today + timedelta(days=32), "Convention hall", "Port Vila", 0, "confirmed", "speaker", "cyber", 0),
+            ("roundtable", "Digital Trust Roundtable", today + timedelta(days=21), today + timedelta(days=21), "Brussels", "Brussels", 0, "none", None, "tech for good", 0)):
+        conn.execute("INSERT OR IGNORE INTO events (dedupe_key, title, start, end, all_day, venue, city, online, geneva, role, derived_status, source_kind, tier, topics, relevant) VALUES (?,?,?,?,1,?,?,?,?,?,?,'demo','S0',?,1)",
+                     (f"demo:{key}", title, start.isoformat(), (end + timedelta(days=1)).isoformat() if end != start else None, venue, city, online, geneva, role, status, topics))
     conn.commit()
+
+
+def import_listings(conn) -> dict:
+    """Read the public event listings the demo fetched for itself (tools/events_helper.py pull, into the demo data folder) and turn the demo calendar into events. Nothing else is imported."""
+    from harness import events as E
+    from harness.config import DATA_DIR
+    from harness.importers.public_events import import_public_events
+    guard(conn)
+    r = import_public_events(conn, DATA_DIR)
+    E.sync_calendar(conn)
+    return {"added": sum(x.added for x in r), "updated": sum(x.updated for x in r), "notes": [n for x in r for n in x.notes]}
 
 
 def main() -> None:
     conn = db.connect()
     db.migrate(conn)
+    if "--events" in sys.argv:
+        try:
+            print(import_listings(conn))
+        except NotDemo as e:
+            sys.exit(f"Refused: {e}")
+        return
     try:
         r = seed(conn)
     except NotDemo as e:

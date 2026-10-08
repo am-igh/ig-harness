@@ -1,4 +1,4 @@
-.PHONY: ui-test up down test logs import calendar gmail correspondence check-network agent-install agent-uninstall agent-status refresh-install refresh-uninstall refresh-now backup backup-list backup-test suivi-export-dry-run suivi-export-now suivi-export-pause suivi-export-resume events-mail events-public reminders-pull filing-now hours-now hours-pause hours-resume searxng-up searxng-down research-install research-uninstall research-now demo-up demo-seed demo-down demo-reset
+.PHONY: ui-test up down test logs import calendar gmail correspondence check-network agent-install agent-uninstall agent-status refresh-install refresh-uninstall refresh-now backup backup-list backup-test suivi-export-dry-run suivi-export-now suivi-export-pause suivi-export-resume events-mail events-public reminders-pull filing-now hours-now hours-pause hours-resume searxng-up searxng-down research-install research-uninstall research-now demo-up demo-seed demo-events demo-down demo-reset
 
 up:      ## Start the harness (UI at http://localhost:5173)
 	docker compose up -d --build
@@ -120,6 +120,7 @@ demo-up: ## Start the AURORA demo (fictitious data, separate from your real harn
 	$(DEMO) up -d --build api worker ui ollama-bridge
 	@sleep 8
 	$(DEMO) exec -T api python -m harness.demo_seed
+	-$(MAKE) demo-events
 	@echo "AURORA demo at http://localhost:5174 (banner says DEMO; nothing real is connected)."
 
 demo-seed: ## Add the AURORA data to the demo instance (does nothing if it is already there)
@@ -132,3 +133,8 @@ demo-reset: ## Throw the demo's data away and start it again from the story (use
 	$(DEMO) down
 	rm -f $(HOME)/IG-Harness-Demo-data/harness.db $(HOME)/IG-Harness-Demo-data/harness.db-wal $(HOME)/IG-Harness-Demo-data/harness.db-shm
 	$(MAKE) demo-up
+
+demo-events: ## Give the demo the same PUBLIC event listings as the real harness (fetched afresh from the same three public websites; none of your own calendar or mail)
+	IG_DATA_DIR=$(HOME)/IG-Harness-Demo-data python3 tools/events_helper.py pull
+	$(DEMO) exec -T api python -m harness.demo_seed --events
+	@echo "Public event listings added to the demo."
