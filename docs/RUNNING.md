@@ -260,7 +260,7 @@ Every query is logged in the database (what left the Mac). The answer is shown w
 
 ## Contracts & funders, and the AURORA demo
 
-The **Contracts & funders** tab holds projects with their funders, contracts (kept in your folders; the harness stores where they are), requirements and the reporting deadlines they create, and funding transfers with the exchange rate the bank assigned on arrival. Reporting deadlines also appear on the Today lake. To try it without real data, run the demo: `make demo-up` (screen at <http://localhost:5174>, separate fictitious data, see `docs/DEMO_AURORA.md`), `make demo-reset` to restart the story, `make demo-down` to stop.
+The **Contracts & funders** tab holds projects with their funders, contracts (kept in your folders; the harness stores where they are), requirements and the reporting deadlines they create, and funding transfers with the exchange rate the bank assigned on arrival. Reporting deadlines also appear on the Today lake. Clicking a reporting deadline opens its workspace: the funder's requirement, the funder's form (kept in your folders), a template the harness makes from the requirements and your own records, and a working draft that keeps every version. To try it without real data, run the demo: `make demo-up` (screen at <http://localhost:5174>, separate fictitious data, see `docs/DEMO_AURORA.md`), `make demo-reset` to restart the story, `make demo-down` to stop.
 
 ## If the AI features suddenly stop (the header says "⚠ Model missing")
 
