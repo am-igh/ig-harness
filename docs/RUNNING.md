@@ -258,6 +258,10 @@ The "Research the web" button under the chat box searches the web for your own w
 
 Every query is logged in the database (what left the Mac). The answer is shown with its sources; check them before relying on it. Nothing is kept unless you click **Save to library** under the answer. Saved answers (question, summary and source links, not the page text) appear under **Saved research** below the chat box, where you can search them, give them a project code, copy or delete them. They stay on this Mac, are included in the daily backups, and "Ask the harness" does not use them. The ✕ on a message, or **Clear chat**, removes answers from the screen and from the harness's memory.
 
+## Contracts & funders, and the AURORA demo
+
+The **Contracts & funders** tab holds projects with their funders, contracts (kept in your folders; the harness stores where they are), requirements and the reporting deadlines they create, and funding transfers with the exchange rate the bank assigned on arrival. Reporting deadlines also appear on the Today lake. To try it without real data, run the demo: `make demo-up` (screen at <http://localhost:5174>, separate fictitious data, see `docs/DEMO_AURORA.md`), `make demo-reset` to restart the story, `make demo-down` to stop.
+
 ## If the AI features suddenly stop (the header says "⚠ Model missing")
 
 After a restart, **AnythingLLM** (if it reopens with your windows) can start its own, older Ollama and take over the port, hiding your models. Fix: quit AnythingLLM, then quit and reopen the Ollama app, and run `ollama list`

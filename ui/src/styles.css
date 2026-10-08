@@ -384,3 +384,4 @@ table.score td.best { font-weight: 700; color: var(--purple); }
 .pm-cw { border-top: 1px solid var(--line); padding-top: 8px; } .pm-cw summary { cursor: pointer; padding: 4px 0; } .pm-plan { background: #F5F7FC; border-radius: 10px; padding: 8px 12px; margin-top: 6px; font-size: 13.5px; }
 .pm-adds { display: flex; gap: 8px; flex-wrap: wrap; } .pm-form { display: flex; flex-direction: column; gap: 8px; padding: 10px 0; } .pm-form-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .pm-form input, .pm-form select { font: inherit; font-size: 13.5px; padding: 6px 9px; border: 1px solid var(--line); border-radius: 8px; min-width: 0; } .pm-form-row > input:not([type=date]) { flex: 1 1 160px; } .pm-form button[type=submit] { align-self: flex-start; } .pm-new { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+.pm-back { align-self: flex-start; width: auto; }

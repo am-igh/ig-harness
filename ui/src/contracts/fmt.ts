@@ -5,3 +5,4 @@ export const monthKey = (iso: string) => iso.slice(0, 7);
 export const monthName = (key: string) => new Date(key + "-15T12:00:00").toLocaleDateString("en-GB", { month: "long", year: "numeric" });
 export const KIND: Record<string, string> = { grant: "Grant", amendment: "Amendment", subgrant: "Sub-grant (money out)" };
 export const STATUS_LABEL: Record<string, string> = { todo: "To do", drafting: "Drafting", submitted: "Submitted", accepted: "Accepted" };
+export const dateY = (iso: string | null | undefined) => (iso ? new Date(iso.slice(0, 10) + "T12:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "–");

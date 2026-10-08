@@ -2,7 +2,7 @@ import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { type PMCrosswalk, type PMDetail, type PMFunder, type PMTranslation, type PMTransfer, confirmPMObligation, getPMFunders, getPMProject, receivePMTransfer, setPMDeadlineStatus, translatePM } from "../api";
 import { dayShort } from "../format";
 import { ContractForm, ExtendForm, FunderForm, ObligationForm, TransferForm } from "./Forms";
-import { KIND, STATUS_LABEL, money, monthKey, monthName, rate, signedChf } from "./fmt";
+import { KIND, STATUS_LABEL, dateY, money, monthKey, monthName, rate, signedChf } from "./fmt";
 
 function Strip({ d }: { d: PMDetail }) {
   const t = d.finance.totals;
@@ -24,8 +24,8 @@ function Alerts({ d }: { d: PMDetail }) {
   if (!d.crunches.length && !late.length) return null;
   return (
     <div className="pm-alerts">
-      {d.crunches.map((k) => <div key={k.from} className="notice warn-box"><span><b>{k.count} reports fall due between {dayShort(k.from)} and {dayShort(k.to)}:</b> {k.items.join(" · ")}</span></div>)}
-      {late.map((t) => <div key={t.id} className="notice warn-box"><span><b>{t.funder} {t.label} is {t.days_late} days late</b> ({money(t.expected_amount, t.currency)} expected {dayShort(t.expected_date ?? "")}){t.note ? `: ${t.note}` : ""}</span></div>)}
+      {d.crunches.map((k) => <div key={k.from} className="notice warn-box"><span><b>{k.count} reports fall due between {dateY(k.from)} and {dateY(k.to)}:</b> {k.items.join(" · ")}</span></div>)}
+      {late.map((t) => <div key={t.id} className="notice warn-box"><span><b>{t.funder} {t.label} is {t.days_late} days late</b> ({money(t.expected_amount, t.currency)} expected {dateY(t.expected_date)}){t.note ? `: ${t.note}` : ""}</span></div>)}
     </div>
   );
 }
@@ -40,12 +40,12 @@ function Contracts({ d, onChanged }: { d: PMDetail; onChanged: () => void }) {
         <tbody>{top.map((c) => (<Fragment key={c.id}>
           <tr><td><b>{c.funder}</b><div className="small muted">{c.funder_name}</div></td>
             <td>{c.title}<div className="small muted">{KIND[c.kind]}{c.status === "amended" ? " · amended" : ""}</div>{c.summary && <div className="small muted">{c.summary}</div>}</td>
-            <td className="nowrap">{c.start_date ? dayShort(c.start_date) : "–"} → {c.end_date ? dayShort(c.end_date) : "–"}</td>
+            <td className="nowrap">{dateY(c.start_date)} → {dateY(c.end_date)}</td>
             <td className="r nowrap">{money(c.amount, c.currency)}</td><td className="r">{c.currency === "CHF" ? "–" : rate(c.budget_rate)}</td>
             <td className="small">{c.file_path ? <><span className="mono">{c.file_path}</span><div className="muted">fingerprint {c.file_hash}</div></> : <span className="muted">not recorded</span>}</td>
             <td>{c.kind === "grant" && <button type="button" className="btn-ghost" onClick={() => setExt(ext === c.id ? null : c.id)}>Extension</button>}</td></tr>
           {d.contracts.filter((a) => a.parent_id === c.id).map((a) => (
-            <tr key={a.id} className="pm-amend"><td /><td>↳ {a.title}<div className="small muted">Signed {a.signed_date ? dayShort(a.signed_date) : "–"} · {a.summary}</div></td><td className="nowrap">→ {a.end_date ? dayShort(a.end_date) : "–"}</td><td colSpan={2} className="small muted">no change in amount</td>
+            <tr key={a.id} className="pm-amend"><td /><td>↳ {a.title}<div className="small muted">Signed {dateY(a.signed_date)} · {a.summary}</div></td><td className="nowrap">→ {dateY(a.end_date)}</td><td colSpan={2} className="small muted">no change in amount</td>
               <td className="small">{a.file_path && <span className="mono">{a.file_path}</span>}</td><td /></tr>))}
           {ext === c.id && <tr key={`e${c.id}`}><td colSpan={7}><ExtendForm c={c} onDone={() => { setExt(null); onChanged(); }} /></td></tr>}
         </Fragment>))}</tbody></table></div>
@@ -68,7 +68,7 @@ function Calendar({ d, onChanged }: { d: PMDetail; onChanged: () => void }) {
           {items.map((r) => (
             <div key={r.id} className={`pm-dl ${r.overdue ? "overdue" : ""}`}>
               <span className="pm-date mono">{dayShort(r.due_date)}</span><span className={`pm-chip pm-${r.role}`}>{r.funder}</span>
-              <span className="pm-dl-title">{r.title} <span className="muted small">({r.period})</span></span>
+              <span className="pm-dl-title">{r.title}{!["fixed date", "final", "start"].includes(r.period) && <span className="muted small"> ({r.period})</span>}</span>
               <span className="small muted pm-left">{r.status === "todo" || r.status === "drafting" ? (r.days_left < 0 ? `${-r.days_left} d overdue` : r.days_left === 0 ? "today" : `in ${r.days_left} d`) : r.submitted_on ? `done ${dayShort(r.submitted_on)}` : ""}</span>
               <select value={r.status} onChange={async (e) => { await setPMDeadlineStatus(r.id, e.target.value); onChanged(); }} aria-label={`Status of ${r.title}`} className={`pm-status s-${r.status}`}>
                 {Object.entries(STATUS_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
@@ -103,8 +103,8 @@ function Transfers({ d, onChanged }: { d: PMDetail; onChanged: () => void }) {
         <tbody>{d.finance.transfers.map((t) => (<Fragment key={t.id}>
           <tr className={t.status === "late" ? "pm-late" : ""}>
             <td><b>{t.funder}</b></td><td>{t.label}{t.note && <div className="small muted">{t.note}</div>}</td>
-            <td className="nowrap">{t.expected_date ? dayShort(t.expected_date) : "–"}<div className="small muted">{money(t.expected_amount, t.currency)}</div></td>
-            <td className="nowrap">{t.received_date ? <>{dayShort(t.received_date)}<div className="small muted">{money(t.received_amount, t.currency)}{t.days_late ? ` · ${t.days_late} d late` : ""}</div></> : <span className={t.status === "late" ? "bad" : "muted"}>{t.status === "late" ? `late by ${t.days_late} d` : "not yet"}</span>}</td>
+            <td className="nowrap">{dateY(t.expected_date)}<div className="small muted">{money(t.expected_amount, t.currency)}</div></td>
+            <td className="nowrap">{t.received_date ? <>{dateY(t.received_date)}<div className="small muted">{money(t.received_amount, t.currency)}{t.days_late ? ` · ${t.days_late} d late` : ""}</div></> : <span className={t.status === "late" ? "bad" : "muted"}>{t.status === "late" ? `late by ${t.days_late} d` : "not yet"}</span>}</td>
             <td className="r">{t.currency === "CHF" ? "–" : rate(t.bank_rate)}{t.currency !== "CHF" && t.received_date && <div className="small muted">budget {rate(t.budget_rate)}</div>}</td>
             <td className="r">{t.chf_received != null ? money(t.chf_received) : "–"}</td>
             <td className={`r ${t.fx_difference != null && t.fx_difference < 0 ? "bad" : "good"}`}>{t.fx_difference != null ? signedChf(t.fx_difference) : ""}</td>
@@ -163,9 +163,9 @@ export default function ProjectPage({ id, onBack, onChanged }: { id: number; onB
   const done = () => { setAdd(""); load(); };
   return (
     <div className="pm-project">
-      <button type="button" className="btn-ghost" onClick={onBack}>← All projects</button>
+      <button type="button" className="btn-ghost pm-back" onClick={onBack}>← All projects</button>
       <header className="pm-title"><div><span className="mono proj-code">{d.project.code}</span> {d.project.demo && <span className="pm-prop">demo data</span>}<h2 className="serif">{d.project.name}</h2>
-        <div className="muted small">{d.project.start_date ? dayShort(d.project.start_date) : ""} → {d.project.end_date ? dayShort(d.project.end_date) : ""}{d.project.lead ? ` · ${d.project.lead}` : ""}</div></div>
+        <div className="muted small">{dateY(d.project.start_date)} → {dateY(d.project.end_date)}{d.project.lead ? ` · ${d.project.lead}` : ""}</div></div>
         <div className="pm-chips">{d.funders.map((f) => <span key={f} className="pm-chip pm-funder">{f}</span>)}</div></header>
       {d.project.summary && <p className="pm-summary">{d.project.summary}</p>}
       <Strip d={d} /><Alerts d={d} />

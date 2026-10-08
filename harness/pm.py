@@ -129,7 +129,7 @@ def generate(conn, obligation_id: int) -> int:
     if o["anchor"] == "none" or o["recurrence"] == "none":
         return 0
     if o["anchor"] == "fixed":
-        due.append((o["title"], _d(o["fixed_date"])))
+        due.append(("fixed date", _d(o["fixed_date"])))
     elif o["recurrence"] in STEP:
         if not (o["cs"] and o["ce"]):
             return 0
@@ -439,7 +439,7 @@ def sync_core(conn, today: date | None = None, horizon_days: int = 150) -> int:
                 continue
             if r["due_date"] > horizon:
                 continue
-            title = f"{r['short']}: {r['title']} ({r['period_label']})"[:160]
+            title = (f"{r['short']}: {r['title']}" + ("" if r["period_label"] in ("fixed date", "final", "start") else f" ({r['period_label']})"))[:160]
             conn.execute("INSERT INTO deadlines (title, due_date, kind, importance, project_code, status, source, source_ref, sensitivity) VALUES (?,?,'reporting',?,?, 'open','pm',?, 'S2') "
                          "ON CONFLICT (source, source_ref) DO UPDATE SET title=excluded.title, due_date=excluded.due_date, importance=excluded.importance, updated_at=datetime('now') WHERE deadlines.status='open'",
                          (title, r["due_date"], "major" if r["canon"] in ("financial_report", "narrative_report", "milestone_report", "audit") else "normal", r["code"], ref))

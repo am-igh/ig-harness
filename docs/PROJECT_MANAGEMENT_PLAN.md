@@ -1,6 +1,6 @@
 # Project management page: a first outline (proposal, 8 Oct 2026)
 
-Status: **idea, not started.** Anne-Marie asked for a fuller project and contract management area, to be built eventually. This outline is for review; nothing here is decided until she says so.
+Status: **first version built on 8 Oct 2026 and demonstrated with the fictitious AURORA programme (see `DEMO_AURORA.md`);** contract reading by a local model, the register link and real data entry are still to come. Original status: idea. Anne-Marie asked for a fuller project and contract management area, to be built eventually. This outline is for review; nothing here is decided until she says so.
 
 ## What she asked for
 
