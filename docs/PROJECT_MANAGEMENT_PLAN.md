@@ -51,5 +51,5 @@ A page (probably a fifth tab, or a big extension of Projects & finance) where sh
 
 ## Still to settle
 
-1. **One source of truth:** `Registre_Projets.xlsx` as master, the new page as master, or a hybrid (see the pros and cons discussed with Anne-Marie).
+1. ~~One source of truth~~ **Decided 8 Oct 2026: hybrid.** `Registre_Projets.xlsx` stays the master for mandates, instalments, budget and initiatives; the new page holds the new information (funders, contracts, obligations, transfers, crosswalk) and shows both together. Revisit in a year.
 2. **Later sharing:** should the design keep other organisations in mind (a possible FAGI version)?
