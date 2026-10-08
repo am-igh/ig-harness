@@ -82,7 +82,8 @@ async def lifespan(app: FastAPI):
     if os.environ.get("IG_SCAN_WATCH", "1") != "0":
         threading.Thread(target=_scan_watcher, daemon=True).start()
         threading.Thread(target=_event_reader, daemon=True).start()
-        threading.Thread(target=_brief_clock, daemon=True).start()
+        if os.environ.get("IG_DEMO") != "1":                       # the demo has no Gmail agent: it never queues a brief draft
+            threading.Thread(target=_brief_clock, daemon=True).start()
     yield
 
 
@@ -1283,3 +1284,178 @@ def research_get(rid: str) -> dict:
     if j is None:
         raise HTTPException(404, "This search is no longer available. Ask again.")
     return {k: j[k] for k in ("state", "query", "answer", "sources", "error")}
+
+
+# --- Project and contract management (and the demo marker) ---
+@app.get("/api/meta")
+def meta() -> dict:
+    return {"demo": os.environ.get("IG_DEMO") == "1"}
+
+
+def _pm(fn):
+    from harness import pm
+    def go(c):
+        try:
+            return fn(c, pm)
+        except pm.PMError as e:
+            raise HTTPException(422, str(e))
+    return _with_conn(go)
+
+
+class PMProjectIn(BaseModel):
+    code: str
+    name: str
+    start_date: str | None = None
+    end_date: str | None = None
+    lead: str | None = None
+    summary: str | None = None
+
+
+class PMFunderIn(BaseModel):
+    name: str
+    short: str | None = None
+    role: str = "funder"
+    currency: str = "CHF"
+    contact: str | None = None
+
+
+class PMContractIn(BaseModel):
+    project_id: int
+    funder_id: int
+    title: str
+    kind: str = "grant"
+    amount: float | None = None
+    currency: str | None = None
+    budget_rate: float | None = None
+    signed_date: str | None = None
+    start_date: str | None = None
+    end_date: str | None = None
+    file_path: str | None = None
+    summary: str | None = None
+
+
+class PMExtendIn(BaseModel):
+    new_end: str
+    title: str
+    signed_date: str | None = None
+
+
+class PMObligationIn(BaseModel):
+    contract_id: int
+    canon: str
+    title: str
+    clause: str | None = None
+    anchor: str = "period_end"
+    offset_days: int = 0
+    recurrence: str = "once"
+    fixed_date: str | None = None
+    format: str | None = None
+    language: str | None = None
+    detail: str | None = None
+    note: str | None = None
+
+
+class PMTransferIn(BaseModel):
+    contract_id: int
+    label: str
+    expected_date: str | None = None
+    expected_amount: float | None = None
+    received_date: str | None = None
+    received_amount: float | None = None
+    chf_received: float | None = None
+    bank_rate: float | None = None
+    bank_ref: str | None = None
+    note: str | None = None
+
+
+class PMReceiveIn(BaseModel):
+    received_date: str
+    received_amount: float | None = None
+    chf_received: float | None = None
+    bank_rate: float | None = None
+    bank_ref: str | None = None
+
+
+class PMStatusIn(BaseModel):
+    status: str
+
+
+class PMConfirmIn(BaseModel):
+    canon: str | None = None
+
+
+@app.get("/api/pm/projects")
+def pm_projects() -> list:
+    return _pm(lambda c, pm: pm.project_overview(c))
+
+
+@app.get("/api/pm/projects/{project_id}")
+def pm_project(project_id: int) -> dict:
+    d = _pm(lambda c, pm: pm.project_detail(c, project_id))
+    if d is None:
+        raise HTTPException(404, "No such project")
+    return d
+
+
+@app.get("/api/pm/funders")
+def pm_funders() -> list:
+    return _pm(lambda c, pm: pm.funders(c))
+
+
+@app.post("/api/pm/projects")
+def pm_add_project(b: PMProjectIn) -> dict:
+    return _pm(lambda c, pm: {"id": pm.add_project(c, b.code, b.name, b.start_date, b.end_date, b.lead, b.summary)})
+
+
+@app.post("/api/pm/funders")
+def pm_add_funder(b: PMFunderIn) -> dict:
+    return _pm(lambda c, pm: {"id": pm.add_funder(c, b.name, b.short, b.role, b.currency, b.contact)})
+
+
+@app.post("/api/pm/contracts")
+def pm_add_contract(b: PMContractIn) -> dict:
+    return _pm(lambda c, pm: {"id": pm.add_contract(c, b.project_id, b.funder_id, b.title, b.kind, b.amount, b.currency, b.budget_rate, b.signed_date, b.start_date, b.end_date, b.file_path, None, b.summary)})
+
+
+@app.post("/api/pm/contracts/{contract_id}/extend")
+def pm_extend(contract_id: int, b: PMExtendIn) -> dict:
+    return _pm(lambda c, pm: {"id": pm.extend_contract(c, contract_id, b.new_end, b.title, b.signed_date)})
+
+
+@app.post("/api/pm/obligations")
+def pm_add_obligation(b: PMObligationIn) -> dict:
+    return _pm(lambda c, pm: {"id": pm.add_obligation(c, b.contract_id, b.canon, b.title, b.clause, b.anchor, b.offset_days, b.recurrence, b.fixed_date, b.format, b.language, b.detail, b.note)})
+
+
+@app.post("/api/pm/obligations/{obligation_id}/confirm")
+def pm_confirm(obligation_id: int, b: PMConfirmIn) -> dict:
+    ok = _pm(lambda c, pm: pm.confirm_mapping(c, obligation_id, b.canon))
+    if not ok:
+        raise HTTPException(404, "No such requirement")
+    return {"ok": True}
+
+
+@app.post("/api/pm/transfers")
+def pm_add_transfer(b: PMTransferIn) -> dict:
+    return _pm(lambda c, pm: {"id": pm.add_transfer(c, b.contract_id, b.label, b.expected_date, b.expected_amount, b.received_date, b.received_amount, b.chf_received, b.bank_rate, b.bank_ref, b.note)})
+
+
+@app.post("/api/pm/transfers/{transfer_id}/receive")
+def pm_receive(transfer_id: int, b: PMReceiveIn) -> dict:
+    ok = _pm(lambda c, pm: pm.receive_transfer(c, transfer_id, b.received_date, b.received_amount, b.chf_received, b.bank_rate, b.bank_ref))
+    if not ok:
+        raise HTTPException(404, "No such transfer")
+    return {"ok": True}
+
+
+@app.post("/api/pm/deadlines/{deadline_id}/status")
+def pm_deadline_status(deadline_id: int, b: PMStatusIn) -> dict:
+    ok = _pm(lambda c, pm: pm.set_deadline_status(c, deadline_id, b.status))
+    if not ok:
+        raise HTTPException(404, "No such deadline")
+    return {"ok": True}
+
+
+@app.get("/api/pm/translate")
+def pm_translate(project: int, source: str, to: str) -> dict:
+    return _pm(lambda c, pm: pm.translate(c, project, source, to))

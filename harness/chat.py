@@ -87,6 +87,15 @@ def facts(conn: sqlite3.Connection, now: datetime | None = None) -> list[str]:
         out.append(f"Event: {e['title']} on {e['start'][:10]}" + (f" at {e['venue']}" if e.get("venue") else "") + f", her status: {e['status']}" + (f", role {e['role']}" if e.get("role") else ""))
     for e in E.list_events(conn, day, "archive", limit=15)["items"]:
         out.append(f"Past event: {e['title']} on {e['start'][:10]}, her status: {e['status']}")
+    from harness import pm
+    for ov in pm.project_overview(conn, day):                                     # the contract-management side: funding and reporting
+        d = pm.project_detail(conn, ov["id"], day)
+        out.append(f"Project {ov['code']} ({ov['name']}): funders {', '.join(ov['funders']) or 'none yet'}; budget total CHF {ov['committed_chf']:,.0f}; received CHF {ov['received_chf']:,.0f}; {ov['overdue']} reporting deadline(s) overdue")
+        for t in d["finance"]["transfers"]:
+            if t["status"] != "received":
+                out.append(f"Expected transfer ({ov['code']}): {t['funder']} {t['label']}, {t['expected_amount']:,.0f} {t['currency']} expected {t['expected_date']}" + (f", LATE by {t['days_late']} days" if t["status"] == "late" else "") + (f" ({t['note']})" if t["note"] else ""))
+        for k in d["crunches"]:
+            out.append(f"Reporting crunch ({ov['code']}): {k['count']} deadlines between {k['from']} and {k['to']}: " + "; ".join(k["items"]))
     hw = H.week_summary(conn, day)
     out.append(f"Hours this week: {hw['total']} h" + ("; by project " + ", ".join(f"{p['project']} {p['hours']}" for p in hw["by_project"]) if hw["by_project"] else ""))
     codes = [f"{r['code']} = {r['name']}" for r in conn.execute("SELECT code, name FROM project_codes WHERE domain != 'P' ORDER BY code") if r["name"]]

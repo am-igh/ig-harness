@@ -287,3 +287,35 @@ export const saveResearch = (id: string, project_code?: string) => jj<{ id: numb
 export const getLibrary = (q?: string) => j<{ items: SavedResearch[]; total: number }>(`/api/research-library${q ? `?q=${encodeURIComponent(q)}` : ""}`);
 export const setLibraryProject = (id: number, project_code: string | null) => jj<{ ok: boolean }>(`/api/research-library/${id}/project`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ project_code }) });
 export const deleteSaved = (id: number) => j<{ deleted: boolean }>(`/api/research-library/${id}`, { method: "DELETE" });
+
+// ---- Project and contract management
+export type PMDeadline = { id: number; obligation_id: number; title: string; canon: string; funder: string; role: string; period: string; due_date: string; status: "todo" | "drafting" | "submitted" | "accepted"; days_left: number; overdue: boolean; submitted_on: string | null };
+export type PMTransfer = { id: number; contract_id: number; funder: string; currency: string; label: string; expected_date: string | null; expected_amount: number | null; received_date: string | null; received_amount: number | null; chf_received: number | null; bank_rate: number | null; budget_rate: number; fx_difference: number | null; status: "received" | "late" | "expected"; days_late: number; bank_ref: string | null; note: string | null };
+export type PMContract = { id: number; parent_id: number | null; kind: "grant" | "amendment" | "subgrant"; title: string; funder: string; funder_name: string; role: string; signed_date: string | null; start_date: string | null; end_date: string | null; amount: number | null; currency: string; budget_rate: number; file_path: string | null; file_hash: string | null; status: string; summary: string | null };
+export type PMObligation = { id: number; contract_id: number; funder: string; canon: string; canon_label: string; title: string; clause: string | null; rule: string; format: string | null; language: string | null; detail: string | null; note: string | null; confirmed: boolean; source: string };
+export type PMCrosswalk = { canon: string; label: string; funders: string[]; items: PMObligation[]; same: string[]; differs: string[]; unconfirmed: number; plan: string };
+export type PMFinanceContract = { contract_id: number; funder: string; kind: string; currency: string; amount: number | null; budget_rate: number; committed_chf_budget: number; received: number; outstanding: number; chf_received: number; average_rate: number | null; fx_difference: number };
+export type PMDetail = {
+  project: { id: number; code: string; name: string; status: string; start_date: string | null; end_date: string | null; lead: string | null; summary: string | null; demo: boolean };
+  contracts: PMContract[]; obligations: PMObligation[]; deadlines: PMDeadline[]; crunches: { from: string; to: string; count: number; items: string[] }[];
+  finance: { transfers: PMTransfer[]; contracts: PMFinanceContract[]; totals: { committed_chf_budget: number; chf_received: number; fx_difference: number; late_transfers: number; passed_to_partners_chf_budget: number } };
+  crosswalk: PMCrosswalk[]; funders: string[]; canon: Record<string, string>;
+};
+export type PMCard = { id: number; code: string; name: string; status: string; start_date: string | null; end_date: string | null; demo: boolean; funders: string[]; committed_chf: number; received_chf: number; late_transfers: number; overdue: number; next: PMDeadline | null; crunches: number };
+export type PMFunder = { id: number; name: string; short: string; role: string; currency: string; contact: string | null };
+export type PMTranslation = { from: string; to: string; summary: { covers: number; partly: number; gap: number }; rows: { canon: string; label: string; verdict: "covers" | "partly" | "gap"; reasons: string[]; from: PMObligation | null; to: PMObligation }[] };
+const postJson = <T,>(url: string, body: unknown) => jj<T>(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+export const getMeta = () => j<{ demo: boolean }>("/api/meta");
+export const getPMProjects = () => j<PMCard[]>("/api/pm/projects");
+export const getPMProject = (id: number) => j<PMDetail>(`/api/pm/projects/${id}`);
+export const getPMFunders = () => j<PMFunder[]>("/api/pm/funders");
+export const addPMProject = (b: { code: string; name: string; start_date?: string; end_date?: string; lead?: string; summary?: string }) => postJson<{ id: number }>("/api/pm/projects", b);
+export const addPMFunder = (b: { name: string; short?: string; role?: string; currency?: string; contact?: string }) => postJson<{ id: number }>("/api/pm/funders", b);
+export const addPMContract = (b: Record<string, unknown>) => postJson<{ id: number }>("/api/pm/contracts", b);
+export const extendPMContract = (id: number, b: { new_end: string; title: string; signed_date?: string }) => postJson<{ id: number }>(`/api/pm/contracts/${id}/extend`, b);
+export const addPMObligation = (b: Record<string, unknown>) => postJson<{ id: number }>("/api/pm/obligations", b);
+export const confirmPMObligation = (id: number, canon?: string) => postJson<{ ok: boolean }>(`/api/pm/obligations/${id}/confirm`, { canon: canon ?? null });
+export const addPMTransfer = (b: Record<string, unknown>) => postJson<{ id: number }>("/api/pm/transfers", b);
+export const receivePMTransfer = (id: number, b: Record<string, unknown>) => postJson<{ ok: boolean }>(`/api/pm/transfers/${id}/receive`, b);
+export const setPMDeadlineStatus = (id: number, status: string) => postJson<{ ok: boolean }>(`/api/pm/deadlines/${id}/status`, { status });
+export const translatePM = (project: number, source: string, to: string) => jj<PMTranslation>(`/api/pm/translate?project=${project}&source=${encodeURIComponent(source)}&to=${encodeURIComponent(to)}`);

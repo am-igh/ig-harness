@@ -589,6 +589,76 @@ MIGRATIONS: list[str] = [
     );
     CREATE INDEX idx_research_saved_at ON research_saved (saved_at);
     """,
+    # 34: project and contract management (funders, contracts, obligations and their deadlines, transfers with the bank's exchange rate). Contracts stay in her folders: only a path and a hash are kept.
+    """
+    CREATE TABLE pm_funders (
+        id INTEGER PRIMARY KEY,
+        name TEXT NOT NULL UNIQUE,
+        short TEXT NOT NULL,
+        role TEXT NOT NULL DEFAULT 'funder' CHECK (role IN ('funder','partner')),
+        currency TEXT NOT NULL DEFAULT 'CHF',
+        contact TEXT,
+        notes TEXT
+    );
+    CREATE TABLE pm_projects (
+        id INTEGER PRIMARY KEY,
+        code TEXT NOT NULL UNIQUE,
+        name TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('planned','active','closing','closed')),
+        start_date TEXT, end_date TEXT,
+        lead TEXT, summary TEXT,
+        demo INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE TABLE pm_contracts (
+        id INTEGER PRIMARY KEY,
+        project_id INTEGER NOT NULL REFERENCES pm_projects (id),
+        funder_id INTEGER NOT NULL REFERENCES pm_funders (id),
+        parent_id INTEGER REFERENCES pm_contracts (id),            -- an amendment points at its contract
+        kind TEXT NOT NULL DEFAULT 'grant' CHECK (kind IN ('grant','amendment','subgrant')),   -- grant: money in; subgrant: money passed to a partner
+        title TEXT NOT NULL,
+        signed_date TEXT, start_date TEXT, end_date TEXT,
+        amount REAL, currency TEXT NOT NULL DEFAULT 'CHF',
+        budget_rate REAL NOT NULL DEFAULT 1.0,                     -- CHF per 1 unit of the contract currency assumed in the budget
+        file_path TEXT, file_hash TEXT,
+        status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('draft','active','amended','closed')),
+        summary TEXT
+    );
+    CREATE TABLE pm_obligations (
+        id INTEGER PRIMARY KEY,
+        contract_id INTEGER NOT NULL REFERENCES pm_contracts (id),
+        canon TEXT NOT NULL,                                       -- the common requirement type (see harness/pm.py CANON)
+        title TEXT NOT NULL,
+        clause TEXT,
+        anchor TEXT NOT NULL DEFAULT 'period_end' CHECK (anchor IN ('period_end','start','end','fixed','none')),
+        offset_days INTEGER NOT NULL DEFAULT 0,
+        recurrence TEXT NOT NULL DEFAULT 'once' CHECK (recurrence IN ('none','once','quarterly','semiannual','annual')),
+        fixed_date TEXT,
+        format TEXT, language TEXT, detail TEXT, note TEXT,
+        confirmed INTEGER NOT NULL DEFAULT 1,                      -- 0: a proposed mapping she has not confirmed
+        source TEXT NOT NULL DEFAULT 'manual'                      -- manual / model
+    );
+    CREATE TABLE pm_deadlines (
+        id INTEGER PRIMARY KEY,
+        obligation_id INTEGER NOT NULL REFERENCES pm_obligations (id),
+        period_label TEXT NOT NULL,
+        due_date TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'todo' CHECK (status IN ('todo','drafting','submitted','accepted')),
+        submitted_on TEXT, note TEXT,
+        UNIQUE (obligation_id, period_label)
+    );
+    CREATE TABLE pm_transfers (
+        id INTEGER PRIMARY KEY,
+        contract_id INTEGER NOT NULL REFERENCES pm_contracts (id),
+        label TEXT NOT NULL,
+        expected_date TEXT, expected_amount REAL,
+        received_date TEXT, received_amount REAL,
+        chf_received REAL,                                         -- what the bank credited, in CHF
+        bank_rate REAL,                                            -- CHF per 1 unit of the contract currency, as assigned by the bank on arrival
+        bank_ref TEXT, note TEXT
+    );
+    CREATE INDEX idx_pm_deadlines_due ON pm_deadlines (due_date);
+    """,
 ]
 
 

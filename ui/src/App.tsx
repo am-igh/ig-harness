@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
+import { getMeta } from "./api";
 import TodayTab from "./today/TodayTab";
 import ProjectsTab from "./finance/ProjectsTab";
 import EventsTab from "./events/EventsTab";
+import ContractsTab from "./contracts/ContractsTab";
 import InboxScene from "./scenes/InboxScene";
 import EmailList from "./email/EmailList";
 import ModelPicker from "./ModelPicker";
@@ -15,6 +17,7 @@ const TABS = [
   { id: "today", label: "Today" },
   { id: "inbox", label: "Inbox", phase: "Phase 2" },
   { id: "projects", label: "Projects & finance", phase: "Phase 4" },
+  { id: "contracts", label: "Contracts & funders" },
   { id: "geneva", label: "Geneva and beyond", phase: "Phase 5" },
 ];
 
@@ -23,6 +26,8 @@ type Health = "checking" | "ok" | "down";
 export default function App() {
   const [tab, setTab] = useState("today");
   const [health, setHealth] = useState<Health>("checking");
+  const [demo, setDemo] = useState(false);
+  useEffect(() => { getMeta().then((m) => setDemo(m.demo)).catch(() => {}); }, []);
 
   useEffect(() => {
     const check = () => {
@@ -36,6 +41,7 @@ export default function App() {
   const current = TABS.find((t) => t.id === tab)!;
   return (
     <div className="app">
+      {demo && <div className="demo-banner" role="note">DEMO · every name, amount and message on this screen is fictitious · not connected to any real data</div>}
       <header className="top">
         <div className="brand">
           <img src="/ict4peace_logo.png" alt="ICT for Peace Foundation" />
@@ -54,7 +60,7 @@ export default function App() {
       </header>
       {tab === "today" ? <TodayTab /> : tab === "inbox" ? (
         <><InboxScene /><main className="page inbox-page"><section className="panel inbox"><div className="panel-head"><h2 className="serif">Inbox</h2></div><EmailList full /></section><div className="side-col"><StyleProfiles /><WatchList /><Rules /><Scoreboard /></div></main></>
-      ) : tab === "projects" ? <ProjectsTab /> : tab === "geneva" ? <EventsTab /> : (
+      ) : tab === "projects" ? <ProjectsTab /> : tab === "contracts" ? <ContractsTab /> : tab === "geneva" ? <EventsTab /> : (
         <main className="page"><h2 className="serif">{current.label}</h2><p className="muted">Placeholder. Coming in {current.phase}.</p></main>
       )}
     </div>

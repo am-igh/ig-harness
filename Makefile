@@ -1,4 +1,4 @@
-.PHONY: ui-test up down test logs import calendar gmail correspondence check-network agent-install agent-uninstall agent-status refresh-install refresh-uninstall refresh-now backup backup-list backup-test suivi-export-dry-run suivi-export-now suivi-export-pause suivi-export-resume events-mail events-public reminders-pull filing-now hours-now hours-pause hours-resume searxng-up searxng-down research-install research-uninstall research-now
+.PHONY: ui-test up down test logs import calendar gmail correspondence check-network agent-install agent-uninstall agent-status refresh-install refresh-uninstall refresh-now backup backup-list backup-test suivi-export-dry-run suivi-export-now suivi-export-pause suivi-export-resume events-mail events-public reminders-pull filing-now hours-now hours-pause hours-resume searxng-up searxng-down research-install research-uninstall research-now demo-up demo-seed demo-down demo-reset
 
 up:      ## Start the harness (UI at http://localhost:5173)
 	docker compose up -d --build
@@ -112,3 +112,23 @@ research-uninstall: ## Remove the research agent
 
 research-now: ## Process waiting research requests once, now
 	python3 tools/research_helper.py once
+
+DEMO = docker compose -p igdemo -f docker-compose.yml -f docker-compose.demo.yml
+
+demo-up: ## Start the AURORA demo (fictitious data, separate from your real harness): http://localhost:5174
+	mkdir -p $(HOME)/IG-Harness-Demo-data
+	$(DEMO) up -d --build api worker ui ollama-bridge
+	@sleep 8
+	$(DEMO) exec -T api python -m harness.demo_seed
+	@echo "AURORA demo at http://localhost:5174 (banner says DEMO; nothing real is connected)."
+
+demo-seed: ## Add the AURORA data to the demo instance (does nothing if it is already there)
+	$(DEMO) exec -T api python -m harness.demo_seed
+
+demo-down: ## Stop the demo
+	$(DEMO) down
+
+demo-reset: ## Throw the demo's data away and start it again from the story (use before each demo so the dates are fresh)
+	$(DEMO) down
+	rm -f $(HOME)/IG-Harness-Demo-data/harness.db $(HOME)/IG-Harness-Demo-data/harness.db-wal $(HOME)/IG-Harness-Demo-data/harness.db-shm
+	$(MAKE) demo-up

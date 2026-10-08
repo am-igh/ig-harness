@@ -1,0 +1,21 @@
+# The AURORA DEMO instance: the same harness, but with its own empty data folder and none of her real folders, so real data can never appear on screen.
+# Run it with `make demo-up` (project name "igdemo", screen at http://localhost:5174). It never touches ~/IG-Harness-data; there is no Gmail, calendar, scan folder or register in it.
+services:
+  api:
+    environment:
+      IG_DEMO: "1"
+    volumes:
+      - ${HOME}/IG-Harness-Demo-data:/data
+      - ./tests/fixtures/suivi:/sources/suivi:ro
+      - ./tests/fixtures/projets:/sources/projets:ro
+      - ./tests/fixtures/scan:/sources/scan:ro
+      - ./tests/fixtures/audit/2026:/sources/audit/2026:ro
+      - ./tests/fixtures/audit/Outils:/sources/audit/Outils:ro
+  worker:
+    environment:
+      IG_DEMO: "1"
+    volumes:
+      - ${HOME}/IG-Harness-Demo-data:/data
+  ui:
+    ports: !override
+      - "127.0.0.1:5174:5173"

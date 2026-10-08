@@ -23,6 +23,7 @@ services:
       - ./scripts:/app/scripts:ro
       - ./ui/src:/app/ui/src:ro
       - ./docker-compose.yml:/app/docker-compose.yml:ro      # so a test can check what is mounted
+      - ./docker-compose.demo.yml:/app/docker-compose.demo.yml:ro
       # Her spreadsheets, mounted READ-ONLY. Paths come from .env (see .env.example).
       - ${SUIVI_DIR:-./tests/fixtures/suivi}:/sources/suivi:ro
       - ${PROJETS_DIR:-./tests/fixtures/projets}:/sources/projets:ro
