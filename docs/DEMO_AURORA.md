@@ -6,12 +6,18 @@ AURORA is a **fictitious** programme: "Cyber Resilience for Small Island States"
 
 The demo is a **separate copy of the harness** (project name `igdemo`, screen at <http://localhost:5174>) with its **own empty data folder** `~/IG-Harness-Demo-data`. It has none of your real folders mounted, no Gmail, no calendar, no scan folder and no register. A purple banner across the top says **DEMO**. The seeding program refuses to run anywhere except the demo and refuses a database that holds anything that is not demo data (`tests/test_demo_seed.py` proves both, and that the demo's configuration never mentions your real data folder). Your real harness at <http://localhost:5173> is untouched.
 
+## Events and emails in the demo
+
+- **Events:** the demo has the same **public** event listings as the real harness (the UN Geneva meetings, geneve-int.ch and the Club Diplomatique calendar). It fetches them itself, from the same three public websites, into its own data folder: `make demo-events` (also run by `make demo-up` and `make demo-reset`). Your own calendar and the events found in your emails are **not** copied: they would show your real commitments and contacts. Instead the demo has five invented events (a tentative panel, an invitation, two confirmed ones, one just listed) so the horizon shows what each status looks like. The demo starts with the current listings only, not the year-long archive of the real harness.
+- **Emails:** fourteen invented emails: funder questions, a French invitation, a press request, the auditor, a partner's bank-fees problem, a message that asks for nothing but answers an open item ("Replies on open items"), an information-only message, a newsletter, a phishing-style message and a thread where you replied last. Click any of them to see the summary.
+
 ## Commands (Terminal, in the ig-harness folder)
 
 | Command | What it does |
 |---|---|
 | `make demo-up` | Starts the demo and creates the AURORA data (about a minute the first time) |
 | `make demo-reset` | Throws the demo's data away and rebuilds the story. **Do this before each showing**: the dates in the story are relative to the day |
+| `make demo-events` | Fetches the public event listings again (run it the day before if you want fresher ones) |
 | `make demo-down` | Stops the demo |
 
 The real harness and the demo can run at the same time. Do the demo from the browser on port **5174** only, and close other tabs of the real harness before presenting.
