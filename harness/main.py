@@ -1466,3 +1466,68 @@ def pm_translate(project: int, source: str, to: str) -> dict:
 def email_summary(email_id: int, refresh: bool = False) -> dict:
     from harness import email_summary as es
     return _with_conn(lambda c: es.get(c, email_id, refresh=refresh))
+
+
+# --- Report workspace (documents behind a reporting deadline) ---
+class PMRefIn(BaseModel):
+    kind: str
+    title: str
+    file_path: str
+    note: str | None = None
+
+
+class PMContentIn(BaseModel):
+    content: str
+
+
+def _pmr(fn):
+    from harness import pm, pm_reports
+    def go(c):
+        try:
+            return fn(c, pm_reports)
+        except pm.PMError as e:
+            raise HTTPException(422, str(e))
+    return _with_conn(go)
+
+
+@app.get("/api/pm/deadlines/{deadline_id}")
+def pm_workspace(deadline_id: int) -> dict:
+    w = _pmr(lambda c, r: r.workspace(c, deadline_id))
+    if w is None:
+        raise HTTPException(404, "No such deadline")
+    return w
+
+
+@app.post("/api/pm/deadlines/{deadline_id}/template")
+def pm_make_template(deadline_id: int) -> dict:
+    return _pmr(lambda c, r: r.make_template(c, deadline_id))
+
+
+@app.post("/api/pm/deadlines/{deadline_id}/draft")
+def pm_start_draft(deadline_id: int) -> dict:
+    return _pmr(lambda c, r: r.start_draft(c, deadline_id))
+
+
+@app.post("/api/pm/deadlines/{deadline_id}/documents")
+def pm_attach(deadline_id: int, b: PMRefIn) -> dict:
+    return _pmr(lambda c, r: {"id": r.attach_reference(c, deadline_id, b.kind, b.title, b.file_path, b.note)})
+
+
+@app.get("/api/pm/documents/{doc_id}/versions")
+def pm_versions(doc_id: int) -> list:
+    return _pmr(lambda c, r: r.versions(c, doc_id))
+
+
+@app.post("/api/pm/documents/{doc_id}/version")
+def pm_save_version(doc_id: int, b: PMContentIn) -> dict:
+    return _pmr(lambda c, r: r.save_version(c, doc_id, b.content))
+
+
+@app.get("/api/pm/documents/{doc_id}/download")
+def pm_download(doc_id: int):
+    from fastapi.responses import Response
+    d = _pmr(lambda c, r: r.get_document(c, doc_id))
+    if d is None or d["content"] is None:
+        raise HTTPException(404, "Nothing to download: this document stays in your folders")
+    name = "".join(ch if ch.isalnum() or ch in "-_" else "_" for ch in d["title"])[:80] + f"_v{d['version']}.md"
+    return Response(d["content"], media_type="text/markdown", headers={"Content-Disposition": f'attachment; filename="{name}"'})

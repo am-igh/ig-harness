@@ -323,3 +323,17 @@ export const translatePM = (project: number, source: string, to: string) => jj<P
 // ---- Email summary
 export type EmailSummary = { summary: string | null; cached: boolean; model: string | null; error: string | null };
 export const getEmailSummary = (id: number, refresh = false) => j<EmailSummary>(`/api/emails/${id}/summary${refresh ? "?refresh=true" : ""}`);
+
+// ---- Report workspace (documents behind a reporting deadline)
+export type PMDoc = { id: number; deadline_id: number; kind: "funder_form" | "template" | "draft" | "submitted" | "other"; kind_label: string; title: string; version: number; versions?: number; file_path: string | null; note: string | null; author: "rules" | "you" | "model"; created_at: string; content: string | null };
+export type PMWorkspace = {
+  deadline: { id: number; title: string; period: string; period_start: string | null; period_end: string | null; due_date: string; status: string; days_left: number; submitted_on: string | null; funder: string; funder_name: string; contact: string | null; project: string; code: string; project_id: number; contract: string };
+  requirement: { title: string; clause: string | null; rule: string; language: string | null; format: string | null; detail: string | null; note: string | null; canon: string; canon_label: string };
+  rules: { canon: string; title: string; clause: string | null }[]; documents: PMDoc[]; has_template: boolean;
+};
+export const getPMWorkspace = (id: number) => j<PMWorkspace>(`/api/pm/deadlines/${id}`);
+export const makePMTemplate = (id: number) => postJson<PMDoc>(`/api/pm/deadlines/${id}/template`, {});
+export const startPMDraft = (id: number) => postJson<PMDoc>(`/api/pm/deadlines/${id}/draft`, {});
+export const attachPMDoc = (id: number, b: { kind: string; title: string; file_path: string; note?: string }) => postJson<{ id: number }>(`/api/pm/deadlines/${id}/documents`, b);
+export const savePMVersion = (docId: number, content: string) => postJson<PMDoc>(`/api/pm/documents/${docId}/version`, { content });
+export const getPMVersions = (docId: number) => j<PMDoc[]>(`/api/pm/documents/${docId}/versions`);

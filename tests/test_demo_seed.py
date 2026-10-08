@@ -98,3 +98,11 @@ def test_the_invented_events_cover_each_status(c):
     st = {r["derived_status"] for r in c.execute("SELECT derived_status FROM events WHERE source_kind = 'demo'")}
     assert {"confirmed", "tentative", "invited", "none"} <= st
     assert c.execute("SELECT COUNT(*) FROM events WHERE source_kind = 'demo' AND geneva = 1").fetchone()[0] >= 1 and c.execute("SELECT COUNT(*) FROM events WHERE source_kind = 'demo' AND geneva = 0").fetchone()[0] >= 2
+
+
+def test_the_story_has_documents_behind_some_deadlines(c):
+    demo_seed.seed(c, TODAY)
+    kinds = {r[0] for r in c.execute("SELECT kind FROM pm_documents")}
+    assert {"funder_form", "template", "draft", "submitted"} <= kinds
+    assert c.execute("SELECT MAX(version) FROM pm_documents WHERE kind = 'draft'").fetchone()[0] >= 2                  # a draft with a history
+    assert all((r[0] or "").startswith(("Funder forms/", "Submitted/")) for r in c.execute("SELECT file_path FROM pm_documents WHERE file_path IS NOT NULL"))

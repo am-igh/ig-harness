@@ -124,25 +124,26 @@ def add_obligation(conn, contract_id: int, canon: str, title: str, clause=None, 
 def generate(conn, obligation_id: int) -> int:
     """Create the deadlines this obligation implies (those not yet present). Returns how many were added."""
     o = conn.execute("SELECT o.*, c.start_date AS cs, c.end_date AS ce FROM pm_obligations o JOIN pm_contracts c ON c.id = o.contract_id WHERE o.id = ?", (obligation_id,)).fetchone()
-    due: list[tuple[str, date]] = []
+    due: list[tuple] = []
     off = timedelta(days=o["offset_days"])
     if o["anchor"] == "none" or o["recurrence"] == "none":
         return 0
     if o["anchor"] == "fixed":
-        due.append(("fixed date", _d(o["fixed_date"])))
+        due.append(("fixed date", _d(o["fixed_date"]), None, None))
     elif o["recurrence"] in STEP:
         if not (o["cs"] and o["ce"]):
             return 0
         for n, a, b in periods(_d(o["cs"]), _d(o["ce"]), o["recurrence"]):
-            due.append((f"{a:%b %Y}–{b:%b %Y}", b + off))
+            due.append((f"{a:%b %Y}–{b:%b %Y}", b + off, a, b))
     else:
         base = _d(o["ce"] if o["anchor"] == "end" else o["cs"])
         if base is None:
             return 0
-        due.append(("final" if o["anchor"] == "end" else "start", base + off))
+        due.append(("final" if o["anchor"] == "end" else "start", base + off, _d(o["cs"]) if o["anchor"] == "end" else None, _d(o["ce"]) if o["anchor"] == "end" else None))
     added = 0
-    for label, when in due:
-        if conn.execute("INSERT OR IGNORE INTO pm_deadlines (obligation_id, period_label, due_date) VALUES (?,?,?)", (obligation_id, label, when.isoformat())).rowcount:
+    for label, when, ps, pe in due:
+        if conn.execute("INSERT OR IGNORE INTO pm_deadlines (obligation_id, period_label, due_date, period_start, period_end) VALUES (?,?,?,?,?)",
+                        (obligation_id, label, when.isoformat(), ps.isoformat() if ps else None, pe.isoformat() if pe else None)).rowcount:
             added += 1
     conn.commit()
     return added

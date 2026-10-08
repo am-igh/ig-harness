@@ -386,3 +386,10 @@ table.score td.best { font-weight: 700; color: var(--purple); }
 .pm-form input, .pm-form select { font: inherit; font-size: 13.5px; padding: 6px 9px; border: 1px solid var(--line); border-radius: 8px; min-width: 0; } .pm-form-row > input:not([type=date]) { flex: 1 1 160px; } .pm-form button[type=submit] { align-self: flex-start; } .pm-new { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
 .pm-back { align-self: flex-start; width: auto; }
 .summary-box .preview { background: #F5F7FC; border-left: 3px solid var(--navy); border-radius: 6px; padding: 8px 10px; font-size: 14px; line-height: 1.5; } .summary-box .btn-ghost.small { padding: 0 6px; font-size: 12px; }
+
+.pm-dl-open { background: none; border: none; padding: 0; text-align: left; font: inherit; color: var(--navy); cursor: pointer; } .pm-dl-open:hover { text-decoration: underline; }
+.dl-status { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.dl-doc { display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; align-items: center; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; margin-bottom: 6px; background: #fff; } .dl-doc.on { border-color: var(--navy); background: #F5F7FC; }
+.dl-icon { font-size: 18px; } .dl-doc-main { min-width: 0; overflow-wrap: anywhere; }
+.dl-viewer { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; border-top: 2px solid var(--navy); padding-top: 10px; } .dl-viewer-head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; justify-content: space-between; }
+.dl-text { width: 100%; box-sizing: border-box; font: 13px/1.5 var(--mono, 'IBM Plex Mono', monospace); border: 1px solid var(--line); border-radius: 8px; padding: 10px; background: #fff; } .dl-pre { white-space: pre-wrap; margin: 0; max-height: 520px; overflow: auto; }

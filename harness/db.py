@@ -665,6 +665,23 @@ MIGRATIONS: list[str] = [
     ALTER TABLE emails ADD COLUMN summary_for TEXT;       -- the message id the summary was written for
     ALTER TABLE emails ADD COLUMN summary_model TEXT;
     """,
+    # 36: the report workspace: documents behind a reporting deadline (funder forms by reference, templates made from the requirements, working drafts with versions, submitted copies)
+    """
+    ALTER TABLE pm_deadlines ADD COLUMN period_start TEXT;
+    ALTER TABLE pm_deadlines ADD COLUMN period_end TEXT;
+    CREATE TABLE pm_documents (
+        id INTEGER PRIMARY KEY,
+        deadline_id INTEGER NOT NULL REFERENCES pm_deadlines (id),
+        kind TEXT NOT NULL CHECK (kind IN ('funder_form','template','draft','submitted','other')),
+        title TEXT NOT NULL,
+        version INTEGER NOT NULL DEFAULT 1,                 -- a new save is a new version: nothing is overwritten
+        content TEXT,                                       -- text of templates and drafts (Markdown); forms and submitted copies stay in her folders and are only referenced
+        file_path TEXT, note TEXT,
+        author TEXT NOT NULL DEFAULT 'you' CHECK (author IN ('rules','you','model')),
+        created_at TEXT NOT NULL
+    );
+    CREATE INDEX idx_pm_documents_deadline ON pm_documents (deadline_id, kind, title, version);
+    """,
 ]
 
 

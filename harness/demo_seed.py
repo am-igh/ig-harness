@@ -10,7 +10,7 @@ import os
 import sys
 from datetime import date, datetime, timedelta
 
-from harness import db, pm
+from harness import db, pm, pm_reports
 from harness.config import TZ, now_local
 
 
@@ -132,10 +132,43 @@ def seed(conn, today: date | None = None) -> dict:
         conn.execute("UPDATE pm_deadlines SET note = 'Under review by PDFF: instalment 2 is waiting for this.' WHERE id = ?", (held["id"],))
         conn.commit()
     _everyday(conn, today)
+    _workspace_story(conn, today)
     conn.execute("DELETE FROM deadlines WHERE source = 'pm' AND status = 'done'")          # the story's past reports were done long ago: they must not read as 'done today'
     conn.commit()
     pm.sync_core(conn, today)
     return {"seeded": True}
+
+
+def _deadline_id(conn, funder: str, title_like: str, nth: int = 0) -> int | None:
+    rows = conn.execute("SELECT d.id FROM pm_deadlines d JOIN pm_obligations o ON o.id = d.obligation_id JOIN pm_contracts c ON c.id = o.contract_id JOIN pm_funders f ON f.id = c.funder_id "
+                        "WHERE f.short = ? AND o.title LIKE ? ORDER BY d.due_date", (funder, title_like)).fetchall()
+    return rows[nth]["id"] if len(rows) > nth else None
+
+
+def _workspace_story(conn, today: date) -> None:
+    """Documents behind a few reporting deadlines: a funder's form, templates, drafts with versions and a submitted copy (references only point at invented paths)."""
+    q3 = next((r["id"] for r in conn.execute("SELECT d.id FROM pm_deadlines d JOIN pm_obligations o ON o.id = d.obligation_id JOIN pm_contracts c ON c.id = o.contract_id JOIN pm_funders f ON f.id = c.funder_id "
+                                              "WHERE f.short = 'NDA' AND o.canon = 'financial_report' AND d.due_date >= ? ORDER BY d.due_date LIMIT 1", (today.isoformat(),))), None)
+    if q3:
+        pm_reports.attach_reference(conn, q3, "funder_form", "NDA financial workbook v4", "Funder forms/NDA/NDA_financial_workbook_v4.xlsx", "Use v4, not v3 (see Ingrid's email)")
+        pm_reports.make_template(conn, q3)
+        d = pm_reports.start_draft(conn, q3)
+        pm_reports.save_version(conn, d["id"], d["content"] + "\n\n## Working notes\n\n- Instalment 2 arrived twelve days late at 0.9318: explain the exchange loss under the variances.\n- Waiting for Mer Bleue's Q3 numbers (promised for 17 October).\n- 12% travel-to-training move still needs NDA's written approval.\n")
+    ms = next((r["id"] for r in conn.execute("SELECT d.id FROM pm_deadlines d JOIN pm_obligations o ON o.id = d.obligation_id JOIN pm_contracts c ON c.id = o.contract_id JOIN pm_funders f ON f.id = c.funder_id "
+                                              "WHERE f.short = 'ACP' AND o.title LIKE 'Milestone 2%' LIMIT 1")), None)
+    if ms:
+        pm_reports.make_template(conn, ms)
+        d = pm_reports.start_draft(conn, ms)
+        pm_reports.save_version(conn, d["id"], d["content"].replace("- [ ] The deliverable itself", "- [x] The deliverable itself (playbook v1.2, final)").replace("- [ ] A short note on what changed", "- [ ] A short note on what changed (Samoa pilot: draft in progress)"))
+        pm_reports.attach_reference(conn, ms, "funder_form", "ACP milestone acceptance form", "Funder forms/ACP/ACP_milestone_acceptance_form.docx", "Signed by the director before sending")
+    held = conn.execute("SELECT d.id FROM pm_deadlines d JOIN pm_obligations o ON o.id = d.obligation_id JOIN pm_contracts c ON c.id = o.contract_id JOIN pm_funders f ON f.id = c.funder_id "
+                        "WHERE f.short = 'PDFF' AND o.canon = 'narrative_report' AND d.status = 'submitted' ORDER BY d.due_date DESC LIMIT 1").fetchone()
+    if held:
+        pm_reports.attach_reference(conn, held["id"], "submitted", "PDFF semi-annual results report, as submitted", "Submitted/PDFF/PDFF_results_report_H1_2026.pdf", "Under review: instalment 2 waits for the answer on indicator 3.2")
+    chk = next((r["id"] for r in conn.execute("SELECT d.id FROM pm_deadlines d JOIN pm_obligations o ON o.id = d.obligation_id JOIN pm_contracts c ON c.id = o.contract_id JOIN pm_funders f ON f.id = c.funder_id "
+                                               "WHERE f.short = 'HDTF' AND o.title LIKE 'Mid-term%' LIMIT 1")), None)
+    if chk:
+        pm_reports.make_template(conn, chk)
 
 
 def _everyday(conn, today: date) -> None:

@@ -1,6 +1,7 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { type PMCrosswalk, type PMDetail, type PMFunder, type PMTranslation, type PMTransfer, confirmPMObligation, getPMFunders, getPMProject, receivePMTransfer, setPMDeadlineStatus, translatePM } from "../api";
 import { dayShort } from "../format";
+import DeadlineDrawer from "./DeadlineDrawer";
 import { ContractForm, ExtendForm, FunderForm, ObligationForm, TransferForm } from "./Forms";
 import { KIND, STATUS_LABEL, dateY, money, monthKey, monthName, rate, signedChf } from "./fmt";
 
@@ -54,7 +55,7 @@ function Contracts({ d, onChanged }: { d: PMDetail; onChanged: () => void }) {
   );
 }
 
-function Calendar({ d, onChanged }: { d: PMDetail; onChanged: () => void }) {
+function Calendar({ d, onChanged, onOpen }: { d: PMDetail; onChanged: () => void; onOpen: (id: number) => void }) {
   const [onlyOpen, setOnlyOpen] = useState(true);
   const rows = d.deadlines.filter((x) => !onlyOpen || x.status === "todo" || x.status === "drafting");
   const groups = useMemo(() => { const m = new Map<string, typeof rows>(); rows.forEach((r) => m.set(monthKey(r.due_date), [...(m.get(monthKey(r.due_date)) ?? []), r])); return [...m.entries()]; }, [rows]);
@@ -68,7 +69,7 @@ function Calendar({ d, onChanged }: { d: PMDetail; onChanged: () => void }) {
           {items.map((r) => (
             <div key={r.id} className={`pm-dl ${r.overdue ? "overdue" : ""}`}>
               <span className="pm-date mono">{dayShort(r.due_date)}</span><span className={`pm-chip pm-${r.role}`}>{r.funder}</span>
-              <span className="pm-dl-title">{r.title}{!["fixed date", "final", "start"].includes(r.period) && <span className="muted small"> ({r.period})</span>}</span>
+              <button type="button" className="pm-dl-title pm-dl-open" onClick={() => onOpen(r.id)} title="Open the requirement, forms, template and draft">{r.title}{!["fixed date", "final", "start"].includes(r.period) && <span className="muted small"> ({r.period})</span>}</button>
               <span className="small muted pm-left">{r.status === "todo" || r.status === "drafting" ? (r.days_left < 0 ? `${-r.days_left} d overdue` : r.days_left === 0 ? "today" : `in ${r.days_left} d`) : r.submitted_on ? `done ${dayShort(r.submitted_on)}` : ""}</span>
               <select value={r.status} onChange={async (e) => { await setPMDeadlineStatus(r.id, e.target.value); onChanged(); }} aria-label={`Status of ${r.title}`} className={`pm-status s-${r.status}`}>
                 {Object.entries(STATUS_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
@@ -157,6 +158,7 @@ export default function ProjectPage({ id, onBack, onChanged }: { id: number; onB
   const [d, setD] = useState<PMDetail | null>(null);
   const [funders, setFunders] = useState<PMFunder[]>([]);
   const [add, setAdd] = useState<"" | "funder" | "contract" | "obligation" | "transfer">("");
+  const [dl, setDl] = useState<number | null>(null);
   const load = useCallback(() => { getPMProject(id).then(setD).catch(() => setD(null)); getPMFunders().then(setFunders).catch(() => {}); onChanged(); }, [id, onChanged]);
   useEffect(() => { load(); }, [load]);
   if (!d) return <p className="muted">Loading…</p>;
@@ -169,7 +171,8 @@ export default function ProjectPage({ id, onBack, onChanged }: { id: number; onB
         <div className="pm-chips">{d.funders.map((f) => <span key={f} className="pm-chip pm-funder">{f}</span>)}</div></header>
       {d.project.summary && <p className="pm-summary">{d.project.summary}</p>}
       <Strip d={d} /><Alerts d={d} />
-      <Contracts d={d} onChanged={load} /><Calendar d={d} onChanged={load} /><Transfers d={d} onChanged={load} /><Crosswalk d={d} onChanged={load} />
+      <Contracts d={d} onChanged={load} /><Calendar d={d} onChanged={load} onOpen={setDl} /><Transfers d={d} onChanged={load} /><Crosswalk d={d} onChanged={load} />
+      {dl != null && <DeadlineDrawer id={dl} onClose={() => setDl(null)} onChanged={load} />}
       <section className="pm-section"><h3 className="serif">Add to this project</h3>
         <div className="pm-adds">{([["funder", "A funder or partner"], ["contract", "A contract"], ["obligation", "A requirement"], ["transfer", "A funding transfer"]] as const).map(([k, l]) => (
           <button key={k} type="button" className={add === k ? "btn-primary" : "btn-ghost"} onClick={() => setAdd(add === k ? "" : k)}>{l}</button>))}</div>
