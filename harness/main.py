@@ -1222,6 +1222,18 @@ def research_agent() -> dict:
     return research.agent_state(DATA_DIR / "research_outbox")
 
 
+@app.delete("/api/research")
+def research_clear_all() -> dict:
+    from harness import research
+    return {"cleared": research.discard()}
+
+
+@app.delete("/api/research/{rid}")
+def research_clear(rid: str) -> dict:
+    from harness import research
+    return {"cleared": research.discard(rid)}
+
+
 @app.get("/api/research/{rid}")
 def research_get(rid: str) -> dict:
     from harness import research

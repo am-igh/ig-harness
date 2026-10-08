@@ -281,3 +281,4 @@ export type ResearchJob = { state: "searching" | "summarising" | "done" | "faile
 export const startResearch = (query: string, confirm: boolean) => jj<ResearchStart>("/api/research", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query, confirm }) });
 export const getResearch = (id: string) => jj<ResearchJob>(`/api/research/${id}`);
 export const getResearchAgent = () => j<{ alive: boolean }>("/api/research/agent");
+export const clearResearch = (id?: string) => j<{ cleared: number }>(id ? `/api/research/${id}` : "/api/research", { method: "DELETE" });

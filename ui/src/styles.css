@@ -350,3 +350,4 @@ table.score td.best { font-weight: 700; color: var(--purple); }
 .chat-research .chat-modes button.on:nth-child(2) { background: var(--purple); border-color: var(--purple); }
 .chat-hint { line-height: 1.4; } .chat-tag { font-size: 10px; letter-spacing: .06em; text-transform: uppercase; background: rgba(255,255,255,.25); border-radius: 4px; padding: 0 4px; margin-right: 6px; }
 .chat-sources { margin: 8px 0 6px; padding-left: 20px; font-size: 12.5px; display: flex; flex-direction: column; gap: 3px; } .chat-sources a { color: var(--navy); overflow-wrap: anywhere; }
+.chat-clear-all { align-self: flex-end; font-size: 12px; } .chat-x { margin-left: 8px; background: none; border: none; color: inherit; opacity: .7; cursor: pointer; font-size: 12px; padding: 0 2px; } .chat-x:hover { opacity: 1; }

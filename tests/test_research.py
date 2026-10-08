@@ -269,3 +269,19 @@ def test_the_search_engine_is_on_its_own_network_bound_to_this_mac_and_off_by_de
         block = _service_block(text, name)
         assert block and "search_net" not in block, name
     assert "search_net: {}" in text
+
+
+def test_clearing_forgets_the_answer_but_the_query_log_stays(c, tmp_path):
+    rid = finish(c, tmp_path, "topic", {"ok": True, "results": [1], "pages": [{"url": "https://a.org/1", "title": "A", "text": "x" * 300, "fetched_at": "t"}]}, _G())
+    rid2 = finish(c, tmp_path, "another topic", {"ok": False, "error": "x"}, _G())
+    assert research.get(rid) and research.discard(rid) == 1 and research.get(rid) is None and research.discard(rid) == 0
+    assert research.get(rid2) and research.discard() >= 1 and research.get(rid2) is None
+    assert c.execute("SELECT COUNT(*) FROM research_requests").fetchone()[0] == 2           # what was searched stays on record
+
+
+def test_clear_endpoints():
+    from fastapi.testclient import TestClient
+    from harness.main import app
+    with TestClient(app) as cl:
+        assert cl.delete("/api/research/nothing").json() == {"cleared": 0}
+        assert "cleared" in cl.delete("/api/research").json()

@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { type CaptureProposal, type ResearchJob, askChat, confirmCapture, getResearch, getResearchAgent, startResearch } from "../api";
+import { type CaptureProposal, type ResearchJob, askChat, confirmCapture, clearResearch, getResearch, getResearchAgent, startResearch } from "../api";
 import { dayShort } from "../format";
 
-type Research = { query: string; job?: ResearchJob; confirm?: string[]; blocked?: string[]; error?: string };
+type Research = { id?: string; query: string; job?: ResearchJob; confirm?: string[]; blocked?: string[]; error?: string };
 type Turn = { id: number; me: string; mode: "harness" | "research"; text?: string; kind?: string; proposal?: CaptureProposal; done?: string; err?: string; research?: Research };
 
 const host = (u: string) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return u; } };
@@ -27,7 +27,7 @@ export default function ChatBox({ onChanged }: { onChanged: () => void }) {
       const r = await startResearch(query, confirm);
       if (r.state === "blocked") { patchResearch(id, { blocked: r.reasons }); return; }
       if (r.state === "needs_confirm") { patchResearch(id, { confirm: r.reasons }); return; }
-      patchResearch(id, { confirm: undefined });
+      patchResearch(id, { confirm: undefined, id: r.id });
       for (let i = 0; i < 120; i++) {
         const j = await getResearch(r.id);
         patchResearch(id, { job: j });
@@ -38,6 +38,9 @@ export default function ChatBox({ onChanged }: { onChanged: () => void }) {
     } catch (e) { patchResearch(id, { error: (e as Error).message }); }
     finally { setBusy(false); }
   };
+
+  const clearTurn = (t: Turn) => { if (t.research?.id) clearResearch(t.research.id).catch(() => {}); setTurns((x) => x.filter((y) => y.id !== t.id)); };
+  const clearAll = () => { clearResearch().catch(() => {}); setTurns([]); };
 
   const submit = async () => {
     const message = text.trim();
@@ -62,9 +65,10 @@ export default function ChatBox({ onChanged }: { onChanged: () => void }) {
     <div className={`chat ${research ? "chat-research" : ""}`} role="group" aria-label="Harness chat">
       {turns.length > 0 && (
         <div className="chat-log" aria-live="polite">
+          <button type="button" className="btn-ghost chat-clear-all" onClick={clearAll} disabled={busy}>Clear chat</button>
           {turns.map((t) => (
             <div key={t.id} className="chat-turn">
-              <div className="chat-me">{t.mode === "research" && <span className="chat-tag">web</span>}{t.me}</div>
+              <div className="chat-me">{t.mode === "research" && <span className="chat-tag">web</span>}{t.me}<button type="button" className="chat-x" onClick={() => clearTurn(t)} aria-label="Clear this message and its answer" title="Clear this one">✕</button></div>
               {t.research ? <ResearchView r={t.research} onConfirm={() => runResearch(t.id, t.research!.query, true)} onCancel={() => patchResearch(t.id, { confirm: undefined, error: "Cancelled. Nothing was searched." })} /> : <>
                 {t.kind === undefined && <div className="chat-bot muted">Thinking…</div>}
                 {t.text && <div className={`chat-bot ${t.kind === "unavailable" ? "warn" : ""}`}>{t.text}</div>}

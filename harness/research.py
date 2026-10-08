@@ -125,6 +125,16 @@ def get(rid: str) -> dict | None:
         return dict(j) if j else None
 
 
+def discard(rid: str | None = None) -> int:
+    """Forget a finished answer (or all of them when no id is given). The log of queries that left the Mac stays: it is the record of what was searched."""
+    with _LOCK:
+        if rid is None:
+            n = len(_JOBS)
+            _JOBS.clear()
+            return n
+        return 1 if _JOBS.pop(rid, None) is not None else 0
+
+
 def agent_state(outbox: Path, max_age: float = 15.0) -> dict:
     hb = outbox / ".heartbeat"
     try:
