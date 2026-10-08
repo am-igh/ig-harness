@@ -125,6 +125,56 @@ def get(rid: str) -> dict | None:
         return dict(j) if j else None
 
 
+def save(conn, rid: str, project_code: str | None = None, now: datetime | None = None) -> dict:
+    """Her click on 'Save': keep this answer in the research library (summary, question, source links; not the page text). One per search."""
+    j = get(rid)
+    if j is None or j["state"] != "done" or not j["answer"]:
+        raise ValueError("There is no finished answer to save (it may have been cleared).")
+    if conn.execute("SELECT id FROM research_saved WHERE job_id = ?", (rid,)).fetchone():
+        raise ValueError("This answer is already saved.")
+    code = _code(conn, project_code)
+    model = (conn.execute("SELECT model FROM research_requests WHERE id = ?", (rid,)).fetchone() or [None])[0]
+    with conn:
+        cur = conn.execute("INSERT INTO research_saved (job_id, saved_at, query, answer, sources, model, project_code) VALUES (?,?,?,?,?,?,?)",
+                           (rid, (now or now_local()).isoformat(timespec="seconds"), j["query"], j["answer"], json.dumps(j["sources"], ensure_ascii=False), model, code))
+    return {"id": cur.lastrowid}
+
+
+def _code(conn, project_code: str | None) -> str | None:
+    from harness import phone
+    if not project_code or not project_code.strip():
+        return None
+    codes = {r[0] for r in conn.execute("SELECT code FROM project_codes WHERE domain != 'P'")}
+    found = phone.resolve_code(codes, project_code)
+    if not found:
+        raise ValueError(f"“{project_code}” is not one of your project codes")
+    return found
+
+
+def _row(r) -> dict:
+    return {"id": r["id"], "saved_at": r["saved_at"], "query": r["query"], "answer": r["answer"], "sources": json.loads(r["sources"] or "[]"), "model": r["model"], "project_code": r["project_code"]}
+
+
+def library(conn, q: str | None = None) -> dict:
+    rows = conn.execute("SELECT * FROM research_saved ORDER BY saved_at DESC, id DESC").fetchall()
+    items = [_row(r) for r in rows]
+    if q and q.strip():
+        needle = q.strip().lower()
+        items = [i for i in items if needle in f"{i['query']} {i['answer']} {i['project_code'] or ''} {' '.join(s['title'] for s in i['sources'])}".lower()]
+    return {"items": items, "total": len(rows)}
+
+
+def set_library_code(conn, item_id: int, project_code: str | None) -> bool:
+    code = _code(conn, project_code)
+    with conn:
+        return conn.execute("UPDATE research_saved SET project_code = ? WHERE id = ?", (code, item_id)).rowcount > 0
+
+
+def delete_saved(conn, item_id: int) -> bool:
+    with conn:
+        return conn.execute("DELETE FROM research_saved WHERE id = ?", (item_id,)).rowcount > 0
+
+
 def discard(rid: str | None = None) -> int:
     """Forget a finished answer (or all of them when no id is given). The log of queries that left the Mac stays: it is the record of what was searched."""
     with _LOCK:

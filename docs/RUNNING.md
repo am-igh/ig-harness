@@ -256,7 +256,7 @@ The "Research the web" button under the chat box searches the web for your own w
 2. Then `make research-install`. This installs a small background agent (like the draft agent) that does the searching and reading. `make research-uninstall` removes it; `make searxng-down` stops the search engine.
 3. In the chat box choose "Research the web", type your question and press Search. It takes about a minute. If your question contains a name from People, an email address, an amount or something confidential-sounding, you are asked to confirm first; IBANs, AVS numbers and passwords are refused.
 
-Every query is logged in the database (what left the Mac). The answer is shown with its sources and can be copied; it is not saved anywhere. Check the sources before relying on it.
+Every query is logged in the database (what left the Mac). The answer is shown with its sources; check them before relying on it. Nothing is kept unless you click **Save to library** under the answer. Saved answers (question, summary and source links, not the page text) appear under **Saved research** below the chat box, where you can search them, give them a project code, copy or delete them. They stay on this Mac, are included in the daily backups, and "Ask the harness" does not use them. The ✕ on a message, or **Clear chat**, removes answers from the screen and from the harness's memory.
 
 ## If the AI features suddenly stop (the header says "⚠ Model missing")
 

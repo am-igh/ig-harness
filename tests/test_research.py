@@ -285,3 +285,62 @@ def test_clear_endpoints():
     with TestClient(app) as cl:
         assert cl.delete("/api/research/nothing").json() == {"cleared": 0}
         assert "cleared" in cl.delete("/api/research").json()
+
+
+# ---------------------------------------------------------------- the research library (saved only on her click)
+def done_job(c, tmp_path, query="topic", answer="Summary [1]."):
+    pages = [{"url": "https://a.org/1", "title": "A page", "text": "SECRET PAGE TEXT " * 30, "fetched_at": "2026-10-08T09:00:00+00:00"}]
+    return finish(c, tmp_path, query, {"ok": True, "results": [1], "pages": pages}, _G(answer))
+
+
+def test_saving_keeps_the_summary_question_and_links_but_never_the_page_text(c, tmp_path):
+    c.execute("INSERT INTO project_codes (code, name, domain, kind) VALUES ('TK', 'Toolkit', 'W', 'project')"); c.commit()
+    rid = done_job(c, tmp_path, "What is X?")
+    assert c.execute("SELECT COUNT(*) FROM research_saved").fetchone()[0] == 0                # nothing is kept until she clicks
+    out = research.save(c, rid, "tk")
+    lib = research.library(c)
+    assert lib["total"] == 1 and lib["items"][0]["id"] == out["id"]
+    it = lib["items"][0]
+    assert (it["query"], it["answer"], it["project_code"], it["model"]) == ("What is X?", "Summary [1].", "TK", "m1") and it["sources"][0]["url"] == "https://a.org/1"
+    assert "SECRET PAGE TEXT" not in json.dumps(it)
+    with pytest.raises(ValueError, match="already saved"):
+        research.save(c, rid)                                                                 # a double click cannot duplicate it
+
+
+def test_nothing_unfinished_or_cleared_can_be_saved_and_bad_project_codes_are_refused(c, tmp_path):
+    with pytest.raises(ValueError):
+        research.save(c, "nope")
+    rid = done_job(c, tmp_path)
+    with pytest.raises(ValueError, match="project codes"):
+        research.save(c, rid, "NOPE")
+    research.discard(rid)
+    with pytest.raises(ValueError, match="no finished answer"):
+        research.save(c, rid)
+
+
+def test_search_change_code_and_delete_in_the_library(c, tmp_path):
+    c.execute("INSERT INTO project_codes (code, name, domain, kind) VALUES ('TK', 'Toolkit', 'W', 'project')"); c.commit()
+    a = research.save(c, done_job(c, tmp_path, "Global Digital Compact", "About the compact."))["id"]
+    b = research.save(c, done_job(c, tmp_path, "Swiss neutrality", "About neutrality."))["id"]
+    assert [i["id"] for i in research.library(c, "compact")["items"]] == [a] and research.library(c, "zzz")["items"] == [] and research.library(c, "zzz")["total"] == 2
+    assert research.set_library_code(c, b, "TK") and research.library(c, "tk")["items"][0]["id"] == b and not research.set_library_code(c, 999, None)
+    assert research.delete_saved(c, a) and not research.delete_saved(c, a) and research.library(c)["total"] == 1
+
+
+def test_the_harness_chat_never_sees_saved_research(c, tmp_path):
+    from datetime import datetime
+    from harness import chat
+    from harness.config import TZ
+    research.save(c, done_job(c, tmp_path, "A distinctive research question", "A distinctive research answer."))
+    now = datetime(2026, 10, 8, 9, 0, tzinfo=TZ)
+    assert not any("distinctive" in f for f in chat.facts(c, now))
+
+
+def test_library_endpoints(c):
+    from fastapi.testclient import TestClient
+    from harness.main import app
+    with TestClient(app) as cl:
+        assert cl.post("/api/research/nope/save", json={}).status_code == 409
+        assert set(cl.get("/api/research-library").json()) == {"items", "total"}
+        assert cl.post("/api/research-library/999999/project", json={"project_code": None}).status_code == 404
+        assert cl.delete("/api/research-library/999999").json() == {"deleted": False}

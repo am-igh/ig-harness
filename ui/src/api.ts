@@ -282,3 +282,8 @@ export const startResearch = (query: string, confirm: boolean) => jj<ResearchSta
 export const getResearch = (id: string) => jj<ResearchJob>(`/api/research/${id}`);
 export const getResearchAgent = () => j<{ alive: boolean }>("/api/research/agent");
 export const clearResearch = (id?: string) => j<{ cleared: number }>(id ? `/api/research/${id}` : "/api/research", { method: "DELETE" });
+export type SavedResearch = { id: number; saved_at: string; query: string; answer: string; sources: ResearchSource[]; model: string | null; project_code: string | null };
+export const saveResearch = (id: string, project_code?: string) => jj<{ id: number }>(`/api/research/${id}/save`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ project_code: project_code || null }) });
+export const getLibrary = (q?: string) => j<{ items: SavedResearch[]; total: number }>(`/api/research-library${q ? `?q=${encodeURIComponent(q)}` : ""}`);
+export const setLibraryProject = (id: number, project_code: string | null) => jj<{ ok: boolean }>(`/api/research-library/${id}/project`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ project_code }) });
+export const deleteSaved = (id: number) => j<{ deleted: boolean }>(`/api/research-library/${id}`, { method: "DELETE" });

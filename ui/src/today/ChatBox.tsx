@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { type CaptureProposal, type ResearchJob, askChat, confirmCapture, clearResearch, getResearch, getResearchAgent, startResearch } from "../api";
+import { type CaptureProposal, type ResearchJob, askChat, confirmCapture, clearResearch, getLibrary, getResearch, getResearchAgent, saveResearch, startResearch } from "../api";
 import { dayShort } from "../format";
 
 type Research = { id?: string; query: string; job?: ResearchJob; confirm?: string[]; blocked?: string[]; error?: string };
@@ -11,12 +11,15 @@ const host = (u: string) => { try { return new URL(u).hostname.replace(/^www\./,
  *  - Ask the harness: the local model answers from the harness's own data; "remind me to …" becomes a to-do you confirm.
  *  - Research the web: your own words go to a search engine on this Mac, a few public pages are read, and the local model summarises them with sources. No harness data is involved.
  *  Nothing is kept after the page closes. */
-export default function ChatBox({ onChanged }: { onChanged: () => void }) {
+export default function ChatBox({ onChanged, onOpenLibrary }: { onChanged: () => void; onOpenLibrary: () => void }) {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [text, setText] = useState("");
   const [mode, setMode] = useState<"harness" | "research">("harness");
   const [busy, setBusy] = useState(false);
   const next = useRef(1);
+  const [saved, setSaved] = useState<number | null>(null);
+  const loadSaved = () => getLibrary().then((d) => setSaved(d.total)).catch(() => setSaved(null));
+  useEffect(() => { loadSaved(); }, []);
   const patch = (id: number, p: Partial<Turn>) => setTurns((t) => t.map((x) => (x.id === id ? { ...x, ...p } : x)));
   const patchResearch = (id: number, p: Partial<Research>) => setTurns((t) => t.map((x) => (x.id === id && x.research ? { ...x, research: { ...x.research, ...p } } : x)));
 
@@ -69,7 +72,7 @@ export default function ChatBox({ onChanged }: { onChanged: () => void }) {
           {turns.map((t) => (
             <div key={t.id} className="chat-turn">
               <div className="chat-me">{t.mode === "research" && <span className="chat-tag">web</span>}{t.me}<button type="button" className="chat-x" onClick={() => clearTurn(t)} aria-label="Clear this message and its answer" title="Clear this one">✕</button></div>
-              {t.research ? <ResearchView r={t.research} onConfirm={() => runResearch(t.id, t.research!.query, true)} onCancel={() => patchResearch(t.id, { confirm: undefined, error: "Cancelled. Nothing was searched." })} /> : <>
+              {t.research ? <ResearchView r={t.research} onSaved={loadSaved} onConfirm={() => runResearch(t.id, t.research!.query, true)} onCancel={() => patchResearch(t.id, { confirm: undefined, error: "Cancelled. Nothing was searched." })} /> : <>
                 {t.kind === undefined && <div className="chat-bot muted">Thinking…</div>}
                 {t.text && <div className={`chat-bot ${t.kind === "unavailable" ? "warn" : ""}`}>{t.text}</div>}
                 {t.proposal && !t.done && <Proposal p={t.proposal} onCancel={() => patch(t.id, { done: "Cancelled." })}
@@ -84,6 +87,7 @@ export default function ChatBox({ onChanged }: { onChanged: () => void }) {
         <button type="button" aria-pressed={!research} className={!research ? "on" : ""} onClick={() => setMode("harness")}>Ask the harness</button>
         <button type="button" aria-pressed={research} className={research ? "on" : ""} onClick={() => setMode("research")}>Research the web</button>
       </div>
+      <button type="button" className="btn-ghost chat-lib" onClick={onOpenLibrary}>Saved research{saved ? ` (${saved})` : ""}</button>
       {research && <div className="muted small chat-hint">Your words go to a search engine on this Mac and a few public pages are read. Nothing from your emails or records is used. Confidential-looking details are stopped or confirmed first.</div>}
       <form className="chatbar" onSubmit={(e) => { e.preventDefault(); submit(); }}>
         <input type="text" value={text} onChange={(e) => setText(e.target.value)} maxLength={research ? 300 : 600} aria-label={research ? "Search the web" : "Ask the harness or add a to-do"}
@@ -94,8 +98,9 @@ export default function ChatBox({ onChanged }: { onChanged: () => void }) {
   );
 }
 
-function ResearchView({ r, onConfirm, onCancel }: { r: Research; onConfirm: () => void; onCancel: () => void }) {
+function ResearchView({ r, onConfirm, onCancel, onSaved }: { r: Research; onConfirm: () => void; onCancel: () => void; onSaved: () => void }) {
   const [copied, setCopied] = useState(false);
+  const [state, setState] = useState<"idle" | "saved" | string>("idle");
   useEffect(() => { if (copied) { const t = setTimeout(() => setCopied(false), 1500); return () => clearTimeout(t); } }, [copied]);
   if (r.blocked) return <div className="chat-bot warn">Not searched: {r.blocked.join(" ")} Rephrase it without that detail.</div>;
   if (r.confirm) return (
@@ -124,6 +129,8 @@ function ResearchView({ r, onConfirm, onCancel }: { r: Research; onConfirm: () =
         </ol>
       )}
       <div className="muted small">From the web, summarised by your local model: check the sources before relying on it. Searched for: {j.query}</div>
+      {j.answer && r.id && <button type="button" className="btn-ghost" disabled={state === "saved"} onClick={async () => { try { await saveResearch(r.id!); setState("saved"); onSaved(); } catch (e) { setState((e as Error).message); } }}>{state === "saved" ? "Saved to library" : "Save to library"}</button>}
+      {state !== "idle" && state !== "saved" && <div className="edit-err">{state}</div>}
       {j.answer && <button type="button" className="btn-ghost" onClick={() => { navigator.clipboard?.writeText(`${j.answer}\n\n${j.sources.map((s) => `[${s.n}] ${s.title} ${s.url}`).join("\n")}`).then(() => setCopied(true)).catch(() => {}); }}>{copied ? "Copied" : "Copy answer"}</button>}
     </div>
   );

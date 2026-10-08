@@ -205,7 +205,7 @@ export default function TodayTab() {
           <div className="panel-head"><h2 className="serif">Emails needing you</h2></div>
           <QuickNote placeholder="A note about your emails, or a follow-up…" onAdded={load} onOpenLog={() => setPanel({ kind: "notes" })} />
           <EmailList full={false} onChanged={load} />
-          <ChatBox onChanged={load} />
+          <ChatBox onChanged={load} onOpenLibrary={() => setPanel({ kind: "library" })} />
         </section>
 
         <aside className="widgets" aria-label="Widgets">

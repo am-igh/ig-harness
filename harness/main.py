@@ -1222,6 +1222,48 @@ def research_agent() -> dict:
     return research.agent_state(DATA_DIR / "research_outbox")
 
 
+class SaveResearchIn(BaseModel):
+    project_code: str | None = None
+
+
+@app.post("/api/research/{rid}/save")
+def research_save(rid: str, body: SaveResearchIn) -> dict:
+    """Her click on 'Save' under an answer: keep it in the research library."""
+    from harness import research
+    def go(c):
+        try:
+            return research.save(c, rid, body.project_code)
+        except ValueError as e:
+            raise HTTPException(409, str(e))
+    return _with_conn(go)
+
+
+@app.get("/api/research-library")
+def research_library(q: str | None = None) -> dict:
+    from harness import research
+    return _with_conn(lambda c: research.library(c, q))
+
+
+@app.post("/api/research-library/{item_id}/project")
+def research_library_project(item_id: int, body: SaveResearchIn) -> dict:
+    from harness import research
+    def go(c):
+        try:
+            ok = research.set_library_code(c, item_id, body.project_code)
+        except ValueError as e:
+            raise HTTPException(422, str(e))
+        if not ok:
+            raise HTTPException(404, "No such saved answer")
+        return {"ok": True}
+    return _with_conn(go)
+
+
+@app.delete("/api/research-library/{item_id}")
+def research_library_delete(item_id: int) -> dict:
+    from harness import research
+    return {"deleted": _with_conn(lambda c: research.delete_saved(c, item_id))}
+
+
 @app.delete("/api/research")
 def research_clear_all() -> dict:
     from harness import research

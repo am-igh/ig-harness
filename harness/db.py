@@ -574,6 +574,21 @@ MIGRATIONS: list[str] = [
         model TEXT, error TEXT
     );
     """,
+    # 33: the research library: answers she chose to keep (summary, question, source links; never page text). Included in the daily backups.
+    """
+    CREATE TABLE research_saved (
+        id INTEGER PRIMARY KEY,
+        job_id TEXT UNIQUE,                          -- the research request it came from (a double click cannot save twice)
+        saved_at TEXT NOT NULL,
+        query TEXT NOT NULL,
+        answer TEXT NOT NULL,
+        sources TEXT NOT NULL DEFAULT '[]',          -- JSON: [{n, title, url, fetched_at}]
+        model TEXT,
+        project_code TEXT,
+        sensitivity TEXT NOT NULL DEFAULT 'S1'
+    );
+    CREATE INDEX idx_research_saved_at ON research_saved (saved_at);
+    """,
 ]
 
 
