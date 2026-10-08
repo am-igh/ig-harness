@@ -393,3 +393,7 @@ table.score td.best { font-weight: 700; color: var(--purple); }
 .dl-icon { font-size: 18px; } .dl-doc-main { min-width: 0; overflow-wrap: anywhere; }
 .dl-viewer { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; border-top: 2px solid var(--navy); padding-top: 10px; } .dl-viewer-head { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; justify-content: space-between; }
 .dl-text { width: 100%; box-sizing: border-box; font: 13px/1.5 var(--mono, 'IBM Plex Mono', monospace); border: 1px solid var(--line); border-radius: 8px; padding: 10px; background: #fff; } .dl-pre { white-space: pre-wrap; margin: 0; max-height: 520px; overflow: auto; }
+
+.hours-prompt { position: fixed; right: 20px; bottom: 20px; width: min(340px, calc(100vw - 32px)); z-index: 60; background: #fff; border: 1.5px solid var(--navy); border-radius: 14px; padding: 14px 16px; box-shadow: 0 10px 30px rgba(23,43,77,.25); display: flex; flex-direction: column; gap: 8px; }
+.hp-title { font-weight: 600; color: var(--navy); line-height: 1.3; } .hp-row { display: flex; gap: 8px; align-items: center; } .hp-row input, .hp-desc { font: inherit; font-size: 13.5px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; min-width: 0; } .hp-row input[type=number] { width: 90px; } .hp-desc { width: 100%; box-sizing: border-box; }
+.hp-add { align-self: flex-start; } .hp-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }

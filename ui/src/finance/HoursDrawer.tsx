@@ -6,7 +6,7 @@ import { Shell } from "../today/Drawer";
 export function useHours() {
   const [w, setW] = useState<HoursWeek | null>(null);
   const load = useCallback(() => getHours().then(setW).catch(() => setW(null)), []);
-  useEffect(() => { load(); const t = setInterval(load, 60_000); return () => clearInterval(t); }, [load]);
+  useEffect(() => { load(); const t = setInterval(load, 60_000); window.addEventListener("hours-changed", load); return () => { clearInterval(t); window.removeEventListener("hours-changed", load); }; }, [load]);
   return w;
 }
 

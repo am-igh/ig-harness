@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { type Item, type Today, editItem, getToday, setDone } from "../api";
+import { type HoursAsk, type Item, type Today, editItem, getHoursAsk, getToday, setDone } from "../api";
 import { dayShort, doneTime, dueLabel, timeOf } from "../format";
 import EmailList from "../email/EmailList";
 import Drawer, { type Panel } from "./Drawer";
@@ -10,6 +10,7 @@ import AuditTile, { useAuditStatus } from "../finance/AuditTile";
 import ScanTile from "../finance/ScanTile";
 import PhoneBox from "./PhoneBox";
 import ChatBox from "./ChatBox";
+import HoursPrompt from "./HoursPrompt";
 import { HoursTile, useHours } from "../finance/HoursDrawer";
 import { useScans } from "../finance/ScansDrawer";
 import Lake from "./Lake";
@@ -119,6 +120,7 @@ export default function TodayTab() {
   const [celebrate, setCelebrate] = useState(false);
   const [last, setLast] = useState<string | null>(null);
   const [settling, setSettling] = useState<Record<string, boolean>>({});
+  const [hoursFor, setHoursFor] = useState<{ item: { type: string; id: number }; info: HoursAsk } | null>(null);
   const audit = useAuditStatus();
   const scanData = useScans();
   const hoursWeek = useHours();
@@ -144,6 +146,9 @@ export default function TodayTab() {
       timer.current = window.setTimeout(() => setCelebrate(false), 1300);
     }
     try { await setDone(it, willBeDone); } finally { load(); }
+    if (willBeDone && (it.type === "task" || it.type === "deadline")) {                      // a finished project to-do: offer to log the time it took
+      getHoursAsk(it.type, it.id).then((i) => { if (i.ask) setHoursFor({ item: { type: it.type, id: it.id }, info: i }); }).catch(() => {});
+    }
   };
   const tickDeadline = (id: number) => toggle({ key: `deadline:${id}`, type: "deadline", id, done: false } as Item);
 
@@ -233,6 +238,7 @@ export default function TodayTab() {
         </aside>
       </main>
 
+      {hoursFor && <HoursPrompt key={`${hoursFor.item.type}${hoursFor.item.id}`} item={hoursFor.item} info={hoursFor.info} onClose={() => setHoursFor(null)} onLogged={() => window.dispatchEvent(new Event("hours-changed"))} />}
       <Drawer panel={panel} today={data.today} onClose={() => setPanel(null)} onTickDeadline={tickDeadline} onChanged={() => { load(); audit.reload(); }} />
     </>
   );

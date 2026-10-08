@@ -1531,3 +1531,39 @@ def pm_download(doc_id: int):
         raise HTTPException(404, "Nothing to download: this document stays in your folders")
     name = "".join(ch if ch.isalnum() or ch in "-_" else "_" for ch in d["title"])[:80] + f"_v{d['version']}.md"
     return Response(d["content"], media_type="text/markdown", headers={"Content-Disposition": f'attachment; filename="{name}"'})
+
+
+# --- Log time when a project to-do is ticked off ---
+class HoursLogIn(BaseModel):
+    type: str
+    id: int
+    entries: list[dict]
+    description: str | None = None
+
+
+class HoursPromptIn(BaseModel):
+    on: bool
+
+
+@app.get("/api/hours/ask")
+def hours_ask(type: str, id: int) -> dict:
+    from harness import hours_log
+    return _with_conn(lambda c: hours_log.ask(c, type, id))
+
+
+@app.post("/api/hours/log")
+def hours_log_entries(b: HoursLogIn) -> dict:
+    from harness import hours_log
+    def go(c):
+        try:
+            return hours_log.log(c, b.type, b.id, b.entries, b.description)
+        except ValueError as e:
+            raise HTTPException(422, str(e))
+    return _with_conn(go)
+
+
+@app.post("/api/hours/prompt")
+def hours_prompt(b: HoursPromptIn) -> dict:
+    from harness import hours_log
+    _with_conn(lambda c: hours_log.set_prompt(c, b.on))
+    return {"on": b.on}

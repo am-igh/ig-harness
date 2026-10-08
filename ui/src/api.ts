@@ -337,3 +337,10 @@ export const startPMDraft = (id: number) => postJson<PMDoc>(`/api/pm/deadlines/$
 export const attachPMDoc = (id: number, b: { kind: string; title: string; file_path: string; note?: string }) => postJson<{ id: number }>(`/api/pm/deadlines/${id}/documents`, b);
 export const savePMVersion = (docId: number, content: string) => postJson<PMDoc>(`/api/pm/documents/${docId}/version`, { content });
 export const getPMVersions = (docId: number) => j<PMDoc[]>(`/api/pm/documents/${docId}/versions`);
+
+// ---- Log time when a project to-do is ticked off
+export type HoursAsk = { ask: boolean; reason?: string; project?: string; title?: string; date?: string; already_logged?: number };
+export const getHoursAsk = (type: string, id: number) => j<HoursAsk>(`/api/hours/ask?type=${type}&id=${id}`);
+export const logHours = (type: string, id: number, entries: { date: string; hours: number | string }[], description?: string) =>
+  postJson<{ logged: number; hours: number; project: string; evidence: string; queued: boolean }>("/api/hours/log", { type, id, entries, description });
+export const setHoursPrompt = (on: boolean) => postJson<{ on: boolean }>("/api/hours/prompt", { on });
