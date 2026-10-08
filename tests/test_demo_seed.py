@@ -60,6 +60,7 @@ def test_statuses_follow_the_date_and_the_core_deadlines_feed_today(c):
     statuses = {r["status"] for r in c.execute("SELECT status FROM pm_deadlines")}
     assert {"accepted", "submitted", "drafting", "todo"} <= statuses
     assert c.execute("SELECT COUNT(*) FROM deadlines WHERE source='pm' AND status='open'").fetchone()[0] >= 5
+    assert c.execute("SELECT COUNT(*) FROM deadlines WHERE source='pm' AND status='done'").fetchone()[0] == 0
     assert c.execute("SELECT COUNT(*) FROM tasks WHERE source='demo'").fetchone()[0] == 4 and c.execute("SELECT COUNT(*) FROM emails").fetchone()[0] == 4
 
 

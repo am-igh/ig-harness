@@ -132,6 +132,8 @@ def seed(conn, today: date | None = None) -> dict:
         conn.execute("UPDATE pm_deadlines SET note = 'Under review by PDFF: instalment 2 is waiting for this.' WHERE id = ?", (held["id"],))
         conn.commit()
     _everyday(conn, today)
+    conn.execute("DELETE FROM deadlines WHERE source = 'pm' AND status = 'done'")          # the story's past reports were done long ago: they must not read as 'done today'
+    conn.commit()
     pm.sync_core(conn, today)
     return {"seeded": True}
 
