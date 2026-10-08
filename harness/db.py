@@ -659,6 +659,12 @@ MIGRATIONS: list[str] = [
     );
     CREATE INDEX idx_pm_deadlines_due ON pm_deadlines (due_date);
     """,
+    # 35: a short summary of an email, written by the local model when she opens it and kept until a new message arrives in the thread
+    """
+    ALTER TABLE emails ADD COLUMN summary TEXT;
+    ALTER TABLE emails ADD COLUMN summary_for TEXT;       -- the message id the summary was written for
+    ALTER TABLE emails ADD COLUMN summary_model TEXT;
+    """,
 ]
 
 

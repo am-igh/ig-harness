@@ -319,3 +319,7 @@ export const addPMTransfer = (b: Record<string, unknown>) => postJson<{ id: numb
 export const receivePMTransfer = (id: number, b: Record<string, unknown>) => postJson<{ ok: boolean }>(`/api/pm/transfers/${id}/receive`, b);
 export const setPMDeadlineStatus = (id: number, status: string) => postJson<{ ok: boolean }>(`/api/pm/deadlines/${id}/status`, { status });
 export const translatePM = (project: number, source: string, to: string) => jj<PMTranslation>(`/api/pm/translate?project=${project}&source=${encodeURIComponent(source)}&to=${encodeURIComponent(to)}`);
+
+// ---- Email summary
+export type EmailSummary = { summary: string | null; cached: boolean; model: string | null; error: string | null };
+export const getEmailSummary = (id: number, refresh = false) => j<EmailSummary>(`/api/emails/${id}/summary${refresh ? "?refresh=true" : ""}`);

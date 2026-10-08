@@ -1459,3 +1459,10 @@ def pm_deadline_status(deadline_id: int, b: PMStatusIn) -> dict:
 @app.get("/api/pm/translate")
 def pm_translate(project: int, source: str, to: str) -> dict:
     return _pm(lambda c, pm: pm.translate(c, project, source, to))
+
+
+# --- Email summary (written when she opens an email) ---
+@app.get("/api/emails/{email_id}/summary")
+def email_summary(email_id: int, refresh: bool = False) -> dict:
+    from harness import email_summary as es
+    return _with_conn(lambda c: es.get(c, email_id, refresh=refresh))

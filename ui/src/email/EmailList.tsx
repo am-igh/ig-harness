@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { type Draft, type Email, type EmailsResponse, type TriageStatus, emailToTask, getEmailDraft, getEmails, getTriageStatus, labelEmail, makeReplyDraft, runTriage, setDone } from "../api";
+import { type Draft, type Email, type EmailsResponse, type EmailSummary, type TriageStatus, emailToTask, getEmailDraft, getEmailSummary, getEmails, getTriageStatus, labelEmail, makeReplyDraft, runTriage, setDone } from "../api";
 import DraftBox from "../drafts/DraftBox";
 import NotesBox from "../notes/NotesBox";
 import { Shell } from "../today/Drawer";
@@ -12,6 +12,9 @@ const ago = (h: number) => (h < 1 ? "<1 h" : h < 48 ? `${Math.round(h)} h` : `${
 function EmailDrawer({ e, onClose, onChanged }: { e: Email; onClose: () => void; onChanged: () => void }) {
   const handled = !!e.handled_at;
   const [existing, setExisting] = useState<Draft | null | undefined>(undefined);
+  const [sum, setSum] = useState<EmailSummary | null | "loading">("loading");
+  const loadSummary = (refresh: boolean) => { setSum("loading"); getEmailSummary(e.id, refresh).then(setSum).catch(() => setSum({ summary: null, cached: false, model: null, error: "The summary could not be loaded." })); };
+  useEffect(() => { loadSummary(false); }, [e.id]);
   useEffect(() => { getEmailDraft(e.id).then((r) => setExisting(r.draft)).catch(() => setExisting(null)); }, [e.id]);
   const finish = async (done: boolean) => { await setDone({ type: "email", id: e.id }, done); onChanged(); onClose(); };
   const [label, setLabel] = useState(e.user_label);
@@ -31,6 +34,11 @@ function EmailDrawer({ e, onClose, onChanged }: { e: Email; onClose: () => void;
   ];
   return (
     <Shell kicker={`EMAIL${e.org ? " · " + e.org.toUpperCase() : ""}`} title={e.subject} meta={`${e.from_name} · ${Math.round(e.hours_ago)} h ago`} onClose={onClose}>
+      <div className="related summary-box"><div className="kicker">SUMMARY</div>
+        {sum === "loading" ? <div className="preview muted">Summarising on your Mac…</div>
+          : sum?.summary ? <><div className="preview">{sum.summary}</div><div className="note">Written by {sum.model ?? "your local model"}{sum.cached ? " earlier" : ""}; check the email for details. <button type="button" className="btn-ghost small" onClick={() => loadSummary(true)}>Write it again</button></div></>
+          : <div className="preview muted">{sum?.error ?? "No summary."} <button type="button" className="btn-ghost small" onClick={() => loadSummary(true)}>Try again</button></div>}
+      </div>
       <div className="facts">{facts.map(([k, v]) => <><span key={k + "k"}>{k}</span><span key={k + "v"}>{v}</span></>)}</div>
       {e.snippet && <div className="related"><div className="kicker">PREVIEW</div><div className="preview">{e.snippet}</div></div>}
       <div className="related"><div className="kicker">NOTES &amp; FOLLOW-UPS</div><NotesBox parent={{ type: "email", id: e.id }} onChanged={onChanged} /></div>
