@@ -42,10 +42,14 @@ A page (probably a fifth tab, or a big extension of Projects & finance) where sh
 4. **The crosswalk** for multi-donor projects.
 5. Everything else on the list, as it proves useful.
 
-## Questions to settle before building
+## Decisions so far (8 Oct 2026)
 
-1. **One source of truth.** Should `Registre_Projets.xlsx` stay the master (the harness appends to it) or should this page become the master over time? This is the biggest decision.
-2. **Where do contracts live?** Reference them in place in the audit and project folders, or collect them in one new folder?
-3. **Exchange rates.** Which rate counts: the bank's rate on the day of receipt (from the statement), or a published rate such as the Swiss National Bank's? Should the page fetch public rates itself?
-4. **Funders and projects today.** Roughly how many active projects and funders, and which funders' requirement sets matter first?
-5. **Later sharing.** Should the design keep other organisations in mind (a possible FAGI version), as with the rest of the harness?
+- **Contracts stay where they are** (referenced by path and hash, not copied).
+- **Exchange rate that counts:** the rate the bank assigned when the money arrived (from the bank statement), not a published rate.
+- **Scale today:** about 3 active projects, and no funders with reporting duties beyond those; more expected soon.
+- **Demo:** a fictitious, deliberately complicated multi-donor project is wanted for next week's Geneva Cyber Forum. It must live in a separate demo data folder so no real data can appear.
+
+## Still to settle
+
+1. **One source of truth:** `Registre_Projets.xlsx` as master, the new page as master, or a hybrid (see the pros and cons discussed with Anne-Marie).
+2. **Later sharing:** should the design keep other organisations in mind (a possible FAGI version)?
