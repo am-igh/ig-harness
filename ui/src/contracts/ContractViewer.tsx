@@ -17,7 +17,7 @@ export default function ContractViewer({ c, obligations, onClose }: { c: PMContr
             <a className="btn-primary link-btn" href={`/api/pm/contracts/${c.id}/pdf?download=1`}>Download the PDF</a>
             <a className="btn-ghost link-btn" href={`/api/pm/contracts/${c.id}/pdf`} target="_blank" rel="noopener noreferrer">Open in a new tab</a>
           </div>
-          <iframe className="pdf-frame" title={`Contract: ${c.title}`} src={`/api/pm/contracts/${c.id}/pdf#view=FitH`} />
+          <iframe className="pdf-frame" title={`Contract: ${c.title}`} src={`/api/pm/contracts/${c.id}/pdf#navpanes=0&view=FitH`} />
         </>
       ) : (
         <div className="notice"><span>This contract stays in your folders: the harness only knows where it is kept{name ? ` (${name})` : ""}. Open it from there.</span>
