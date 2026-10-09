@@ -1,6 +1,7 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { type PMCrosswalk, type PMDetail, type PMFunder, type PMTranslation, type PMTransfer, confirmPMObligation, getPMFunders, getPMProject, receivePMTransfer, setPMDeadlineStatus, translatePM } from "../api";
 import { dayShort } from "../format";
+import ContractViewer from "./ContractViewer";
 import DeadlineDrawer from "./DeadlineDrawer";
 import { ContractForm, ExtendForm, FunderForm, ObligationForm, TransferForm } from "./Forms";
 import { KIND, STATUS_LABEL, dateY, money, monthKey, monthName, rate, signedChf } from "./fmt";
@@ -31,7 +32,7 @@ function Alerts({ d }: { d: PMDetail }) {
   );
 }
 
-function Contracts({ d, onChanged }: { d: PMDetail; onChanged: () => void }) {
+function Contracts({ d, onChanged, onView }: { d: PMDetail; onChanged: () => void; onView: (id: number) => void }) {
   const [ext, setExt] = useState<number | null>(null);
   const top = d.contracts.filter((c) => c.kind !== "amendment");
   return (
@@ -43,12 +44,12 @@ function Contracts({ d, onChanged }: { d: PMDetail; onChanged: () => void }) {
             <td>{c.title}<div className="small muted">{KIND[c.kind]}{c.status === "amended" ? " · amended" : ""}</div>{c.summary && <div className="small muted">{c.summary}</div>}</td>
             <td className="nowrap">{dateY(c.start_date)} → {dateY(c.end_date)}</td>
             <td className="r nowrap">{money(c.amount, c.currency)}</td><td className="r">{c.currency === "CHF" ? "–" : rate(c.budget_rate)}</td>
-            <td className="small">{c.file_path ? <><span className="mono">{c.file_path}</span><div className="muted">fingerprint {c.file_hash}</div></> : <span className="muted">not recorded</span>}</td>
-            <td>{c.kind === "grant" && <button type="button" className="btn-ghost" onClick={() => setExt(ext === c.id ? null : c.id)}>Extension</button>}</td></tr>
+            <td className="small">{c.file_path ? <><button type="button" className="pm-file" onClick={() => onView(c.id)} title="Open the contract">📄 {c.file_path.split("/").pop()}</button><div className="muted">{c.has_file ? "click to read or download" : "kept in your folders"} · fingerprint {c.file_hash}</div></> : <span className="muted">not recorded</span>}</td>
+            <td>{c.kind === "grant" && <button type="button" className="btn-ghost" onClick={() => setExt(ext === c.id ? null : c.id)}>{ext === c.id ? "Cancel" : "Record an extension"}</button>}</td></tr>
           {d.contracts.filter((a) => a.parent_id === c.id).map((a) => (
             <tr key={a.id} className="pm-amend"><td /><td>↳ {a.title}<div className="small muted">Signed {dateY(a.signed_date)} · {a.summary}</div></td><td className="nowrap">→ {dateY(a.end_date)}</td><td colSpan={2} className="small muted">no change in amount</td>
-              <td className="small">{a.file_path && <span className="mono">{a.file_path}</span>}</td><td /></tr>))}
-          {ext === c.id && <tr key={`e${c.id}`}><td colSpan={7}><ExtendForm c={c} onDone={() => { setExt(null); onChanged(); }} /></td></tr>}
+              <td className="small">{a.file_path && <button type="button" className="pm-file" onClick={() => onView(a.id)} title="Open the amendment">📄 {a.file_path.split("/").pop()}</button>}</td><td /></tr>))}
+          {ext === c.id && <tr key={`e${c.id}`}><td colSpan={7}><ExtendForm c={c} onDone={() => { setExt(null); onChanged(); }} onCancel={() => setExt(null)} /></td></tr>}
         </Fragment>))}</tbody></table></div>
       <div className="small muted">Contracts stay in your folders; the harness keeps only where they are and a fingerprint. Passed on to partners (budget rate): {money(d.finance.totals.passed_to_partners_chf_budget)}.</div>
     </section>
@@ -159,6 +160,7 @@ export default function ProjectPage({ id, onBack, onChanged }: { id: number; onB
   const [funders, setFunders] = useState<PMFunder[]>([]);
   const [add, setAdd] = useState<"" | "funder" | "contract" | "obligation" | "transfer">("");
   const [dl, setDl] = useState<number | null>(null);
+  const [cv, setCv] = useState<number | null>(null);
   const load = useCallback(() => { getPMProject(id).then(setD).catch(() => setD(null)); getPMFunders().then(setFunders).catch(() => {}); onChanged(); }, [id, onChanged]);
   useEffect(() => { load(); }, [load]);
   if (!d) return <p className="muted">Loading…</p>;
@@ -171,7 +173,8 @@ export default function ProjectPage({ id, onBack, onChanged }: { id: number; onB
         <div className="pm-chips">{d.funders.map((f) => <span key={f} className="pm-chip pm-funder">{f}</span>)}</div></header>
       {d.project.summary && <p className="pm-summary">{d.project.summary}</p>}
       <Strip d={d} /><Alerts d={d} />
-      <Contracts d={d} onChanged={load} /><Calendar d={d} onChanged={load} onOpen={setDl} /><Transfers d={d} onChanged={load} /><Crosswalk d={d} onChanged={load} />
+      <Contracts d={d} onChanged={load} onView={setCv} /><Calendar d={d} onChanged={load} onOpen={setDl} /><Transfers d={d} onChanged={load} /><Crosswalk d={d} onChanged={load} />
+      {cv != null && d.contracts.find((x) => x.id === cv) && <ContractViewer c={d.contracts.find((x) => x.id === cv)!} obligations={d.obligations} onClose={() => setCv(null)} />}
       {dl != null && <DeadlineDrawer id={dl} onClose={() => setDl(null)} onChanged={load} />}
       <section className="pm-section"><h3 className="serif">Add to this project</h3>
         <div className="pm-adds">{([["funder", "A funder or partner"], ["contract", "A contract"], ["obligation", "A requirement"], ["transfer", "A funding transfer"]] as const).map(([k, l]) => (

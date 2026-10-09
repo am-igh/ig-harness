@@ -10,7 +10,8 @@ import os
 import sys
 from datetime import date, datetime, timedelta
 
-from harness import db, pm, pm_reports
+from harness import db, demo_contracts, pm, pm_reports
+from harness.config import DATA_DIR
 from harness.config import TZ, now_local
 
 
@@ -25,6 +26,12 @@ def guard(conn) -> None:
     real_projects = conn.execute("SELECT COUNT(*) FROM pm_projects WHERE demo = 0").fetchone()[0]
     if real_mail or real_projects:
         raise NotDemo("This database holds data that is not demo data. Nothing was changed.")
+
+
+def _write_contract(name: str, data: bytes) -> None:
+    folder = DATA_DIR / "contracts"
+    folder.mkdir(parents=True, exist_ok=True)
+    (folder / name).write_bytes(data)
 
 
 def _fake_hash(name: str) -> str:
@@ -44,8 +51,11 @@ def seed(conn, today: date | None = None) -> dict:
         ("MBCC", "Mer Bleue Cyber Collective", "partner", "EUR", "Mireille Dupont"), ("KIN", "Kokua Island Network", "partner", "USD", "Leilani Kahale"))}
 
     def contract(short, title, amount, rate, start, end, signed, kind="grant", summary=None):
+        pdf = demo_contracts.render(short, {"signed": signed, "amount": amount, "currency": conn.execute("SELECT currency FROM pm_funders WHERE id = ?", (F[short],)).fetchone()[0], "rate": rate, "start": start, "end": end})
+        name = f"{short}_{kind}_agreement.pdf"
+        _write_contract(name, pdf)
         return pm.add_contract(conn, P, F[short], title, kind=kind, amount=amount, budget_rate=rate, start_date=start, end_date=end, signed_date=signed,
-                               file_path=f"Contracts/AURORA/{short}_{kind}_agreement.pdf", file_hash=_fake_hash(f"{short}{kind}"), summary=summary)
+                               file_path=f"Contracts/AURORA/{name}", file_hash=hashlib.sha256(pdf).hexdigest(), summary=summary)
     C = {
         "HDTF": contract("HDTF", "HDTF grant agreement", 600000, None, "2026-01-01", "2028-12-31", "2025-11-20", summary="Core funding. French preferred in reports; 10% overhead cap."),
         "NDA": contract("NDA", "NDA grant agreement", 450000, 0.94, "2026-01-01", "2028-12-31", "2025-12-05", summary="Strict financial reporting every quarter; prior approval for budget moves above 10%."),
@@ -90,7 +100,9 @@ def seed(conn, today: date | None = None) -> dict:
     ob("KIN", "partner_report", "Quarterly activity and expense report from KIN", offset_days=15, language="en", detail="standard", **q)
     # the no-cost extension: NDA gets until mid-2029
     amend = pm.extend_contract(conn, C["NDA"], "2029-06-30", "NDA no-cost extension 1", signed_date="2026-09-10", summary="Six more months, no extra money; moves the final report and the audit.")
-    conn.execute("UPDATE pm_contracts SET file_path = 'Contracts/AURORA/NDA_amendment_1.pdf', file_hash = ? WHERE id = ?", (_fake_hash("NDAamendment1"), amend))
+    pdf = demo_contracts.render("NDA_AMEND", {"signed": "2026-09-10", "end": "2029-06-30", "old_end": "2028-12-31"})
+    _write_contract("NDA_amendment_1.pdf", pdf)
+    conn.execute("UPDATE pm_contracts SET file_path = 'Contracts/AURORA/NDA_amendment_1.pdf', file_hash = ? WHERE id = ?", (hashlib.sha256(pdf).hexdigest(), amend))
     conn.commit()
 
     def tr(short, label, exp_date, exp_amt, rec=None, rate=None, ref=None, note=None):

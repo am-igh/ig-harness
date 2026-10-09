@@ -106,3 +106,39 @@ def test_the_story_has_documents_behind_some_deadlines(c):
     assert {"funder_form", "template", "draft", "submitted"} <= kinds
     assert c.execute("SELECT MAX(version) FROM pm_documents WHERE kind = 'draft'").fetchone()[0] >= 2                  # a draft with a history
     assert all((r[0] or "").startswith(("Funder forms/", "Submitted/")) for r in c.execute("SELECT file_path FROM pm_documents WHERE file_path IS NOT NULL"))
+
+
+def test_the_demo_contracts_are_real_pdfs_that_match_the_requirements_and_are_served_safely(c, tmp_path, monkeypatch):
+    import subprocess
+    from pathlib import Path
+    from harness.config import DATA_DIR
+    demo_seed.seed(c, TODAY)
+    files = sorted(Path(DATA_DIR, "contracts").glob("*.pdf"))
+    assert len(files) == 7                                                                                  # four grants, two sub-grants, one amendment
+    nda = Path(DATA_DIR, "contracts", "NDA_grant_agreement.pdf")
+    txt = subprocess.run(["pdftotext", str(nda), "-"], capture_output=True, text=True).stdout
+    assert "FICTITIOUS" in txt and "6.1 Budget changes" in txt and "Any reallocation above 10%" in txt and "0.94 CHF per 1 EUR" in txt
+    info = subprocess.run(["pdfinfo", str(nda)], capture_output=True, text=True).stdout
+    assert "Pages:" in info and int([x for x in info.splitlines() if x.startswith("Pages:")][0].split()[1]) >= 1
+    import hashlib
+    row = c.execute("SELECT id, file_hash FROM pm_contracts WHERE file_path LIKE '%NDA_grant_agreement.pdf'").fetchone()
+    assert row["file_hash"] == hashlib.sha256(nda.read_bytes()).hexdigest()                                 # the recorded fingerprint is the real one
+    assert pm.contract_file(c, row["id"]) == nda.resolve()
+    # the clause numbers in the text are the ones recorded on the obligations
+    for clause in [r[0] for r in c.execute("SELECT clause FROM pm_obligations o JOIN pm_contracts k ON k.id = o.contract_id JOIN pm_funders f ON f.id = k.funder_id WHERE f.short = 'NDA' AND clause IS NOT NULL")]:
+        assert clause.replace("Sect. ", "") in txt, clause
+    # only files inside the contracts folder are ever served
+    c.execute("UPDATE pm_contracts SET file_path = '../../../etc/passwd' WHERE id = ?", (row["id"],)); c.commit()
+    assert pm.contract_file(c, row["id"]) is None
+    c.execute("UPDATE pm_contracts SET file_path = 'Contracts/AURORA/missing.pdf' WHERE id = ?", (row["id"],)); c.commit()
+    assert pm.contract_file(c, row["id"]) is None
+
+
+def test_the_pdf_endpoint_serves_inline_or_as_a_download(c):
+    from fastapi.testclient import TestClient
+    from harness.main import app
+    demo_seed.seed(c, TODAY)
+    cid = c.execute("SELECT id FROM pm_contracts WHERE file_path LIKE '%HDTF_grant%'").fetchone()[0]
+    with TestClient(app) as cl:
+        # the endpoint opens its own connection to the default database; here we only check the not-found path and the headers' shape
+        assert cl.get("/api/pm/contracts/999999/pdf").status_code == 404

@@ -48,14 +48,15 @@ export function ContractForm({ d, funders, onDone }: { d: PMDetail; funders: PMF
   );
 }
 
-export function ExtendForm({ c, onDone }: { c: PMContract; onDone: () => void }) {
+export function ExtendForm({ c, onDone, onCancel }: { c: PMContract; onDone: () => void; onCancel: () => void }) {
   const f = useForm(onDone);
   const [end, setEnd] = useState(""); const [title, setTitle] = useState("No-cost extension");
   return (
     <form className="pm-form" onSubmit={(e) => { e.preventDefault(); f.run(() => extendPMContract(c.id, { new_end: end, title })); }}>
       <Row><input value={title} onChange={(e) => setTitle(e.target.value)} aria-label="Title of the amendment" />
         <label className="small muted">New end date <input type="date" value={end} onChange={(e) => setEnd(e.target.value)} required /></label>
-        <button type="submit" className="btn-primary" disabled={f.busy}>Record the extension</button></Row>
+        <button type="submit" className="btn-primary" disabled={f.busy}>Record the extension</button>
+        <button type="button" className="btn-ghost" onClick={onCancel}>Cancel</button></Row>
       <div className="small muted">Adds the amendment, moves the end date, and adds the new reporting periods and moves the final report.</div>
       {f.err && <div className="edit-err">{f.err}</div>}
     </form>

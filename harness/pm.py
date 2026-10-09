@@ -4,6 +4,7 @@ was only proposed stays marked unconfirmed until she confirms it. Deadlines feed
 import re
 import sqlite3
 from datetime import date, datetime, timedelta
+from pathlib import Path
 
 from harness.config import now_local
 
@@ -414,11 +415,23 @@ def project_detail(conn, project_id: int, today: date | None = None) -> dict | N
     for c in conn.execute("SELECT c.*, f.name AS funder_name, f.short AS funder, f.role FROM pm_contracts c JOIN pm_funders f ON f.id = c.funder_id WHERE c.project_id = ? ORDER BY c.parent_id IS NOT NULL, c.id", (project_id,)):
         contracts.append({"id": c["id"], "parent_id": c["parent_id"], "kind": c["kind"], "title": c["title"], "funder": c["funder"], "funder_name": c["funder_name"], "role": c["role"], "signed_date": c["signed_date"],
                           "start_date": c["start_date"], "end_date": c["end_date"], "amount": c["amount"], "currency": c["currency"], "budget_rate": c["budget_rate"], "file_path": c["file_path"],
-                          "file_hash": (c["file_hash"] or "")[:12] or None, "status": c["status"], "summary": c["summary"]})
+                          "file_hash": (c["file_hash"] or "")[:12] or None, "status": c["status"], "summary": c["summary"], "has_file": contract_file(conn, c["id"]) is not None})
     dls = _deadline_rows(conn, project_id, today)
     return {"project": {k: p[k] for k in ("id", "code", "name", "status", "start_date", "end_date", "lead", "summary")} | {"demo": bool(p["demo"])},
             "contracts": contracts, "obligations": obligations(conn, project_id), "deadlines": dls, "crunches": crunches(dls), "finance": finance(conn, project_id, today),
             "crosswalk": crosswalk(conn, project_id), "funders": sorted({c["funder"] for c in contracts if c["kind"] == "grant"}), "canon": CANON}
+
+
+def contract_file(conn, contract_id: int, data_dir: Path | None = None) -> Path | None:
+    """The contract's PDF if the harness can serve it: only a file inside the harness data folder's `contracts` folder (the demo's contracts live there). Real contracts stay in her own folders,
+    which the harness does not read; for those only the location is shown."""
+    from harness.config import DATA_DIR
+    r = conn.execute("SELECT file_path FROM pm_contracts WHERE id = ?", (contract_id,)).fetchone()
+    if r is None or not r["file_path"]:
+        return None
+    base = ((data_dir or DATA_DIR) / "contracts").resolve()
+    cand = (base / Path(r["file_path"]).name).resolve()
+    return cand if cand.is_file() and cand.parent == base else None
 
 
 def funders(conn) -> list[dict]:

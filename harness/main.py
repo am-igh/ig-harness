@@ -1417,6 +1417,16 @@ def pm_add_contract(b: PMContractIn) -> dict:
     return _pm(lambda c, pm: {"id": pm.add_contract(c, b.project_id, b.funder_id, b.title, b.kind, b.amount, b.currency, b.budget_rate, b.signed_date, b.start_date, b.end_date, b.file_path, None, b.summary)})
 
 
+@app.get("/api/pm/contracts/{contract_id}/pdf")
+def pm_contract_pdf(contract_id: int, download: bool = False):
+    """The contract's PDF, when the harness holds it (the demo's contracts). Real contracts stay in her folders."""
+    from fastapi.responses import FileResponse
+    path = _pm(lambda c, pm: pm.contract_file(c, contract_id))
+    if path is None:
+        raise HTTPException(404, "This contract stays in your folders: the harness only knows where it is kept.")
+    return FileResponse(path, media_type="application/pdf", filename=path.name, content_disposition_type="attachment" if download else "inline")
+
+
 @app.post("/api/pm/contracts/{contract_id}/extend")
 def pm_extend(contract_id: int, b: PMExtendIn) -> dict:
     return _pm(lambda c, pm: {"id": pm.extend_contract(c, contract_id, b.new_end, b.title, b.signed_date)})
