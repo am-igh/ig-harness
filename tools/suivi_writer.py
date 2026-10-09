@@ -280,6 +280,20 @@ def pending_docs(db_path: Path, state: dict) -> list[dict]:
         conn.close()
 
 
+TODO_SQL = "SELECT id, date, project, hours, description, evidence FROM todo_journal WHERE status = 'pending' ORDER BY id"
+
+
+def pending_todo_hours(db_path: Path, state: dict) -> list[dict]:
+    conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=10)
+    conn.row_factory = sqlite3.Row
+    try:
+        return [dict(r) for r in conn.execute(TODO_SQL) if str(r["id"]) not in state["todo_hours"]]
+    except sqlite3.OperationalError:                      # database from before this existed
+        return []
+    finally:
+        conn.close()
+
+
 def run(dry_run: bool = False, *, data: Path | None = None, suivi: Path | None = None, today=None, status: str = "confirmed") -> str:
     data = data or DATA
     if SE.is_paused(data):
@@ -287,7 +301,8 @@ def run(dry_run: bool = False, *, data: Path | None = None, suivi: Path | None =
     state = SE.read_state(data)
     notes = pending_notes(data / "harness.db", state)
     docs = pending_docs(data / "harness.db", state)
-    if not notes and not docs:
+    todos = pending_todo_hours(data / "harness.db", state)
+    if not notes and not docs and not todos:
         return "nothing to add"
     path = (suivi or suivi_dir()) / FILE_NAME
     if not path.exists():
@@ -305,6 +320,11 @@ def run(dry_run: bool = False, *, data: Path | None = None, suivi: Path | None =
         jid = SE.next_journal_id(ids + list(mapping.values()) + list(dmap.values()), year)
         dmap[d["id"]] = jid
         rows.append(SE.build_document_row(d, jid, today, status))
+    tmap = {}
+    for t in todos:
+        jid = SE.next_journal_id(ids + list(mapping.values()) + list(dmap.values()) + list(tmap.values()), year)
+        tmap[t["id"]] = jid
+        rows.append(SE.build_hours_row(t, jid, today, status))
     if dry_run:
         return "would add:\n" + "\n".join("  " + " | ".join(r[:2] + r[3:6] + r[7:8]) for r in rows)
     used = append_to_suivi(path, rows)
@@ -313,10 +333,12 @@ def run(dry_run: bool = False, *, data: Path | None = None, suivi: Path | None =
         state["notes"][str(n["id"])] = {"journal_id": mapping[n["id"]], "exported_at": stamp, "row": r}
     for d, r in zip(docs, used[len(notes):]):
         state["docs"][str(d["id"])] = {"journal_id": dmap[d["id"]], "exported_at": stamp, "row": r}
+    for t, r in zip(todos, used[len(notes) + len(docs):]):
+        state["todo_hours"][str(t["id"])] = {"journal_id": tmap[t["id"]], "exported_at": stamp, "row": r}
     state.update(last_run=stamp, last_error=None)
     SE.write_state(data, state)
-    what = (f"{len(notes)} note(s)" if notes else "") + (" and " if notes and docs else "") + (f"{len(docs)} document(s)" if docs else "")
-    return f"added {what} to Suivi: " + ", ".join(list(mapping.values()) + list(dmap.values()))
+    parts = [f"{n} {w}" for n, w in ((len(notes), "note(s)"), (len(docs), "document(s)"), (len(todos), "day(s) of logged time")) if n]
+    return f"added {' and '.join(parts)} to Suivi: " + ", ".join(list(mapping.values()) + list(dmap.values()) + list(tmap.values()))
 
 
 def main(argv: list[str]) -> int:
@@ -329,7 +351,8 @@ def main(argv: list[str]) -> int:
             state = SE.read_state(DATA)
             pend = pending_notes(DATA / "harness.db", state) if (DATA / "harness.db").exists() else []
             pend += pending_docs(DATA / "harness.db", state) if (DATA / "harness.db").exists() else []
-            print(f"exported: {len(state['notes']) + len(state['docs'])} | pending: {len(pend)} | paused: {SE.is_paused(DATA)} | last run: {state.get('last_run')}")
+            pend += pending_todo_hours(DATA / "harness.db", state) if (DATA / "harness.db").exists() else []
+            print(f"exported: {len(state['notes']) + len(state['docs']) + len(state['todo_hours'])} | pending: {len(pend)} | paused: {SE.is_paused(DATA)} | last run: {state.get('last_run')}")
             return 0
     except SuiviBusy as e:
         print(f"waiting: {e}")

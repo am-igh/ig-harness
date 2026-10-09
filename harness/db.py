@@ -682,6 +682,20 @@ MIGRATIONS: list[str] = [
     );
     CREATE INDEX idx_pm_documents_deadline ON pm_documents (deadline_id, kind, title, version);
     """,
+    # 37: time logged when ticking off a to-do: each day becomes a Suivi journal row (with the hours figure) first; the hours.csv entry is released once that row has its journal id, which is its evidence
+    """
+    CREATE TABLE todo_journal (
+        id INTEGER PRIMARY KEY,
+        item_type TEXT NOT NULL, item_id INTEGER NOT NULL,
+        date TEXT NOT NULL, project TEXT NOT NULL, hours REAL NOT NULL, description TEXT NOT NULL,
+        evidence TEXT NOT NULL,                                -- what the journal row cites: the harness to-do
+        proposal_id INTEGER NOT NULL,                          -- the approved hours entry waiting for the journal id
+        status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','released')),
+        journal_id TEXT,                                       -- J-YYYY-NNN once Suivi has the row
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        UNIQUE (item_type, item_id, date)
+    );
+    """,
 ]
 
 

@@ -36,15 +36,38 @@ def test_it_asks_only_for_finished_work_items_in_a_project(c):
     assert HL.ask(c, "task", tid(c, "Write the TK outline"), TODAY)["ask"] is True
 
 
-def test_what_she_enters_becomes_approved_entries_for_the_hours_writer(c, tmp_path):
-    out = HL.log(c, "task", tid(c, "Write the TK outline"), [{"date": "2026-10-08", "hours": "1,5"}, {"date": "2026-10-09", "hours": 2}], today=TODAY, data_dir=tmp_path)
+def test_what_she_enters_becomes_journal_items_and_approved_hours_held_until_suivi_gives_the_id(c, tmp_path):
+    t = tid(c, "Write the TK outline")
+    out = HL.log(c, "task", t, [{"date": "2026-10-08", "hours": "1,5"}, {"date": "2026-10-09", "hours": 2}], today=TODAY, data_dir=tmp_path)
     assert out["logged"] == 2 and out["hours"] == 3.5 and out["project"] == "TK" and out["queued"] is True
-    rows = c.execute("SELECT date, hours, project, evidence, description, status, source FROM hour_proposals ORDER BY date").fetchall()
-    assert [(r["date"], r["hours"], r["status"], r["source"]) for r in rows] == [("2026-10-08", 1.5, "approved", "todo"), ("2026-10-09", 2.0, "approved", "todo")]
-    assert rows[0]["project"] == "TK" and rows[0]["description"] == "Write the TK outline" and rows[0]["evidence"] == f"Harness to-do #{tid(c, 'Write the TK outline')} (done 2026-10-09)"
+    tj = c.execute("SELECT date, hours, project, description, evidence, status, journal_id FROM todo_journal ORDER BY date").fetchall()
+    assert [(r["date"], r["hours"], r["status"], r["journal_id"]) for r in tj] == [("2026-10-08", 1.5, "pending", None), ("2026-10-09", 2.0, "pending", None)]
+    assert tj[0]["project"] == "TK" and tj[0]["description"] == "Write the TK outline" and tj[0]["evidence"] == f"harness-to-do:{t} (done 2026-10-09)"
+    props = c.execute("SELECT status, source, evidence FROM hour_proposals ORDER BY date").fetchall()
+    assert [(p["status"], p["source"]) for p in props] == [("approved", "todo"), ("approved", "todo")] and all("pending" in p["evidence"] for p in props)
+    assert not (tmp_path / "hours/outbox").exists() or not list((tmp_path / "hours/outbox").glob("*.json"))              # the hours writer has nothing yet
+    assert HL.ask(c, "task", t, TODAY)["already_logged"] == 3.5
+    assert HL.release(c, tmp_path) == 0                                                                                     # Suivi has not written the rows yet
+
+
+def test_once_suivi_has_the_rows_the_journal_id_becomes_the_evidence_and_the_hours_writer_gets_the_entries(c, tmp_path):
+    from harness import suivi_export as SE
+    t = tid(c, "Write the TK outline")
+    HL.log(c, "task", t, [{"date": "2026-10-08", "hours": 1.5}, {"date": "2026-10-09", "hours": 2}], today=TODAY, data_dir=tmp_path)
+    ids = [r[0] for r in c.execute("SELECT id FROM todo_journal ORDER BY date")]
+    state = SE.read_state(tmp_path)
+    state["todo_hours"][str(ids[0])] = {"journal_id": "J-2026-041", "exported_at": "x", "row": 7}                          # only the first day is written so far
+    SE.write_state(tmp_path, state)
+    assert HL.release(c, tmp_path) == 1 and HL.release(c, tmp_path) == 0
+    ev = [r[0] for r in c.execute("SELECT evidence FROM hour_proposals ORDER BY date")]
+    assert ev[0] == "Suivi J-2026-041" and "pending" in ev[1]
     files = sorted((tmp_path / "hours/outbox").glob("*.json"))
-    assert len(files) == 2 and all(json.loads(f.read_text())["approved_at"] for f in files)               # what tools/hours_writer.py picks up
-    assert HL.ask(c, "task", tid(c, "Write the TK outline"), TODAY)["already_logged"] == 3.5
+    assert len(files) == 1 and json.loads(files[0].read_text())["approved_at"]
+    state["todo_hours"][str(ids[1])] = {"journal_id": "J-2026-042", "exported_at": "x", "row": 8}
+    SE.write_state(tmp_path, state)
+    assert HL.release(c, tmp_path) == 1 and len(list((tmp_path / "hours/outbox").glob("*.json"))) == 2
+    assert [r[0] for r in c.execute("SELECT journal_id FROM todo_journal ORDER BY date")] == ["J-2026-041", "J-2026-042"] and {r[0] for r in c.execute("SELECT status FROM todo_journal")} == {"released"}
+    assert HL.ask(c, "task", t, TODAY)["already_logged"] == 3.5                                                             # still counted after release
 
 
 def test_wrong_input_is_refused_with_plain_words_and_nothing_is_half_logged(c, tmp_path):
@@ -63,13 +86,15 @@ def test_wrong_input_is_refused_with_plain_words_and_nothing_is_half_logged(c, t
         HL.log(c, "task", t, [{"date": "2026-10-09", "hours": 1}], today=TODAY, data_dir=tmp_path)                    # the same day twice for the same to-do
 
 
-def test_the_demo_shows_the_entry_in_the_hours_table_at_once(c, tmp_path, monkeypatch):
+def test_the_demo_shows_the_journal_row_and_the_hours_entry_at_once(c, tmp_path, monkeypatch):
     monkeypatch.setenv("IG_DEMO", "1")
     out = HL.log(c, "task", tid(c, "Write the TK outline"), [{"date": "2026-10-09", "hours": 2}], description="Outline for the toolkit", today=TODAY, data_dir=tmp_path)
     assert out["queued"] is False
-    h = c.execute("SELECT project, hours, description, source FROM hours").fetchone()
-    assert (h["project"], h["hours"], h["description"], h["source"]) == ("TK", 2.0, "Outline for the toolkit", "harness")
-    assert c.execute("SELECT status FROM hour_proposals").fetchone()[0] == "written"
+    h = c.execute("SELECT project, hours, description, source, evidence FROM hours").fetchone()
+    assert (h["project"], h["hours"], h["description"], h["source"]) == ("TK", 2.0, "Outline for the toolkit", "harness") and h["evidence"].startswith("Suivi J-2026-")
+    j = c.execute("SELECT entry_date, project_code, hours, source_ref, entry_type FROM journal_entries WHERE source = 'demo-hours'").fetchone()
+    assert (j["entry_date"], j["project_code"], j["hours"], j["entry_type"]) == ("2026-10-09", "TK", 2.0, "work") and h["evidence"] == f"Suivi {j['source_ref']}"
+    assert c.execute("SELECT status FROM hour_proposals").fetchone()[0] == "written" and c.execute("SELECT status FROM todo_journal").fetchone()[0] == "released"
 
 
 def test_endpoints(c):

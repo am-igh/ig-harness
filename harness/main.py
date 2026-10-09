@@ -14,12 +14,13 @@ from harness.importers.run import run_all
 def _collector() -> None:
     """Every few seconds, pick up the Mac-side worker's answers about drafts."""
     import time
-    from harness import drafting
+    from harness import drafting, hours_log
     while True:
         try:
             c = db.connect()
             try:
                 drafting.collect_results(c, DATA_DIR / "draft_outbox")
+                hours_log.release(c)                               # hours logged at tick time: once Suivi has given the journal row its id, hand the hours entry to the hours writer
             finally:
                 c.close()
         except Exception:

@@ -29,9 +29,10 @@ def read_state(data_dir: Path) -> dict:
         s = json.loads((data_dir / STATE_DIR / STATE_FILE).read_text())
         s.setdefault("notes", {})
         s.setdefault("docs", {})
+        s.setdefault("todo_hours", {})
         return s
     except (OSError, ValueError):
-        return {"notes": {}, "docs": {}, "last_run": None, "last_error": None}
+        return {"notes": {}, "docs": {}, "todo_hours": {}, "last_run": None, "last_error": None}
 
 
 def write_state(data_dir: Path, state: dict) -> None:
@@ -121,3 +122,9 @@ def document_summary(doc: dict) -> str:
 def build_document_row(doc: dict, journal_id: str, today: date, status: str = "confirmed") -> list[str]:
     """The twelve cells for a document she approved and the filer wrote. Evidence is the file's place in her audit folder."""
     return [journal_id, (doc.get("filed_at") or today.isoformat())[:10], "W", DOC_CODE, "document", document_summary(doc), "", document_evidence(doc), "", "capture", status, today.isoformat()]
+
+
+# ---- Time logged when a to-do is ticked off: one journal row per day, with the hours figure, so the hours entry can cite its journal id ----
+def build_hours_row(item: dict, journal_id: str, today: date, status: str = "confirmed") -> list[str]:
+    """The twelve cells for a day of work she logged. The hours cell makes it flow into the hours log, as her Suivi convention says."""
+    return [journal_id, item["date"], "W", item["project"], "work", clean_summary(item["description"]), "", item["evidence"], f"{item['hours']:g}", "capture", status, today.isoformat()]

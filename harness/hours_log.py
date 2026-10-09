@@ -1,7 +1,8 @@
-"""Logging time when she ticks off a project to-do. Ticking a task or deadline that belongs to a work project can ask: how much time did this take, and on which day(s)? What she enters
-becomes hours entries through the SAME approved path as the Friday hours pass (hour_proposals -> approval -> outbox -> tools/hours_writer.py appends to hours.csv with a backup).
-Her clicking "Log hours" is the approval of those entries. Nothing is asked for personal items, emails or threads, and nothing is invented: no hours are guessed.
-In the demo instance there is no writer, so the entry is shown in the hours table straight away."""
+"""Logging time when she ticks off a project to-do. Ticking a task or deadline that belongs to a work project can ask: how much time did this take, and on which day(s)?
+Her clicking "Log hours" is the approval. Each day becomes (1) a row in the Suivi journal WITH the hours figure (tools/suivi_writer.py, the same safeguarded writer as her notes), and (2) an entry in
+hours.csv (tools/hours_writer.py, the same path as the Friday hours pass, with its backup and checks) whose EVIDENCE is that journal row's id (for example "Suivi J-2026-041"). The hours entry is
+held back until Suivi has given the row its id (`release`, run every few seconds by the API). Nothing is asked for personal items, emails or threads, and no hours are ever guessed.
+In the demo instance there are no writers, so the journal row and the hours entry are shown at once."""
 import hashlib
 import os
 import sqlite3
@@ -45,7 +46,7 @@ def ask(conn, item_type: str, item_id: int, today: date | None = None) -> dict:
     if not code:
         return {"ask": False, "reason": "no project"}
     done = (r["done_at"] or today.isoformat())[:10]
-    logged = conn.execute("SELECT COALESCE(SUM(hours), 0) FROM hour_proposals WHERE source = 'todo' AND status IN ('approved','written') AND evidence LIKE ?", (f"Harness to-do #{item_id} (%",)).fetchone()[0]
+    logged = conn.execute("SELECT COALESCE(SUM(hours), 0) FROM todo_journal WHERE item_type = ? AND item_id = ?", (item_type, item_id)).fetchone()[0]
     return {"ask": True, "project": code, "title": r["title"], "date": done if done <= today.isoformat() else today.isoformat(), "already_logged": round(logged, 2)}
 
 
@@ -80,28 +81,60 @@ def log(conn, item_type: str, item_id: int, entries: list[dict], description: st
         clean.append((day, round(h, 2)))
     done = (r["done_at"] or today.isoformat())[:10]
     desc = (description or r["title"] or "").strip()[:300]
-    evidence = f"Harness to-do #{item_id} (done {done})"
+    evidence = f"harness-to-do:{item_id} (done {done})"                                  # what the Suivi journal row cites
+    for day, h in clean:
+        if conn.execute("SELECT 1 FROM todo_journal WHERE item_type = ? AND item_id = ? AND date = ?", (item_type, item_id, day.isoformat())).fetchone():
+            raise ValueError(f"Time for {day.isoformat()} is already logged for this to-do")
+    demo = os.environ.get("IG_DEMO") == "1"
     pids = []
     for day, h in clean:
         pkey = hashlib.sha256(f"todo:{item_type}:{item_id}:{day.isoformat()}".encode()).hexdigest()[:24]
-        if conn.execute("SELECT 1 FROM hour_proposals WHERE pkey = ?", (pkey,)).fetchone():
-            raise ValueError(f"Time for {day.isoformat()} is already logged for this to-do")
         with conn:
             cur = conn.execute("INSERT INTO hour_proposals (pkey, week_start, date, project, hours, description, evidence, source, basis) VALUES (?,?,?,?,?,?,?,'todo',?)",
-                               (pkey, week_bounds(day)[0].isoformat(), day.isoformat(), code, h, desc, evidence, "you entered it when you ticked the to-do off"))
-        pids.append(cur.lastrowid)
-    for pid in pids:
-        HP.approve(conn, pid, today, data_dir)                                                         # her click on "Log hours" is the approval
-        if os.environ.get("IG_DEMO") == "1":
+                               (pkey, week_bounds(day)[0].isoformat(), day.isoformat(), code, h, desc, f"Suivi (journal id pending): {evidence}", "you entered it when you ticked the to-do off"))
+            pid = cur.lastrowid
+            conn.execute("INSERT INTO todo_journal (item_type, item_id, date, project, hours, description, evidence, proposal_id) VALUES (?,?,?,?,?,?,?,?)", (item_type, item_id, day.isoformat(), code, h, desc, evidence, pid))
+        HP.approve(conn, pid, today, data_dir, queue_now=False)                              # her click is the approval; the writer gets it once the journal id exists
+        pids.append(pid)
+        if demo:
             _demo_write(conn, pid, today)
-    return {"logged": len(pids), "hours": round(sum(h for _, h in clean), 2), "project": code, "evidence": evidence, "queued": os.environ.get("IG_DEMO") != "1"}
+    return {"logged": len(pids), "hours": round(sum(h for _, h in clean), 2), "project": code, "evidence": "Suivi journal row (id given when it is written)", "queued": not demo}
+
+
+def release(conn, data_dir=None) -> int:
+    """For every logged day whose Suivi journal row now has its id: make that id the evidence of the hours entry and hand the entry to the hours writer. Returns how many were released."""
+    from harness import suivi_export as SE
+    data_dir = data_dir or DATA_DIR
+    pending = conn.execute("SELECT * FROM todo_journal WHERE status = 'pending'").fetchall()
+    if not pending:
+        return 0
+    state = SE.read_state(data_dir).get("todo_hours", {})
+    n = 0
+    for r in pending:
+        hit = state.get(str(r["id"]))
+        if not hit:
+            continue
+        jid = hit["journal_id"]
+        with conn:
+            conn.execute("UPDATE todo_journal SET status='released', journal_id=? WHERE id=?", (jid, r["id"]))
+            conn.execute("UPDATE hour_proposals SET evidence=? WHERE id=? AND status='approved'", (f"Suivi {jid}", r["proposal_id"]))
+        row = conn.execute("SELECT decided_at FROM hour_proposals WHERE id = ?", (r["proposal_id"],)).fetchone()
+        HP.queue(r["proposal_id"], row["decided_at"] or now_local().isoformat(timespec="seconds"), data_dir)
+        n += 1
+    return n
 
 
 def _demo_write(conn, pid: int, today: date) -> None:
-    """The demo has no Mac-side writer: show the entry in the hours table at once."""
+    """The demo has no Mac-side writers: show the Suivi journal row and the hours entry at once."""
     r = conn.execute("SELECT * FROM hour_proposals WHERE id = ?", (pid,)).fetchone()
+    t = conn.execute("SELECT * FROM todo_journal WHERE proposal_id = ?", (pid,)).fetchone()
+    n = conn.execute("SELECT COUNT(*) FROM journal_entries WHERE source = 'demo-hours'").fetchone()[0]
+    jid = f"J-{today.year}-{101 + n:03d}"
     key = hashlib.sha256(f"demo-hours:{pid}".encode()).hexdigest()[:32]
     with conn:
+        conn.execute("INSERT OR IGNORE INTO journal_entries (entry_date, text, project_code, source, source_ref, entry_type, evidence, hours) VALUES (?,?,?,'demo-hours',?, 'work',?,?)",
+                     (r["date"], r["description"], r["project"], jid, t["evidence"], r["hours"]))
         conn.execute("INSERT OR IGNORE INTO hours (row_key, date, project, hours, description, evidence, source, entered_on) VALUES (?,?,?,?,?,?,'harness',?)",
-                     (key, r["date"], r["project"], r["hours"], r["description"], r["evidence"], today.isoformat()))
-        conn.execute("UPDATE hour_proposals SET status='written', written_at=datetime('now'), result='demo' WHERE id=?", (pid,))
+                     (key, r["date"], r["project"], r["hours"], r["description"], f"Suivi {jid}", today.isoformat()))
+        conn.execute("UPDATE hour_proposals SET status='written', evidence=?, written_at=datetime('now'), result='demo' WHERE id=?", (f"Suivi {jid}", pid))
+        conn.execute("UPDATE todo_journal SET status='released', journal_id=? WHERE proposal_id=?", (jid, pid))

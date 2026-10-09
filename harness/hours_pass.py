@@ -49,7 +49,7 @@ def find_week(conn: sqlite3.Connection, today: date, any_day: date | None = None
 
     def add(pkey, day, project, hours, desc, evidence, source, basis):
         nonlocal added
-        if _already_logged(conn, evidence, day, project):
+        if _already_logged(conn, evidence, day, project) or conn.execute("SELECT 1 FROM hour_proposals WHERE evidence = ? AND status IN ('approved','written')", (evidence,)).fetchone():
             return
         with conn:
             cur = conn.execute("INSERT OR IGNORE INTO hour_proposals (pkey, week_start, date, project, hours, description, evidence, source, basis) VALUES (?,?,?,?,?,?,?,?,?)",
@@ -105,7 +105,14 @@ def edit(conn: sqlite3.Connection, pid: int, fields: dict, today: date) -> dict:
     return dict(conn.execute("SELECT * FROM hour_proposals WHERE id = ?", (pid,)).fetchone())
 
 
-def approve(conn: sqlite3.Connection, pid: int, today: date, data_dir: Path | None = None) -> dict:
+def queue(pid: int, approved_at: str, data_dir: Path | None = None) -> None:
+    """Hand an approved entry to the Mac-side writer."""
+    data_dir = data_dir or DATA_DIR
+    (data_dir / OUTBOX).mkdir(parents=True, exist_ok=True)
+    (data_dir / OUTBOX / f"{pid}.json").write_text(json.dumps({"id": pid, "approved_at": approved_at}))
+
+
+def approve(conn: sqlite3.Connection, pid: int, today: date, data_dir: Path | None = None, queue_now: bool = True) -> dict:
     data_dir = data_dir or DATA_DIR
     r = conn.execute("SELECT * FROM hour_proposals WHERE id = ?", (pid,)).fetchone()
     if r is None:
@@ -120,11 +127,11 @@ def approve(conn: sqlite3.Connection, pid: int, today: date, data_dir: Path | No
         raise ValueError("An hours entry needs a description and an evidence pointer")
     if date.fromisoformat(r["date"]) > today:
         raise ValueError("That day has not happened yet")
-    (data_dir / OUTBOX).mkdir(parents=True, exist_ok=True)
     when = now_local().isoformat(timespec="seconds")
     with conn:
         conn.execute("UPDATE hour_proposals SET status='approved', decided_at=? WHERE id=?", (when, pid))
-    (data_dir / OUTBOX / f"{pid}.json").write_text(json.dumps({"id": pid, "approved_at": when}))
+    if queue_now:
+        queue(pid, when, data_dir)
     return dict(conn.execute("SELECT * FROM hour_proposals WHERE id = ?", (pid,)).fetchone())
 
 

@@ -264,7 +264,7 @@ The **Contracts & funders** tab holds projects with their funders, contracts (ke
 
 ## Logging time when you tick off a project to-do
 
-When you tick off a to-do that belongs to a project, a small box appears at the bottom right: how long did it take, and on which day(s)? Add several days with "+ another day". Click **Log hours** and the entries are added to `hours.csv` at the next refresh (or press ↻), with a backup, exactly like the Friday hours pass. **Not now** skips it, **Stop asking** turns the box off for good. Nothing is asked for personal to-dos, emails or threads, and the harness never guesses the hours.
+When you tick off a to-do that belongs to a project, a small box appears at the bottom right: how long did it take, and on which day(s)? Add several days with "+ another day". Click **Log hours**: at the next refresh (or press ↻) each day is added to your **Suivi journal** (with the hours figure, citing the to-do), and then to `hours.csv` with that journal row's id as its evidence (for example `Suivi J-2026-041`), with a backup, like the Friday hours pass. If the Suivi export is paused or Suivi.xlsx is not reachable, the hours wait until it is. **Not now** skips it, **Stop asking** turns the box off for good. Nothing is asked for personal to-dos, emails or threads, and the harness never guesses the hours.
 
 ## If the AI features suddenly stop (the header says "⚠ Model missing")
 

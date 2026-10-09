@@ -13,7 +13,7 @@ export default function HoursPrompt({ item, info, onClose, onLogged }: { item: {
     setErr(""); setBusy(true);
     try {
       const r = await logHours(item.type, item.id, rows.map((x) => ({ date: x.date, hours: x.hours })), desc);
-      setDone(`Logged ${r.hours} h on ${r.project}. ${r.queued ? "It is added to hours.csv at the next refresh (or press ↻)." : "It is in this week's hours."}`);
+      setDone(`Logged ${r.hours} h on ${r.project}. ${r.queued ? "Each day goes into your Suivi journal and then into hours.csv, at the next refresh (or press ↻)." : "It is in your journal and this week's hours."}`);
       onLogged(); setTimeout(onClose, 4500);
     } catch (e) { setErr((e as Error).message); } finally { setBusy(false); }
   };

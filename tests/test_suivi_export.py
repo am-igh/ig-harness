@@ -382,3 +382,21 @@ def test_income_documents_say_received_and_the_pause_switch_covers_documents_too
     assert "added 4 note(s) and 1 document(s)" in W.run(data=data, suivi=suivi, today=date(2026, 10, 2))
     row = next(r for r in rows_of(suivi / "Suivi.xlsx") if r[4] == "document")
     assert "Filed invoice issued by ICT4Peace: Gablinger, CHF 20000.00, received 17.01.2026 (in 2026/Income)" == row[5]
+
+
+def test_logged_time_becomes_a_journal_row_with_the_hours_figure_once_only(world):
+    data, suivi = world
+    c = db.connect(data / "harness.db")
+    c.execute("INSERT INTO hour_proposals (pkey, week_start, date, project, hours, description, evidence, source) VALUES ('k','2026-09-28','2026-10-01','GPF',1.5,'Wrote the outline','pending','todo')")
+    c.execute("INSERT INTO todo_journal (item_type, item_id, date, project, hours, description, evidence, proposal_id) VALUES ('task',1,'2026-10-01','GPF',1.5,'Wrote the outline','harness-to-do:1 (done 2026-10-01)',1)")
+    c.execute("INSERT INTO todo_journal (item_type, item_id, date, project, hours, description, evidence, proposal_id) VALUES ('task',1,'2026-10-02','GPF',2,'Wrote the outline','harness-to-do:1 (done 2026-10-01)',1)")
+    c.commit(); c.close()
+    out = W.run(data=data, suivi=suivi, today=date(2026, 10, 2))
+    assert "2 day(s) of logged time" in out and out.endswith("J-2026-012, J-2026-013")
+    rows = {r[0]: r for r in rows_of(suivi / "Suivi.xlsx") if r[0] in ("J-2026-012", "J-2026-013")}
+    assert rows["J-2026-012"][1:12] == ["2026-10-01", "W", "GPF", "work", "Wrote the outline", "", "harness-to-do:1 (done 2026-10-01)", "1.5", "capture", "confirmed", "2026-10-02"]
+    assert rows["J-2026-013"][8] == "2" and rows["J-2026-013"][1] == "2026-10-02"
+    st = SE.read_state(data)["todo_hours"]
+    assert st["1"]["journal_id"] == "J-2026-012" and st["2"]["journal_id"] == "J-2026-013"
+    assert "nothing to add" in W.run(data=data, suivi=suivi, today=date(2026, 10, 2))                                   # exported once
+    # the existing importer reads such a row back as a journal entry with its hours (so the Friday pass already understands it)
