@@ -344,3 +344,4 @@ export const getHoursAsk = (type: string, id: number) => j<HoursAsk>(`/api/hours
 export const logHours = (type: string, id: number, entries: { date: string; hours: number | string }[], description?: string) =>
   postJson<{ logged: number; hours: number; project: string; evidence: string; queued: boolean }>("/api/hours/log", { type, id, entries, description });
 export const setHoursPrompt = (on: boolean) => postJson<{ on: boolean }>("/api/hours/prompt", { on });
+export const rereadScan = (id: number) => jj<Scan>(`/api/scans/${id}/reread`, { method: "POST" });

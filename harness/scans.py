@@ -422,6 +422,19 @@ def skip(conn: sqlite3.Connection, sid: int, data_dir: Path | None = None) -> di
     return get(conn, sid)
 
 
+def reread(conn: sqlite3.Connection, sid: int) -> dict:
+    """Ask the local model to read this scan again (for example when it was not available the first time). What it read before is cleared; her own payment date is kept."""
+    s = conn.execute("SELECT status, paid_manual FROM scans WHERE id = ?", (sid,)).fetchone()
+    if s is None:
+        raise KeyError(sid)
+    if s["status"] not in ("proposed", "unreadable", "failed"):
+        raise ValueError("This scan cannot be read again now")
+    with conn:
+        conn.execute("UPDATE scans SET status='found', doc_type=NULL, supplier=NULL, number=NULL, amount=NULL, currency=NULL, doc_date=NULL, model=NULL, result=NULL, note=NULL, folder=NULL, proposed_name=NULL, "
+                     "paid_date=CASE WHEN paid_manual=1 THEN paid_date ELSE NULL END WHERE id=?", (sid,))
+    return get(conn, sid)
+
+
 def reconcile(conn: sqlite3.Connection, data_dir: Path | None = None) -> list[int]:
     """Read the filer's results (done/doc-<id>.json) and mark scans filed or failed."""
     data_dir = data_dir or DATA_DIR

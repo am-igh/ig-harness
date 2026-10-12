@@ -409,3 +409,17 @@ def test_old_filed_scans_leave_the_review_panel_but_stay_on_record(env):
     with env.c:
         env.c.execute("UPDATE scans SET filed_at = datetime('now', '-31 minutes') WHERE id=?", (sid,))
     assert scans.recent(env.c) == [] and scans.get(env.c, sid)["status"] == "filed"
+
+
+def test_a_scan_the_model_could_not_read_can_be_read_again(tmp_path):
+    from harness import db, scans
+    c = db.connect(tmp_path / "t.db"); db.migrate(c)
+    c.execute("INSERT INTO scans (id, source, original_name, sha256, size, status, doc_type, supplier, folder, proposed_name, note, paid_date, paid_manual) VALUES "
+              "(1,'folder','a.pdf','h1',1,'proposed','invoice_received','X','Expenses','n.pdf','The local model could not read this','2026-09-30',1), (2,'folder','b.pdf','h2',1,'filed',NULL,NULL,NULL,NULL,NULL,NULL,0)")
+    c.commit()
+    out = scans.reread(c, 1)
+    assert out["status"] == "found" and out["doc_type"] is None and out["supplier"] is None and out["proposed_name"] is None and out["note"] is None and out["paid_date"] == "2026-09-30"    # her own date is kept
+    with pytest.raises(ValueError):
+        scans.reread(c, 2)                                                              # a filed scan is left alone
+    with pytest.raises(KeyError):
+        scans.reread(c, 99)

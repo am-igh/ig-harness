@@ -881,6 +881,17 @@ def scans_approve(sid: int) -> dict:
         raise HTTPException(409, str(e))
 
 
+@app.post("/api/scans/{sid}/reread")
+def scans_reread(sid: int) -> dict:
+    from harness import scans
+    try:
+        return _with_conn(lambda c: scans.reread(c, sid))
+    except KeyError:
+        raise HTTPException(404, "No such scan")
+    except ValueError as e:
+        raise HTTPException(409, str(e))
+
+
 @app.post("/api/scans/{sid}/skip")
 def scans_skip(sid: int) -> dict:
     from harness import scans

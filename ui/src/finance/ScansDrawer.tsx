@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { type Scan, approveScan, editScan, getScans, skipScan, mergeScans, splitScan, uploadScan } from "../api";
+import { type Scan, approveScan, editScan, getScans, rereadScan, skipScan, mergeScans, splitScan, uploadScan } from "../api";
 import { Shell } from "../today/Drawer";
 
 const TYPES: [string, string][] = [["invoice_received", "Invoice received"], ["receipt", "Receipt"], ["invoice_issued", "Invoice issued by ICT4Peace"], ["statement", "Statement or balance"], ["contract", "Contract"], ["other", "Other document"]];
@@ -51,6 +51,7 @@ function ScanCard({ s, onChange, picked, onPick }: { s: Scan; onChange: (s: Scan
           {s.note && <div className="stmt-detail">{s.note}</div>}
           <div className="stmt-actions">
             <button type="button" className="btn-primary" disabled={!s.proposed_name || s.status !== "proposed"} title={s.proposed_name ? "" : "Fill in the missing details first: there is no file name yet"} onClick={() => act(() => approveScan(s.id))}>Add to folder</button>
+            {s.status === "proposed" && <button type="button" className="btn-ghost" title="Ask your local model to read this scan again" onClick={() => act(() => rereadScan(s.id))}>Read it again</button>}
             <button type="button" className="btn-ghost" onClick={() => act(() => skipScan(s.id))}>{s.status === "duplicate" ? "Dismiss" : "Skip"}</button>
             {(s.pages ?? 1) > 1 && s.status === "proposed" && <button type="button" className="btn-ghost" title="Use this when the pages are different documents" onClick={() => act(async () => { await splitScan(s.id); return s; })}>Split into single pages</button>}
           </div>
