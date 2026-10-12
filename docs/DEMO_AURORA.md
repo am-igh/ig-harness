@@ -24,7 +24,7 @@ The real harness and the demo can run at the same time. Do the demo from the bro
 
 ## A run of show (about 8 minutes)
 
-1. **Start on Today.** The DEMO banner, the lake with the reporting deadlines on the water (they come from the contracts), the invented emails, and the chat box.
+1. **Start on Today.** Point out the colours on "Today & overdue": red for the most important overdue item, then orange and yellow, each with a label; open the ⚑ menu to show why an item is ranked where it is and set a priority yourself (the harness learns from it). `make demo-reset` clears what you set. The DEMO banner, the lake with the reporting deadlines on the water (they come from the contracts), the invented emails, and the chat box.
 2. **Open "Contracts & funders".** One project card: AURORA, four funder chips, money received against the budget, one late transfer, two busy stretches.
 3. **Open AURORA.** The strip: budget at contract rates, received so far, the exchange effect (the bank's rate against the budget rate), late transfers, reports to do. Under it the two alerts: the fortnight with five reports, and the late PDFF instalment with the reason.
 4. **Funders and contracts.** **Click a contract's PDF file name:** the contract opens in a pop-out on the side, with a Download button (seven fictitious contracts, whose clause numbers match the requirements shown elsewhere). Four contracts in four currencies, two sub-grants to partners (money going out), the signed copies referenced by location and fingerprint (they stay in your folders), and the NDA amendment. Click **Extension** on a grant to show how a no-cost extension adds reporting periods and moves the final report and audit (then `make demo-reset`).

@@ -168,3 +168,12 @@ def test_a_minor_overdue_item_is_not_painted_red_just_for_being_the_only_one(c):
     task(c, "Tiny overdue thing", "2026-10-11")
     only = today_items(c)[0]
     assert only["priority"]["tier"] != "red" and only["priority"]["score"] < P.RED_MIN
+
+
+def test_when_she_pins_something_red_the_harness_does_not_pick_another_red_and_hers_comes_first(c):
+    deadline(c, "Funder report", "2026-10-02", "major")
+    mine = task(c, "Her choice", "2026-10-11")
+    assert today_items(c)[0]["title"] == "Funder report" and today_items(c)[0]["priority"]["tier"] == "red"
+    P.flag(c, "task", mine, "red")
+    items = today_items(c)
+    assert items[0]["title"] == "Her choice" and [i["priority"]["tier"] for i in items].count("red") == 1 and by_title(items, "Funder report")["priority"]["tier"] == "orange"

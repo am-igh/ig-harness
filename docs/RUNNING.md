@@ -266,6 +266,14 @@ The **Contracts & funders** tab holds projects with their funders, contracts (ke
 
 When you tick off a to-do that belongs to a project, a small box appears at the bottom right: how long did it take, and on which day(s)? Add several days with "+ another day". Click **Log hours**: at the next refresh (or press ↻) each day is added to your **Suivi journal** (with the hours figure, citing the to-do), and then to `hours.csv` with that journal row's id as its evidence (for example `Suivi J-2026-041`), with a backup, like the Friday hours pass. If the Suivi export is paused or Suivi.xlsx is not reachable, the hours wait until it is. **Not now** skips it, **Stop asking** turns the box off for good. Nothing is asked for personal to-dos, emails or threads, and the harness never guesses the hours.
 
+## Priority colours in Today & overdue
+
+The list is ordered and framed by importance: **red** for the most important overdue item, **orange** for the next few, **yellow** for the next, nothing for the rest. Each coloured item also has a label ("Top priority", "High", "Medium"). Hover the label, or open the ⚑ menu on an item, to see why it is where it is.
+
+- **Set it yourself:** the ⚑ button on an item lets you choose Top priority, High, Medium or Normal (no colour), or hand the decision back ("Let the harness decide again"). Your choice always wins.
+- **It learns from you:** every choice you make is remembered (never the title of a personal item). When you repeatedly raise or lower items of a project or kind, the harness adjusts its scores, and your latest choices are shown to the local model as examples.
+- **The model:** your local model ranks the open work items in the background (never personal ones); the line under "Today & overdue" says when it last did. "Rank again" asks for a fresh ranking. Without it the colours still work from plain rules. With the 27B model a ranking takes about a minute; a smaller model can be chosen for "Today: what matters most" in the header picker.
+
 ## If the AI features suddenly stop (the header says "⚠ Model missing")
 
 After a restart, **AnythingLLM** (if it reopens with your windows) can start its own, older Ollama and take over the port, hiding your models. Fix: quit AnythingLLM, then quit and reopen the Ollama app, and run `ollama list`

@@ -120,7 +120,8 @@ def annotate(conn, items: list[dict], today: date, ranking: list[dict] | None = 
     scored.sort(key=lambda x: (-x[0], x[1]["due"] or "9999", x[1]["id"]))
     free = [(sc, it, why) for sc, it, why in scored if pins.get((it["type"], it["id"])) is None]
     tier_of: dict[str, str] = {}
-    first = next(((sc, it) for sc, it, _ in free if it["days_overdue"] > 0 and sc >= RED_MIN), None)          # the single most important OVERDUE item (and important enough to deserve red)
+    her_red = any(pins.get((it["type"], it["id"])) == "red" for it in open_)                                   # if she chose the top item herself, the harness does not pick another one
+    first = None if her_red else next(((sc, it) for sc, it, _ in free if it["days_overdue"] > 0 and sc >= RED_MIN), None)          # the single most important OVERDUE item (and important enough to deserve red)
     if first:
         tier_of[first[1]["key"]] = "red"
     n_o = n_y = 0
@@ -140,7 +141,7 @@ def annotate(conn, items: list[dict], today: date, ranking: list[dict] | None = 
             why = why + [f"You set this to {'no colour' if pin == 'none' else TIER_LABEL[pin].lower()}"]
         it["priority"] = {"tier": tier, "score": round(sc, 1), "reasons": why, "pinned": pin is not None, "label": TIER_LABEL.get(tier)}
         out.append(it)
-    out.sort(key=lambda i: (rank[i["priority"]["tier"]], -i["priority"]["score"], i["due"] or "9999", i["id"]))
+    out.sort(key=lambda i: (rank[i["priority"]["tier"]], not i["priority"]["pinned"], -i["priority"]["score"], i["due"] or "9999", i["id"]))          # her own choices first within a colour
     done = [i for i in items if i["done"]]
     return out + done
 
