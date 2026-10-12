@@ -11,6 +11,8 @@ import ScanTile from "../finance/ScanTile";
 import PhoneBox from "./PhoneBox";
 import ChatBox from "./ChatBox";
 import HoursPrompt from "./HoursPrompt";
+import PriorityMenu from "./PriorityMenu";
+import PriorityNote from "./PriorityNote";
 import { HoursTile, useHours } from "../finance/HoursDrawer";
 import { useScans } from "../finance/ScansDrawer";
 import Lake from "./Lake";
@@ -70,7 +72,7 @@ function Row({ it, today, onToggle, fresh, doneRow, onEdited, onRemind }: { it: 
     setEditing(true);
   };
   return (
-    <div className={`card ${it.done ? "is-done" : over ? "is-over" : ""} ${fresh ? "glow" : ""}`}>
+    <div className={`card ${it.done ? "is-done" : over ? "is-over" : ""} ${fresh ? "glow" : ""} ${!it.done && it.priority?.tier ? `prio-${it.priority.tier}` : ""}`}>
       <button type="button" className={`chk ${it.done ? "on" : ""}`} onClick={() => onToggle(it)}
         aria-label={(it.done ? "Mark not done: " : "Mark done: ") + it.title}>
         {it.done && <svg className="popin" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>}
@@ -85,6 +87,7 @@ function Row({ it, today, onToggle, fresh, doneRow, onEdited, onRemind }: { it: 
                   {shown && <button type="button" className="link-quiet inline" onClick={hide}>hide</button>}
                 </div>}
             <div className="card-meta">
+              {!it.done && it.priority?.tier && <span className={`chip chip-prio-${it.priority.tier}`} title={it.priority.reasons.join(" · ")}>{it.priority.label}</span>}
               <span className={`chip chip-${it.weight}`}>{it.weight === "waiting" ? "waiting on" : it.weight}</span>
               {it.person && <span className="meta-small">{it.person}</span>}
               {(shown?.code ?? it.code) && <span className="mono meta-small">{shown?.code ?? it.code}</span>}
@@ -100,6 +103,7 @@ function Row({ it, today, onToggle, fresh, doneRow, onEdited, onRemind }: { it: 
           </>
         )}
       </div>
+      {!doneRow && !it.done && onEdited && !editing && it.priority && <PriorityMenu it={it} onChanged={onEdited} />}
       {!doneRow && !it.done && onEdited && !editing && (
         <button type="button" className={`note-btn ${it.note_count ? "has" : ""}`} onClick={() => setNotesOpen((o) => !o)} aria-expanded={notesOpen} aria-label={`Notes (${it.note_count})`} title="Notes and follow-ups">📝{it.note_count > 0 && <sup>{it.note_count}</sup>}</button>
       )}
@@ -168,6 +172,7 @@ export default function TodayTab() {
         <section className="panel">
           <div className="panel-head"><h2 className="serif">Today &amp; overdue</h2><span className="muted">{open} open</span></div>
           <div className="sub">What you owe and what is owed to you. Tick it and the jet rises.</div>
+          <PriorityNote refreshKey={data.now} />
           <QuickNote placeholder="A note about today, or a follow-up you want to remember…" onAdded={load} onOpenLog={() => setPanel({ kind: "notes" })} />
 
           {data.events_today.length > 0 && (

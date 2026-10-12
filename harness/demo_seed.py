@@ -195,11 +195,17 @@ def _everyday(conn, today: date) -> None:
                                          ("camille-roy", "Camille Roy", "Helvetia Digital Trust Foundation", "Programme lead", "camille@hdtf-demo.example")):
         conn.execute("INSERT OR IGNORE INTO people (slug, name, org, role, email, space) VALUES (?,?,?,?,?, 'work')", (slug, name, org, role, email))
     conn.execute("INSERT OR IGNORE INTO project_codes (code, name, domain, kind) VALUES ('AURORA', 'Cyber Resilience for Small Island States', 'W', 'project')")
-    for title, due, code in (("Collect Q3 expense statements from Mer Bleue and Kokua", today + timedelta(days=2), "AURORA"),
+    for title, due, code in (("Send the corrected narrative annex to NDA", today - timedelta(days=6), "AURORA"),
+                             ("Update the register's budget lines after the euro movement", today - timedelta(days=9), "AURORA"),
+                             ("Answer Tomas about indicator 3.2 so instalment 2 can be released", today - timedelta(days=2), "AURORA"),
+                             ("Prepare the evidence pack for the ACP board", today, "AURORA"),
+                             ("Collect Q3 expense statements from Mer Bleue and Kokua", today + timedelta(days=2), "AURORA"),
                              ("Prepare the evidence pack for ACP milestone 2", today + timedelta(days=9), "AURORA"),
                              ("Ask NDA to approve moving 12% from travel to training", today + timedelta(days=5), "AURORA"),
                              ("Reconcile the NDA instalment 2 exchange loss in the budget", today - timedelta(days=3), "AURORA")):
         conn.execute("INSERT OR IGNORE INTO tasks (title, due_date, project_code, source, source_ref, sensitivity) VALUES (?,?,?,'demo',?, 'S1')", (title, due.isoformat(), code, title))
+    conn.execute("INSERT OR IGNORE INTO deadlines (title, due_date, importance, kind, project_code, source, source_ref) VALUES ('PDFF: first results report correction to the audit file', ?, 'major', 'reporting', 'AURORA', 'demo', 'dl-corr')",
+                 ((today - timedelta(days=4)).isoformat(),))
     conn.execute("INSERT OR IGNORE INTO waiting_on (description, person, since_date, source, source_ref) VALUES ('PDFF to release instalment 2 once the first results report is accepted', 'tomas-aranui', ?, 'demo', 'w1')",
                  ((today - timedelta(days=20)).isoformat(),))
     for title, start, end, loc in (("AURORA steering call (HDTF, NDA, PDFF, ACP)", at(3, 14), at(3, 15, 30), "Video call"), ("Workshop: Pacific regional playbook", at(6, 9), at(6, 12), "Online"),

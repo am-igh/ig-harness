@@ -4,7 +4,7 @@ from datetime import date, datetime, timedelta
 
 from harness.config import now_local
 from harness.deadlines import done_this_week, warning_level, week_start
-from harness import notes as notes_mod, privacy
+from harness import notes as notes_mod, priority, privacy
 from harness.items import overrides_for
 
 LAKE_DAYS = 47          # lake band runs from today to today + 47 days (30 Sep -> 15 Nov in the mockup)
@@ -111,7 +111,7 @@ def build_today(conn: sqlite3.Connection, now: datetime | None = None) -> dict:
     return {
         "now": now.isoformat(timespec="minutes"), "today": t, "week_start": week_start(today).isoformat(),
         "done_this_week": done_this_week(conn, today),
-        "today_items": _items(conn, today, None, t),
+        "today_items": priority.annotate(conn, _items(conn, today, None, t), today, priority.latest_ranking(conn)),
         "upcoming_items": _items(conn, today, (today + timedelta(days=1)).isoformat(), upcoming_hi),
         "later_items": _items(conn, today, (today + timedelta(days=UPCOMING_DAYS + 1)).isoformat(), "9999-12-31")[:40],
         "undated_tasks": undated,

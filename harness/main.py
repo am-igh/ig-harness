@@ -58,6 +58,23 @@ def _brief_clock():
         time.sleep(60)
 
 
+def _priority_worker():
+    """Every two minutes: when the local model's ranking of Today & overdue is out of date, ask for a new one (it never blocks the screen: the colours already work from rules)."""
+    import time
+    from harness import priority, today as today_mod
+    time.sleep(45)
+    while True:
+        try:
+            c = db.connect()
+            try:
+                priority.refresh_model(c, today_mod.build_today(c)["today_items"])
+            finally:
+                c.close()
+        except Exception:
+            pass
+        time.sleep(120)
+
+
 def _scan_watcher():
     """Every few seconds: notice new scans in the Scan-Inbox folder and read them (on this Mac, with the local model)."""
     from harness import scans
@@ -83,6 +100,7 @@ async def lifespan(app: FastAPI):
     if os.environ.get("IG_SCAN_WATCH", "1") != "0":
         threading.Thread(target=_scan_watcher, daemon=True).start()
         threading.Thread(target=_event_reader, daemon=True).start()
+        threading.Thread(target=_priority_worker, daemon=True).start()
         if os.environ.get("IG_DEMO") != "1":                       # the demo has no Gmail agent: it never queues a brief draft
             threading.Thread(target=_brief_clock, daemon=True).start()
     yield
@@ -1589,3 +1607,49 @@ def hours_prompt(b: HoursPromptIn) -> dict:
     from harness import hours_log
     _with_conn(lambda c: hours_log.set_prompt(c, b.on))
     return {"on": b.on}
+
+
+# --- Priority colours in Today & overdue ---
+class PriorityFlagIn(BaseModel):
+    type: str
+    id: int
+    tier: str
+
+
+@app.post("/api/priority/flag")
+def priority_flag(b: PriorityFlagIn) -> dict:
+    """Her decision for one item: red, orange, yellow, none, or auto (let the harness decide again). It also teaches the harness what she values."""
+    from harness import priority
+    def go(c):
+        try:
+            return priority.flag(c, b.type, b.id, b.tier)
+        except KeyError:
+            raise HTTPException(404, "No such item")
+        except ValueError as e:
+            raise HTTPException(422, str(e))
+    return _with_conn(go)
+
+
+@app.get("/api/priority/status")
+def priority_status() -> dict:
+    import json
+    from harness import priority
+    def go(c):
+        r = c.execute("SELECT created_at, model, ranking FROM priority_model ORDER BY id DESC LIMIT 1").fetchone()
+        fb = c.execute("SELECT COUNT(*) FROM priority_feedback").fetchone()[0]
+        return {"ranked_at": r["created_at"] if r else None, "model": r["model"] if r else None, "ranked": len(json.loads(r["ranking"])) if r else 0, "feedback": fb, "learned": priority.learned(c)}
+    return _with_conn(go)
+
+
+@app.post("/api/priority/rerank")
+def priority_rerank() -> dict:
+    """Ask the local model for a fresh ranking now (runs in the background; the screen picks it up on its next refresh)."""
+    from harness import priority, today as today_mod
+    def run():
+        c = db.connect()
+        try:
+            priority.refresh_model(c, today_mod.build_today(c)["today_items"], force=True)
+        finally:
+            c.close()
+    threading.Thread(target=run, daemon=True).start()
+    return {"started": True}

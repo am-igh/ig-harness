@@ -400,3 +400,17 @@ table.score td.best { font-weight: 700; color: var(--purple); }
 
 .pm-file { background: none; border: none; padding: 0; font: inherit; font-size: 13px; color: var(--navy); cursor: pointer; text-align: left; text-decoration: underline; overflow-wrap: anywhere; } .pm-file:hover { color: var(--purple); }
 .pdf-frame { width: 100%; height: 68vh; min-height: 420px; border: 1px solid var(--line); border-radius: 10px; background: #fff; margin: 10px 0; }
+
+/* ---- Priority colours: an inner frame that adds no size, so text and neighbours do not move; a label says it too, so colour is never the only signal ---- */
+.card.prio-red { box-shadow: inset 0 0 0 3px #D32F2F; background: #FFF4F3; border-color: transparent; }
+.card.prio-orange { box-shadow: inset 0 0 0 3px #F57C00; background: #FFF7EC; border-color: transparent; }
+.card.prio-yellow { box-shadow: inset 0 0 0 3px #E3B505; background: #FFFCE9; border-color: transparent; }
+.chip-prio-red, .chip-prio-orange, .chip-prio-yellow { font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 99px; }
+.chip-prio-red { background: #D32F2F; color: #fff; } .chip-prio-orange { background: #F57C00; color: #fff; } .chip-prio-yellow { background: #E3B505; color: #3b3000; }
+.prio-wrap { position: relative; align-self: flex-start; } .prio-btn { width: 28px; height: 28px; border-radius: 8px; border: 1px solid transparent; background: transparent; color: var(--muted); font-size: 15px; cursor: pointer; opacity: .55; }
+.card:hover .prio-btn, .prio-btn:focus-visible, .prio-btn.pinned { opacity: 1; } .prio-btn.pinned { color: var(--purple); } .prio-btn:hover { background: #fff; border-color: #c9cfe6; }
+.prio-menu { position: absolute; right: 0; top: 32px; z-index: 30; width: 240px; background: #fff; border: 1px solid #c9cfe6; border-radius: 12px; box-shadow: 0 10px 28px rgba(23,43,77,.22); padding: 6px; display: flex; flex-direction: column; gap: 2px; }
+.prio-menu button { display: flex; align-items: center; gap: 8px; text-align: left; background: none; border: none; font: inherit; font-size: 13px; padding: 7px 9px; border-radius: 8px; cursor: pointer; } .prio-menu button:hover { background: #F1F3FA; } .prio-auto { color: var(--muted); border-top: 1px solid var(--line) !important; border-radius: 0 !important; margin-top: 3px; }
+.prio-why { font-size: 12px; color: var(--muted); padding: 6px 9px 8px; border-bottom: 1px solid var(--line); margin-bottom: 3px; line-height: 1.4; } .prio-why b { display: block; color: var(--navy); margin-bottom: 2px; }
+.prio-dot { display: inline-block; width: 11px; height: 11px; border-radius: 3px; flex: none; } .prio-dot-red { background: #D32F2F; } .prio-dot-orange { background: #F57C00; } .prio-dot-yellow { background: #E3B505; } .prio-dot-none { background: #fff; border: 1.5px solid #9aa3bd; }
+.prio-note { display: flex; flex-direction: column; gap: 3px; margin: 2px 0 8px; } .prio-note .prio-dot { margin: 0 3px 0 8px; vertical-align: -1px; } .prio-note > span:first-child .prio-dot:first-child { margin-left: 0; }

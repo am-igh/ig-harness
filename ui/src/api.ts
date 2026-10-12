@@ -3,6 +3,7 @@ export type Item = {
   code: string | null; weight: "major" | "hard" | "soft" | "waiting"; person: string | null;
   personal: boolean; due: string | null; days_overdue: number; done: boolean; done_at: string | null; masked: boolean; from_note: boolean; note_count: number;
   edited: null | { title: string | null; due: string | null; title_changed: boolean; due_changed: boolean };
+  priority?: { tier: "red" | "orange" | "yellow" | null; score: number; reasons: string[]; pinned: boolean; label: string | null };
 };
 export type Mark = {
   id: number; title: string; due: string; importance: "major" | "normal"; kind: string;
@@ -345,3 +346,10 @@ export const logHours = (type: string, id: number, entries: { date: string; hour
   postJson<{ logged: number; hours: number; project: string; evidence: string; queued: boolean }>("/api/hours/log", { type, id, entries, description });
 export const setHoursPrompt = (on: boolean) => postJson<{ on: boolean }>("/api/hours/prompt", { on });
 export const rereadScan = (id: number) => jj<Scan>(`/api/scans/${id}/reread`, { method: "POST" });
+
+// ---- Priority colours in Today & overdue
+export type PriorityTier = "red" | "orange" | "yellow" | "none" | "auto";
+export const flagPriority = (type: string, id: number, tier: PriorityTier) => postJson<{ tier: string }>("/api/priority/flag", { type, id, tier });
+export type PriorityStatus = { ranked_at: string | null; model: string | null; ranked: number; feedback: number; learned: { codes: Record<string, number>; kinds: Record<string, number> } };
+export const getPriorityStatus = () => j<PriorityStatus>("/api/priority/status");
+export const rerankPriority = () => postJson<{ started: boolean }>("/api/priority/rerank", {});

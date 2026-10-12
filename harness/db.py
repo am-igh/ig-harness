@@ -696,6 +696,30 @@ MIGRATIONS: list[str] = [
         UNIQUE (item_type, item_id, date)
     );
     """,
+    # 38: priority of the items in Today & overdue: her own flags (pins), her feedback (what the harness learns from) and the local model's ranking
+    """
+    CREATE TABLE priority_pins (
+        item_type TEXT NOT NULL, item_id INTEGER NOT NULL,
+        tier TEXT NOT NULL CHECK (tier IN ('red','orange','yellow','none')),   -- her decision, kept until she changes it or the item is done
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        PRIMARY KEY (item_type, item_id)
+    );
+    CREATE TABLE priority_feedback (
+        id INTEGER PRIMARY KEY,
+        item_type TEXT NOT NULL, item_id INTEGER NOT NULL,
+        title TEXT,                                     -- never stored for personal items
+        project_code TEXT, weight TEXT,
+        action TEXT NOT NULL CHECK (action IN ('red','orange','yellow','none','up','down')),
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE TABLE priority_model (
+        id INTEGER PRIMARY KEY,
+        created_at TEXT NOT NULL,
+        model TEXT,
+        ranking TEXT NOT NULL,                          -- JSON [{key, why}], most important first
+        candidates TEXT NOT NULL                        -- JSON list of the item keys it was given
+    );
+    """,
 ]
 
 
