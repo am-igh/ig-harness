@@ -187,7 +187,7 @@ def suggest_payment(conn: sqlite3.Connection, amount: float | None, currency: st
         return r["date_iso"], f"Matches the unjustified payment of {currency} {amount:.2f} on {r['date_iso'][8:]}.{r['date_iso'][5:7]}.{r['date_iso'][:4]} ({(r['beneficiaire'] or '')[:40]})."
     if len(rows) > 1:
         return None, f"{len(rows)} unjustified payments of {currency} {amount:.2f}: enter the payment date of the one this belongs to."
-    return None, "No unjustified payment of this amount found (it may not be paid yet, or its statement is not filed). The name has no payment date for now."
+    return None, "No unjustified payment of this amount found (it may not be paid yet, or its statement is not filed)."
 
 
 def split_pages(conn: sqlite3.Connection, sid: int, data_dir: Path | None = None, reason: str | None = None) -> list[int]:
@@ -257,6 +257,16 @@ def _looks_like_another(conn: sqlite3.Connection, s: sqlite3.Row) -> str | None:
     return None
 
 
+def _scan_date(s) -> str | None:
+    """The Geneva date the scan was found (it stands for the day it was scanned)."""
+    try:
+        from datetime import timezone
+        from harness.config import TZ
+        return datetime.fromisoformat(str(s["found_at"]).replace(" ", "T")).replace(tzinfo=timezone.utc).astimezone(TZ).date().isoformat()
+    except (TypeError, ValueError):
+        return None
+
+
 def propose(conn: sqlite3.Connection, sid: int, root: Path | None = None) -> dict:
     """Recompute the name, folder checks, duplicates and the payment match from the fields as they stand now."""
     s = conn.execute("SELECT * FROM scans WHERE id = ?", (sid,)).fetchone()
@@ -282,7 +292,8 @@ def propose(conn: sqlite3.Connection, sid: int, root: Path | None = None) -> dic
                 notes.append(f"There is no {folder} folder inside {yd.name}.")
                 folder = None
             if folder is not None:
-                base = fs.doc_name(s["doc_type"], s["supplier"], s["number"], s["amount"], s["currency"], paid, folder)
+                scanned = _scan_date(s)
+                base = fs.doc_name(s["doc_type"], s["supplier"], s["number"], s["amount"], s["currency"], paid, folder, scanned_iso=scanned)
                 if base is None:
                     notes.append("Fill in the type and supplier (and for invoices and receipts the amount and currency) to get a file name.")
                 else:
@@ -290,7 +301,9 @@ def propose(conn: sqlite3.Connection, sid: int, root: Path | None = None) -> dic
                     v, name = 1, base
                     while name.lower() in taken:
                         v += 1
-                        name = fs.doc_name(s["doc_type"], s["supplier"], s["number"], s["amount"], s["currency"], paid, folder, v)
+                        name = fs.doc_name(s["doc_type"], s["supplier"], s["number"], s["amount"], s["currency"], paid, folder, v, scanned_iso=scanned)
+                    if "_scanne_" in name:
+                        notes.append("The payment is not known yet, so the name carries the scan date (scanne_). Her checker still matches it by amount. When the bank date is known you can rename it to _paye_JJ.MM.AAAA to pin it to that one payment.")
                     if v > 1:
                         notes.append(f"A different file named {base} exists, so this would be saved as a new version (_v{v}); nothing is overwritten.")
     if status == "proposed" and (same := _looks_like_another(conn, s)):

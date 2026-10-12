@@ -8,6 +8,8 @@ import time
 from pathlib import Path
 from types import SimpleNamespace
 
+import re
+
 import pytest
 
 from harness import db, filingspec as fs, scans
@@ -58,6 +60,18 @@ def test_names_follow_her_convention():
     assert fs.doc_name("invoice_received", "X", None, 5, "CHF", None, "Expenses", 2) == "X_Facture_CHF5.00_v2.pdf"
 
 
+def test_while_the_payment_is_unknown_the_name_carries_the_scan_date_and_the_payment_date_wins_once_known():
+    n = fs.doc_name("statement", "Swiss Life", None, 1149.6, "CHF", None, "Expenses", scanned_iso="2026-10-12")
+    assert n == "Swiss_Life_Releve_CHF1149.60_scanne_12.10.2026.pdf" and fs.valid_doc_name(n)
+    assert fs.doc_name("invoice_received", "Swiss Life", "7", 20, "CHF", "2026-10-20", "Expenses", scanned_iso="2026-10-12") == "Swiss_Life_Facture_7_CHF20.00_paye_20.10.2026.pdf"      # a known payment replaces it
+    assert fs.doc_name("invoice_received", "X", None, 5, "CHF", None, "Expenses", 2, scanned_iso="2026-10-12") == "X_Facture_CHF5.00_scanne_12.10.2026_v2.pdf"
+    assert fs.doc_name("contract", "Gablinger", None, None, None, None, "Expenses", scanned_iso="2026-10-12") == "Gablinger_Contrat.pdf"                                   # no amount: nothing to pin
+    assert fs.doc_name("invoice_received", "X", None, 5, "CHF", None, "Expenses", scanned_iso="not a date") == "X_Facture_CHF5.00.pdf"
+    # her checker (controle_justificatifs.py) pins a file to a bank date only through "paye_JJ.MM.AAAA": the scan word must not look like that, and the amount in the name must still be read
+    import re
+    assert not re.search(r"pay[ée]_(\d{2}\.\d{2}\.\d{4})", n, re.I) and re.findall(r"(?:CHF|EUR|USD)[ _]?(\d+[.,]\d{2})", n) == ["1149.60"]
+
+
 def test_incomplete_or_dangerous_inputs_give_no_name():
     assert fs.doc_name("invoice_received", "", None, 5, "CHF", None, "Expenses") is None
     assert fs.doc_name("invoice_received", "X", None, None, "CHF", None, "Expenses") is None
@@ -82,7 +96,7 @@ def test_a_scan_is_read_and_proposed_without_filing_anything(env):
     before = sorted(p.name for p in env.root.rglob("*"))
     s = read(env, sid)
     assert (s["status"], s["supplier"], s["amount"], s["currency"], s["folder"]) == ("proposed", "Alber Rolle SA", 2972.75, "CHF", "Expenses")
-    assert s["proposed_name"] == "Alber_Rolle_SA_Facture_002131_CHF2972.75.pdf" and "No audit check yet" in s["note"]
+    assert re.fullmatch(r"Alber_Rolle_SA_Facture_002131_CHF2972\.75_scanne_\d{2}\.\d{2}\.\d{4}\.pdf", s["proposed_name"]) and "No audit check yet" in s["note"] and "scan date" in s["note"]
     assert sorted(p.name for p in env.root.rglob("*")) == before
 
 
@@ -130,10 +144,11 @@ def test_identical_content_already_in_the_folder_is_a_duplicate_and_not_read(env
 
 
 def test_a_different_file_with_the_same_name_becomes_a_new_version_never_an_overwrite(env):
-    (env.year / "Expenses" / "Alber_Rolle_SA_Facture_002131_CHF2972.75.pdf").write_bytes(b"%PDF other")
     sid, _ = new_scan(env)
-    s = read(env, sid)
-    assert s["proposed_name"] == "Alber_Rolle_SA_Facture_002131_CHF2972.75_v2.pdf" and "_v2" in s["note"]
+    first = read(env, sid)["proposed_name"]                                                                  # ..._scanne_<today>.pdf
+    (env.year / "Expenses" / first).write_bytes(b"%PDF other")
+    s = scans.propose(env.c, sid, env.root)
+    assert s["proposed_name"] == first.replace(".pdf", "_v2.pdf") and "_v2" in s["note"]
     (env.year / "Expenses" / s["proposed_name"]).write_bytes(b"%PDF other 2")
     assert scans.propose(env.c, sid, env.root)["proposed_name"].endswith("_v3.pdf")
 
@@ -145,7 +160,7 @@ def test_contracts_and_unclear_documents_wait_for_her_folder_choice(env):
     with pytest.raises(ValueError):
         scans.approve(env.c, sid, env.data)
     s = scans.edit(env.c, sid, {"folder": "Expenses", "doc_type": "receipt"}, env.root)
-    assert s["proposed_name"] == "Alber_Rolle_SA_Recu_002131_CHF2972.75.pdf"
+    assert re.fullmatch(r"Alber_Rolle_SA_Recu_002131_CHF2972\.75_scanne_\d{2}\.\d{2}\.\d{4}\.pdf", s["proposed_name"])
 
 
 def test_a_model_failure_or_unreadable_page_leaves_a_scan_she_can_fill_in(env):
@@ -153,7 +168,7 @@ def test_a_model_failure_or_unreadable_page_leaves_a_scan_she_can_fill_in(env):
     s = scans.read_scan(env.c, FakeGateway(None, ok=False), sid, env.root, env.data)
     assert s["status"] == "proposed" and "Fill in" in s["note"] and s["proposed_name"] is None
     s = scans.edit(env.c, sid, {"doc_type": "receipt", "supplier": "Kiosk", "amount": "12.5", "currency": "chf"}, env.root)
-    assert s["proposed_name"] == "Kiosk_Recu_CHF12.50.pdf"
+    assert re.fullmatch(r"Kiosk_Recu_CHF12\.50_scanne_\d{2}\.\d{2}\.\d{4}\.pdf", s["proposed_name"])
 
 
 def test_edits_are_validated(env):

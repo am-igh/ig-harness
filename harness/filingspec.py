@@ -83,10 +83,15 @@ def _ascii(text: str) -> str:
     return unicodedata.normalize("NFKD", text or "").encode("ascii", "ignore").decode()
 
 
+_SCANNED_TYPES = ("invoice_received", "receipt", "invoice_issued", "statement")
+
+
 def doc_name(doc_type: str | None, supplier: str | None, number: str | None, amount: float | None, currency: str | None,
-             paid_date_iso: str | None, folder: str | None, version: int = 1) -> str | None:
+             paid_date_iso: str | None, folder: str | None, version: int = 1, scanned_iso: str | None = None) -> str | None:
     """Her convention: Fournisseur_Facture_<n>_CHF<montant>_paye_JJ.MM.AAAA.pdf (income: _recu_). None when something needed is missing.
-    The payment part is added only when the payment is known, so a document is tied to exactly one payment (one document, one payment)."""
+    The payment part is added only when the payment is known, so a document is tied to exactly one payment (one document, one payment).
+    While the payment is not known yet, a document with an amount carries the date it was scanned instead: ..._scanne_JJ.MM.AAAA.pdf (decided 12 Oct 2026). Her checker ignores that
+    word (it matches such a file by amount, like any undated file), and it keeps look-alike names, such as a monthly charge, apart."""
     sup = re.sub(r"_+", "_", re.sub(r"[^A-Za-z0-9]+", "_", _ascii(supplier or ""))).strip("_")[:40]
     cur = (currency or "").upper()
     if not sup or doc_type not in _DOC_KIND:
@@ -105,5 +110,8 @@ def doc_name(doc_type: str | None, supplier: str | None, number: str | None, amo
     if paid_date_iso and re.match(r"^\d{4}-\d{2}-\d{2}$", paid_date_iso):
         y, m, d = paid_date_iso.split("-")
         parts += ["recu" if folder == "Income" else "paye", f"{d}.{m}.{y}"]
+    elif has_amount and doc_type in _SCANNED_TYPES and scanned_iso and re.match(r"^\d{4}-\d{2}-\d{2}$", scanned_iso):
+        y, m, d = scanned_iso.split("-")
+        parts += ["scanne", f"{d}.{m}.{y}"]
     name = "_".join(parts) + (f"_v{version}" if version > 1 else "") + ".pdf"
     return name if valid_doc_name(name) else None
