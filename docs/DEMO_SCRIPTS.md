@@ -56,13 +56,25 @@ Do not start a model question during these two minutes (the answer takes about a
 
 ---
 
-# Version 2: the 15-minute walkthrough (the GPF)
+# Version 2: the 15-minute walkthrough (the Geneva Peace Forum, 15 Oct)
+
+## The room and what each group cares about
+
+International Geneva organisations: civil society, multilateral bodies and companies with an interest in International Geneva (for example large technology companies). Same demo, three reasons to care:
+
+| Group | What they recognise | What to stress |
+|---|---|---|
+| **Civil society and small NGOs** | A handful of funders, each with its own reporting calendar, templates and rules; small teams; compliance eating programme time | The reporting burden, multi-donor translation, the money and exchange-rate tracking, hours logged for audits, and that it runs on one laptop with no subscription to a cloud service |
+| **Multilateral organisations** | Many contributors, standardised but different requirements, strict rules on confidential information | Local processing, a person confirming every step, an audit trail (every change is new, nothing overwritten), the requirement crosswalk as a basis for common templates |
+| **Companies** | Data governance, vendor questions, an interest in supporting Geneva-based actors | That it is local-first, not anti-cloud: external AI is off by default and would only ever see public or internal material, with redaction, a monthly cap and a log; and that there may be a role for partners (open question, not a promise) |
+
+Keep the tone peace-forum, not product pitch: the point is that small organisations doing peace work lose time to compliance, and that sensitive information should stay in their own hands.
 
 Structure: the story, then seven short scenes, then what it means. About two minutes each. Adjust the depth to the room; the scenes are independent, so you can drop any of them.
 
 ## Opening (2 minutes)
 
-> "Imagine running a small organisation that has four funders. Each one speaks a different language, pays in a different currency, wants different reports on different days, and has different rules about how you spend. The knowledge sits in contracts, spreadsheets, emails and your head. I built a control center for that, as a local application on my own computer. What you will see is a fictitious programme, AURORA, so nothing here is real. I will show how it keeps a person in charge."
+> "Many of us here run organisations that do peace work with very small teams, and we are funded by several donors at once. Each donor speaks a different language, pays in a different currency, wants different reports on different days, and has its own rules about how money is spent. The knowledge sits in contracts, spreadsheets, emails and our heads, and the people who should be building peace spend their weeks on compliance. I built a control center for that, as an application that runs entirely on my own computer, because much of what it holds is confidential: partners, funders, sometimes sensitive political context. What you will see is a fictitious programme, AURORA, so nothing here is real. I want to show how it helps, and how it keeps a person in charge."
 
 Show: the banner (fictitious), then Today.
 
@@ -109,9 +121,25 @@ Show: the banner (fictitious), then Today.
 
 ## Close: what it means (1 to 2 minutes)
 
-> "Three principles. First, it stays local: the contracts, the emails and the money are read by AI models running on this computer, not sent to a cloud. Second, a person decides: it drafts and proposes, and it cannot send an email or change a file on its own. Third, it is built around how an International Geneva organisation actually works: several funders, several currencies, several languages. If this is useful to others in Geneva, it could be packaged for them."
+> "Three principles. First, it stays local: the contracts, the emails and the money are read by AI models running on this computer, not sent to a cloud, which matters when the information is confidential or politically sensitive. Second, a person decides: it drafts and proposes, and it cannot send an email or change a file on its own. Third, it is built around how International Geneva actually works: several funders, several currencies, several languages. I built it for my own organisation; if it is useful to others in Geneva, I would like to talk about how it could be shared, and about what support or standardisation from donors, multilaterals and companies would make small organisations' reporting lighter. I would be glad to hear what would help you."
 
-Possible questions and short answers:
+Possible questions and short answers (grouped by who tends to ask):
+
+**Civil society and NGOs**
+- **"Could my small organisation use it?"** It runs on one laptop (a recent Apple Silicon Mac today); I built it for myself first. Sharing it with others in Geneva is something I am exploring, not a product yet.
+- **"Does it replace our accountant or our reporting officer?"** No. It brings the requirements, deadlines, money and documents together and prepares templates. A person writes and decides; every save keeps the earlier version.
+- **"What about our existing spreadsheets?"** It reads them and adds to them in careful, backed-up ways; the register stays the master for what it already holds.
+
+**Multilateral organisations**
+- **"Could donors standardise?"** That is exactly what the comparison view makes visible: the same report type with different deadlines, languages, templates and levels of detail. Showing a donor how a requirement differs from its peers' is a practical case for aligning them.
+- **"How does it handle confidential information?"** Contracts, emails and the money stay on the computer and are read only by local AI models. Nothing is sent to an AI service. Personal items are kept separate and never used by the AI at all.
+
+**Companies**
+- **"Do you use Microsoft, Google or OpenAI models?"** No: local, open-weight models, including a Swiss one (Apertus). Outside AI services are switched off by default. If they were ever used, it would be only for public or internal material, after removing names and numbers, with a monthly spending cap and a log of every call.
+- **"Is this anti-cloud?"** No. It is a choice to keep confidential material local. Cloud services remain useful for things that are not confidential.
+- **"How could we help?"** Open question: support for small organisations' compliance (templates donors accept, shared requirement vocabularies), hardware or hosting for those who want it, or pilots. I would rather listen than promise.
+
+**General**
 - **"Which AI?"** Open-weight models running locally, including a Swiss one (Apertus). You choose the model for each task.
 - **"Does anything leave the computer?"** Not the contracts, emails or money. The only outgoing requests are public ones: event listings, and (when I ask) web searches, which I see and can stop.
 - **"Can it send emails?"** No. It can only save a draft in Gmail, after I approve that exact text.
