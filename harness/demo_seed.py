@@ -208,10 +208,38 @@ def _everyday(conn, today: date) -> None:
                  ((today - timedelta(days=4)).isoformat(),))
     conn.execute("INSERT OR IGNORE INTO waiting_on (description, person, since_date, source, source_ref) VALUES ('PDFF to release instalment 2 once the first results report is accepted', 'tomas-aranui', ?, 'demo', 'w1')",
                  ((today - timedelta(days=20)).isoformat(),))
-    for title, start, end, loc in (("AURORA steering call (HDTF, NDA, PDFF, ACP)", at(3, 14), at(3, 15, 30), "Video call"), ("Workshop: Pacific regional playbook", at(6, 9), at(6, 12), "Online"),
-                                   ("Quarter-end close with the finance officer", at(7, 10), at(7, 11), "Office")):
+    # a full calendar around today: meetings, calls, working sessions, a clash, all-day items and the weekly rhythm (all invented)
+    sched = [  # (day offset, "HH:MM", minutes, title, location)   minutes 0 = all day
+        (-9, "10:00", 60, "Kick-off call: Pacific regional playbook (KIN)", "Video call"), (-6, "14:00", 90, "[AURORA] Review of the first results report before submission", "Office"),
+        (-3, "10:00", 60, "Partner check-in: Mer Bleue Cyber Collective", "Video call"), (-2, "15:00", 60, "[AURORA] Draft review: NDA Q3 financial report", "Office"),
+        (-1, "09:30", 45, "Call with the external auditor: audit scope", "Video call"),
+        (0, "11:00", 90, "[AURORA] Evidence pack session: ACP milestone 2", "Office"), (0, "16:00", 30, "Call with the PDFF grants manager: indicator 3.2", "Video call"),
+        (1, "09:00", 45, "Hours and timesheet review", "Office"), (1, "12:30", 90, "Lunch with the HDTF programme lead", "Geneva"), (2, "17:00", 60, "Webinar: donor reporting under results frameworks", "Online"),
+        (3, "10:00", 120, "Prepare the steering call pack", "Office"), (3, "14:00", 90, "AURORA steering call (HDTF, NDA, PDFF, ACP)", "Video call"),
+        (4, "09:00", 120, "[AURORA] Reporting crunch: working session on the Q3 reports", "Office"), (4, "10:00", 60, "Finance committee call (board)", "Video call"),
+        (4, "16:00", 60, "Training session 3 with Kokua Island Network", "Online"),
+        (6, "09:00", 180, "Workshop: Pacific regional playbook", "Online"), (7, "10:00", 60, "Quarter-end close with the finance officer", "Office"),
+        (8, "14:00", 60, "[AURORA] NDA budget reallocation: the 10% rule", "Video call"), (10, "10:00", 45, "Audit scoping follow-up", "Video call"),
+        (11, "15:30", 60, "Interview with a journalist on island cyber resilience", "Phone"), (12, "09:30", 60, "[AURORA] NDA Q3 financial report: final check", "Office"),
+        (13, "14:00", 60, "Mid-term check-in with the HDTF (video)", "Video call"), (14, "00:00", 0, "ACP milestone 2: submission day", ""),
+        (16, "11:00", 60, "Lunch with a University of Geneva research group", "Geneva"), (20, "08:00", 180, "Playbook adoption workshop with island governments", "Online"),
+        (21, "00:00", 0, "Team retreat day", "Geneva"), (24, "09:00", 90, "[AURORA] Q4 planning with partners", "Online"), (27, "15:00", 120, "Quarterly donor roundtable", "Geneva"),
+        (33, "10:00", 60, "Annual narrative report: outline meeting", "Office"), (38, "14:00", 60, "Review of exchange-rate exposure", "Office"),
+    ]
+    monday = today + timedelta(days=(7 - today.weekday()) % 7)
+    for k in range(5):                                                                      # the weekly rhythm
+        sched.append(((monday - today).days + 7 * k, "09:15", 15, "Programme team stand-up", "Office"))
+        sched.append(((monday - today).days + 3 + 7 * k, "11:00", 30, "Finance sync: hours, transfers, reporting", "Office"))
+    for off, hhmm, mins, title, loc in sched:
+        d = today + timedelta(days=off)
+        if mins == 0:
+            conn.execute("INSERT OR IGNORE INTO calendar_events (title, start, end, all_day, status, space, location, source, source_ref) VALUES (?,?,?,1,'confirmed','work',?,'demo',?)",
+                         (title, d.isoformat(), (d + timedelta(days=1)).isoformat(), loc, f"{title}|{d}"))
+            continue
+        h, m = map(int, hhmm.split(":"))
+        st = datetime(d.year, d.month, d.day, h, m, tzinfo=TZ)
         conn.execute("INSERT OR IGNORE INTO calendar_events (title, start, end, all_day, status, space, location, source, source_ref) VALUES (?,?,?,0,'confirmed','work',?,'demo',?)",
-                     (title, start.isoformat(), end.isoformat(), loc, title))
+                     (title, st.isoformat(), (st + timedelta(minutes=mins)).isoformat(), loc, f"{title}|{d}"))
     people = (("priya-ellison", "Priya Ellison", "Albion Cyber Philanthropies", "Programme director", "priya@acp-demo.example"),
               ("leilani-kahale", "Leilani Kahale", "Kokua Island Network", "Director", "leilani@kin-demo.example"),
               ("daniel-moreau", "Daniel Moreau", "ICT4Peace (demo finance)", "Finance officer", "daniel@aurora-demo.example"),

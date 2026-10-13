@@ -142,3 +142,17 @@ def test_the_pdf_endpoint_serves_inline_or_as_a_download(c):
     with TestClient(app) as cl:
         # the endpoint opens its own connection to the default database; here we only check the not-found path and the headers' shape
         assert cl.get("/api/pm/contracts/999999/pdf").status_code == 404
+
+
+def test_the_demo_calendar_is_full_and_has_a_clash_and_all_day_items(c):
+    demo_seed.seed(c, TODAY)
+    n = c.execute("SELECT COUNT(*) FROM calendar_events").fetchone()[0]
+    assert n >= 35
+    assert c.execute("SELECT COUNT(*) FROM calendar_events WHERE all_day = 1").fetchone()[0] >= 2
+    days = {r[0][:10] for r in c.execute("SELECT start FROM calendar_events")}
+    assert len(days) >= 20 and min(days) < TODAY.isoformat() < max(days)                                   # past and future
+    titles = [r[0] for r in c.execute("SELECT title FROM calendar_events")]
+    assert sum(1 for t in titles if t.startswith("[AURORA]")) >= 5 and "Programme team stand-up" in titles                # tagged for the hours pass, and a weekly rhythm
+    # two things overlap on one day, so clash detection has something to show
+    rows = c.execute("SELECT start, end FROM calendar_events WHERE all_day = 0 ORDER BY start").fetchall()
+    assert any(rows[i]["end"] > rows[i + 1]["start"] for i in range(len(rows) - 1))
