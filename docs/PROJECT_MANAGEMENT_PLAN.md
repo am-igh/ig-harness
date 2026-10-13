@@ -47,7 +47,7 @@ A page (probably a fifth tab, or a big extension of Projects & finance) where sh
 - **Contracts stay where they are** (referenced by path and hash, not copied).
 - **Exchange rate that counts:** the rate the bank assigned when the money arrived (from the bank statement), not a published rate.
 - **Scale today:** about 3 active projects, and no funders with reporting duties beyond those; more expected soon.
-- **Demo:** a fictitious, deliberately complicated multi-donor project is wanted for next week's Geneva Cyber Forum. It must live in a separate demo data folder so no real data can appear.
+- **Demo:** a fictitious, deliberately complicated multi-donor project is wanted for demonstrations to International Geneva audiences in mid-October 2026 (first written down as the "Geneva Cyber Forum" in error; the audiences are civil society, academia, multilateral organisations and companies, including the Geneva Peace Forum on 15 Oct). It must live in a separate demo data folder so no real data can appear.
 
 ## Still to settle
 

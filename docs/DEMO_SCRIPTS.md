@@ -22,19 +22,21 @@ Everything in the demo is invented: funders, partners, people, amounts, contract
 
 # Version 1: the 2-minute scenario (tonight)
 
+**Tonight's room:** a similar International Geneva audience with more civil society and academia (University of Geneva). What they share: grants from several funders, each with its own reporting rules; teams that are small compared with the paperwork; research or field partners whose information is sensitive. Lean on those three points, and keep it practical rather than technical.
+
 Use it inside your 5-minute slot as:
 
 | Time | What |
 |---|---|
-| 0:00 to 0:45 | Who you are and the problem (your own words; one sentence of the paragraph above) |
+| 0:00 to 0:45 | Who you are and the problem (your own words; for this room: "Anyone running a research project or an NGO with several funders knows this: each one wants different reports, in different currencies, on different dates.") |
 | 0:45 to 2:45 | **The 2-minute scenario below, live** |
-| 2:45 to 4:00 | Why it is built this way: everything stays on this computer, local AI, a person confirms every step, it never sends email |
+| 2:45 to 4:00 | Why it is built this way: everything stays on this computer (important for field partners, participants and confidential funder terms), local open AI models (including a Swiss one built by Swiss universities), a person confirms every step, it never sends email. For the academics: the rules are plain and inspectable, the AI only suggests, and nothing is overwritten |
 | 4:00 to 5:00 | Questions, or what you would like from the audience |
 
 ## The 2 minutes, beat by beat
 
 **Beat 1, "Monday morning" (0:00 to 0:35). Stay on Today.**
-> "This is the morning view for a small organisation with four funders. Everything here is invented. Red is the single most important overdue item: a correction to a report one funder is waiting on. Orange and yellow are what comes next. I did not colour these by hand: it scores them, a local AI model ranks them, and if I disagree I flag one, and it learns from me."
+> "This is the morning view for a small organisation or research group with four funders. Everything here is invented. Red is the single most important overdue item: a correction to a report one funder is waiting on. Orange and yellow are what comes next. I did not colour these by hand: it scores them, a local AI model ranks them, and if I disagree I flag one, and it learns from me."
 
 Click: point at the red item and its label "Top priority"; click the **⚑** on it and show "Why it is where it is" (reasons); close the menu.
 
@@ -50,7 +52,7 @@ Click: the PDF name in the NDA row (pop-out opens). Point at the clause list on 
 > "And each report knows what the funder requires, keeps their form, and builds a template from their rules and my own records. I write my draft from it, and every save is a new version."
 
 **Beat 4, close (1:45 to 2:00). Back on the page.**
-> "All of this runs on this laptop, with a local AI model. Nothing leaves it, and it never sends an email: it prepares, and I decide."
+> "All of this runs on this laptop, with a local AI model. The contracts, the partners' details and the money never leave it, and it never sends an email: it prepares, and I decide. It was built for an NGO, but a research project with several funders has exactly the same problem."
 
 Do not start a model question during these two minutes (the answer takes about a minute).
 
@@ -125,7 +127,10 @@ Show: the banner (fictitious), then Today.
 
 Possible questions and short answers (grouped by who tends to ask):
 
-**Civil society and NGOs**
+**Civil society, NGOs and (tonight) academics**
+- **"Could a research group use this for its grants?"** The pattern is the same: several funders, each with its own reporting calendar, template and rules, plus partners and exchange rates. I built it for an NGO; research grants are a natural second use, and I would like to hear what a university needs.
+- **"What about ethics and data protection?"** Information about field partners, participants and funders stays on the computer and is read only by local models; personal items are kept apart and never given to the AI.
+- **"Which model, and can it be inspected?"** Open-weight models you choose per task, including Apertus, from the Swiss AI Initiative. The deadlines, templates and priorities come from plain rules you can read; the AI only suggests, and you confirm.
 - **"Could my small organisation use it?"** It runs on one laptop (a recent Apple Silicon Mac today); I built it for myself first. Sharing it with others in Geneva is something I am exploring, not a product yet.
 - **"Does it replace our accountant or our reporting officer?"** No. It brings the requirements, deadlines, money and documents together and prepares templates. A person writes and decides; every save keeps the earlier version.
 - **"What about our existing spreadsheets?"** It reads them and adds to them in careful, backed-up ways; the register stays the master for what it already holds.

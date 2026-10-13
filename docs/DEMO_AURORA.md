@@ -1,4 +1,4 @@
-# The AURORA demo (for the Geneva Cyber Forum)
+# The AURORA demo (for demonstrations to International Geneva audiences)
 
 AURORA is a **fictitious** programme: "Cyber Resilience for Small Island States", three years, four funders in four currencies (Swiss francs, euros, US dollars, pounds), two regional partners, a no-cost extension, a late transfer, and several reports due in the same fortnight. Every funder, partner, person, amount and e-mail address is invented (e-mail addresses end in `.example`).
 
