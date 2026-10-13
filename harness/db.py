@@ -720,6 +720,11 @@ MIGRATIONS: list[str] = [
         candidates TEXT NOT NULL                        -- JSON list of the item keys it was given
     );
     """,
+    # 39: more of what a contract contains: its reference number and the other terms (notice period, governing law, ownership, data protection, special conditions, contacts), kept as JSON
+    """
+    ALTER TABLE pm_contracts ADD COLUMN reference TEXT;
+    ALTER TABLE pm_contracts ADD COLUMN terms TEXT;
+    """,
 ]
 
 

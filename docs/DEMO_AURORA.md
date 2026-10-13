@@ -37,3 +37,8 @@ The real harness and the demo can run at the same time. Do the demo from the bro
 ## What is not in the demo
 
 Gmail, the calendar, the morning-brief draft, the scan inbox, "Research the web" and the Friday hours pass are not connected (there is nothing real behind them). The chat's "Ask the harness" works on the demo data only. The mappings marked "proposed" are placeholders for what a local model will suggest when it reads real contract text; in the demo they are fixed examples.
+
+
+## Showing contract onboarding
+
+Contracts & funders → **Add a contract** → **Fill with an example** (demo only) → Next through the five steps → on the Review step point out the generated deadlines, then **Save the contract**. It adds an example contract to the chosen project; run `make demo-reset` afterwards to return to the clean AURORA data.

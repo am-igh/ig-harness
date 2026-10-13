@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { type PMCard, addPMProject, getPMProjects } from "../api";
 import { dayShort } from "../format";
+import OnboardWizard from "./OnboardWizard";
 import ProjectPage from "./ProjectPage";
 import { money } from "./fmt";
 
@@ -38,12 +39,13 @@ export default function ContractsTab() {
   const [list, setList] = useState<PMCard[] | null>(null);
   const [open, setOpen] = useState<number | null>(null);
   const [adding, setAdding] = useState(false);
+  const [onboard, setOnboard] = useState(false);
   const load = useCallback(() => { getPMProjects().then(setList).catch(() => setList([])); }, []);
   useEffect(() => { load(); }, [load]);
   return (
     <main className="page pm-page">
-      {open != null ? <ProjectPage id={open} onBack={() => { setOpen(null); load(); }} onChanged={load} /> : <>
-        <div className="panel-head"><h2 className="serif">Contracts &amp; funders</h2><button type="button" className={adding ? "btn-ghost" : "btn-primary"} onClick={() => setAdding(!adding)}>{adding ? "Cancel" : "New project"}</button></div>
+      {onboard ? <OnboardWizard onCancel={() => setOnboard(false)} onDone={(id) => { setOnboard(false); load(); setOpen(id); }} /> : open != null ? <ProjectPage id={open} onBack={() => { setOpen(null); load(); }} onChanged={load} /> : <>
+        <div className="panel-head"><h2 className="serif">Contracts &amp; funders</h2><span className="pm-adds"><button type="button" className="btn-primary" onClick={() => setOnboard(true)}>Add a contract</button><button type="button" className="btn-ghost" onClick={() => setAdding(!adding)}>{adding ? "Cancel" : "New project"}</button></span></div>
         <div className="sub">Funders, contracts, requirements, reporting deadlines and funding transfers for each project. Contracts stay in your folders; this page keeps where they are.</div>
         {adding && <NewProject onDone={(id) => { setAdding(false); setOpen(id); }} />}
         {list && list.length === 0 && !adding && <div className="placeholder"><b>No projects here yet</b><span>Click “New project” to add the first one, then add its funders, contracts and transfers.</span></div>}

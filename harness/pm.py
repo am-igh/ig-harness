@@ -1,8 +1,10 @@
 """Project and contract management: projects, funders and partners, contracts (kept in her folders; only a path and hash here), obligations with the deadlines they generate,
 transfers with the bank's exchange rate, and a crosswalk that compares what different funders ask for. Plain rules throughout: nothing here calls a model, and any mapping that
 was only proposed stays marked unconfirmed until she confirms it. Deadlines feed the core `deadlines` table (source 'pm') so they appear on the Today lake."""
+import json
 import re
 import sqlite3
+import threading
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
@@ -22,6 +24,33 @@ RECURRENCE_WORDS = {"none": "no schedule", "once": "once", "quarterly": "every q
 
 class PMError(ValueError):
     pass
+
+
+_BATCH = threading.local()
+
+
+def _commit(conn) -> None:
+    """Commit, unless several steps are being done as one (see `batch`)."""
+    if not getattr(_BATCH, "on", False):
+        conn.commit()
+
+
+class batch:
+    """`with batch(conn):` runs several add_* calls as ONE transaction: committed together at the end, or all undone if anything fails."""
+    def __init__(self, conn):
+        self.conn = conn
+
+    def __enter__(self):
+        _BATCH.on = True
+        return self.conn
+
+    def __exit__(self, exc_type, exc, tb):
+        _BATCH.on = False
+        if exc_type is None:
+            self.conn.commit()
+        else:
+            self.conn.rollback()
+        return False
 
 
 def _d(v) -> date | None:
@@ -68,7 +97,7 @@ def add_funder(conn, name: str, short: str | None = None, role: str = "funder", 
         raise PMError(f"“{name}” is already in the list")
     cur = conn.execute("INSERT INTO pm_funders (name, short, role, currency, contact, notes) VALUES (?,?,?,?,?,?)",
                        (name, (short or name)[:12], role if role in ("funder", "partner") else "funder", (currency or "CHF").upper()[:3], contact, notes))
-    conn.commit()
+    _commit(conn)
     return cur.lastrowid
 
 
@@ -81,12 +110,12 @@ def add_project(conn, code: str, name: str, start_date=None, end_date=None, lead
     cur = conn.execute("INSERT INTO pm_projects (code, name, status, start_date, end_date, lead, summary, demo) VALUES (?,?,?,?,?,?,?,?)",
                        (code, _need(name, "A name"), status, start_date, end_date, lead, summary, int(demo)))
     conn.execute("INSERT OR IGNORE INTO project_codes (code, name, domain, kind) VALUES (?,?,'W','project')", (code, name))
-    conn.commit()
+    _commit(conn)
     return cur.lastrowid
 
 
 def add_contract(conn, project_id: int, funder_id: int, title: str, kind: str = "grant", amount=None, currency: str | None = None, budget_rate=None,
-                 signed_date=None, start_date=None, end_date=None, file_path=None, file_hash=None, summary=None, parent_id=None) -> int:
+                 signed_date=None, start_date=None, end_date=None, file_path=None, file_hash=None, summary=None, parent_id=None, reference=None, terms=None) -> int:
     f = conn.execute("SELECT * FROM pm_funders WHERE id = ?", (funder_id,)).fetchone()
     if f is None or conn.execute("SELECT 1 FROM pm_projects WHERE id = ?", (project_id,)).fetchone() is None:
         raise PMError("Unknown project or funder")
@@ -96,9 +125,10 @@ def add_contract(conn, project_id: int, funder_id: int, title: str, kind: str = 
         raise PMError(f"A contract in {cur_} needs the budget exchange rate (CHF per 1 {cur_})")
     if start_date and end_date and _d(end_date) < _d(start_date):
         raise PMError("The end date is before the start date")
-    cur = conn.execute("INSERT INTO pm_contracts (project_id, funder_id, parent_id, kind, title, signed_date, start_date, end_date, amount, currency, budget_rate, file_path, file_hash, summary) "
-                       "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", (project_id, funder_id, parent_id, kind, _need(title, "A title"), signed_date, start_date, end_date, amount, cur_, rate, file_path, file_hash, summary))
-    conn.commit()
+    cur = conn.execute("INSERT INTO pm_contracts (project_id, funder_id, parent_id, kind, title, signed_date, start_date, end_date, amount, currency, budget_rate, file_path, file_hash, summary, reference, terms) "
+                       "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", (project_id, funder_id, parent_id, kind, _need(title, "A title"), signed_date, start_date, end_date, amount, cur_, rate, file_path, file_hash, summary, reference,
+                                                                  json.dumps(terms, ensure_ascii=False) if terms else None))
+    _commit(conn)
     return cur.lastrowid
 
 
@@ -117,36 +147,38 @@ def add_obligation(conn, contract_id: int, canon: str, title: str, clause=None, 
         raise PMError("Unknown contract")
     cur = conn.execute("INSERT INTO pm_obligations (contract_id, canon, title, clause, anchor, offset_days, recurrence, fixed_date, format, language, detail, note, confirmed, source) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                        (contract_id, canon, _need(title, "A title"), clause, anchor, int(offset_days or 0), recurrence, fixed_date, format, language, detail, note, int(confirmed), source))
-    conn.commit()
+    _commit(conn)
     generate(conn, cur.lastrowid)
     return cur.lastrowid
+
+
+def schedule(recurrence: str, anchor: str, offset_days: int, fixed_date: str | None, start: str | None, end: str | None) -> list[tuple[str, date, date | None, date | None]]:
+    """The deadlines an obligation implies: (label, due date, period start, period end). Pure: nothing is written."""
+    off = timedelta(days=int(offset_days or 0))
+    if anchor == "none" or recurrence == "none":
+        return []
+    if anchor == "fixed":
+        return [("fixed date", _d(fixed_date), None, None)] if fixed_date else []
+    cs, ce = _d(start), _d(end)
+    if recurrence in STEP:
+        if not (cs and ce):
+            return []
+        return [(f"{a:%b %Y}–{b:%b %Y}", b + off, a, b) for n, a, b in periods(cs, ce, recurrence)]
+    base = ce if anchor == "end" else cs
+    if base is None:
+        return []
+    return [("final" if anchor == "end" else "start", base + off, cs if anchor == "end" else None, ce if anchor == "end" else None)]
 
 
 def generate(conn, obligation_id: int) -> int:
     """Create the deadlines this obligation implies (those not yet present). Returns how many were added."""
     o = conn.execute("SELECT o.*, c.start_date AS cs, c.end_date AS ce FROM pm_obligations o JOIN pm_contracts c ON c.id = o.contract_id WHERE o.id = ?", (obligation_id,)).fetchone()
-    due: list[tuple] = []
-    off = timedelta(days=o["offset_days"])
-    if o["anchor"] == "none" or o["recurrence"] == "none":
-        return 0
-    if o["anchor"] == "fixed":
-        due.append(("fixed date", _d(o["fixed_date"]), None, None))
-    elif o["recurrence"] in STEP:
-        if not (o["cs"] and o["ce"]):
-            return 0
-        for n, a, b in periods(_d(o["cs"]), _d(o["ce"]), o["recurrence"]):
-            due.append((f"{a:%b %Y}–{b:%b %Y}", b + off, a, b))
-    else:
-        base = _d(o["ce"] if o["anchor"] == "end" else o["cs"])
-        if base is None:
-            return 0
-        due.append(("final" if o["anchor"] == "end" else "start", base + off, _d(o["cs"]) if o["anchor"] == "end" else None, _d(o["ce"]) if o["anchor"] == "end" else None))
     added = 0
-    for label, when, ps, pe in due:
+    for label, when, ps, pe in schedule(o["recurrence"], o["anchor"], o["offset_days"], o["fixed_date"], o["cs"], o["ce"]):
         if conn.execute("INSERT OR IGNORE INTO pm_deadlines (obligation_id, period_label, due_date, period_start, period_end) VALUES (?,?,?,?,?)",
                         (obligation_id, label, when.isoformat(), ps.isoformat() if ps else None, pe.isoformat() if pe else None)).rowcount:
             added += 1
-    conn.commit()
+    _commit(conn)
     return added
 
 
@@ -228,7 +260,7 @@ def add_transfer(conn, contract_id: int, label: str, expected_date=None, expecte
         raise PMError("Give the expected date and amount, or the receipt")
     cur = conn.execute("INSERT INTO pm_transfers (contract_id, label, expected_date, expected_amount, received_date, received_amount, chf_received, bank_rate, bank_ref, note) VALUES (?,?,?,?,?,?,?,?,?,?)",
                        (contract_id, _need(label, "A label"), expected_date, expected_amount, received_date, amount, chf, rate, bank_ref, note))
-    conn.commit()
+    _commit(conn)
     return cur.lastrowid
 
 
@@ -415,7 +447,8 @@ def project_detail(conn, project_id: int, today: date | None = None) -> dict | N
     for c in conn.execute("SELECT c.*, f.name AS funder_name, f.short AS funder, f.role FROM pm_contracts c JOIN pm_funders f ON f.id = c.funder_id WHERE c.project_id = ? ORDER BY c.parent_id IS NOT NULL, c.id", (project_id,)):
         contracts.append({"id": c["id"], "parent_id": c["parent_id"], "kind": c["kind"], "title": c["title"], "funder": c["funder"], "funder_name": c["funder_name"], "role": c["role"], "signed_date": c["signed_date"],
                           "start_date": c["start_date"], "end_date": c["end_date"], "amount": c["amount"], "currency": c["currency"], "budget_rate": c["budget_rate"], "file_path": c["file_path"],
-                          "file_hash": (c["file_hash"] or "")[:12] or None, "status": c["status"], "summary": c["summary"], "has_file": contract_file(conn, c["id"]) is not None})
+                          "file_hash": (c["file_hash"] or "")[:12] or None, "status": c["status"], "summary": c["summary"], "has_file": contract_file(conn, c["id"]) is not None,
+                          "reference": c["reference"], "terms": json.loads(c["terms"]) if c["terms"] else None})
     dls = _deadline_rows(conn, project_id, today)
     return {"project": {k: p[k] for k in ("id", "code", "name", "status", "start_date", "end_date", "lead", "summary")} | {"demo": bool(p["demo"])},
             "contracts": contracts, "obligations": obligations(conn, project_id), "deadlines": dls, "crunches": crunches(dls), "finance": finance(conn, project_id, today),

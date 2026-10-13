@@ -278,3 +278,8 @@ The list is ordered and framed by importance: **red** for the most important ove
 
 After a restart, **AnythingLLM** (if it reopens with your windows) can start its own, older Ollama and take over the port, hiding your models. Fix: quit AnythingLLM, then quit and reopen the Ollama app, and run `ollama list`
 in Terminal to see your models again. To avoid it: before you restart the Mac, quit AnythingLLM, or untick "Reopen windows when logging back in" in the Shut Down / Restart dialog.
+
+
+## Adding a contract (Contracts & funders)
+
+Click **Add a contract**. Five steps: who (project and funder), money, reports and deadlines, other terms, then a review. The review lists every deadline that will be created and flags anything missing (for example, no location for the signed contract, or payments that do not add up to the contract amount). Nothing is saved until you click **Save the contract**; if anything goes wrong, nothing is half-saved. The deadlines then appear on the project page and on the Today lake. Click the contract's file name later to see its reference number and other terms.

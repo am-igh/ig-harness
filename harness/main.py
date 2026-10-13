@@ -1653,3 +1653,37 @@ def priority_rerank() -> dict:
             c.close()
     threading.Thread(target=run, daemon=True).start()
     return {"started": True}
+
+
+# --- Contract onboarding (a guided way to enter everything a contract contains) ---
+class OnboardIn(BaseModel):
+    project: dict
+    funder: dict
+    contract: dict
+    payments: list[dict] = []
+    reports: list[dict] = []
+    rules: dict = {}
+    terms: dict = {}
+
+
+@app.get("/api/pm/onboarding/options")
+def pm_onboarding_options() -> dict:
+    from harness import pm_onboard
+    return _with_conn(lambda c: pm_onboard.options(c))
+
+
+@app.post("/api/pm/onboarding/preview")
+def pm_onboarding_preview(b: OnboardIn) -> dict:
+    from harness import pm_onboard
+    return _with_conn(lambda c: pm_onboard.preview(c, b.model_dump()))
+
+
+@app.post("/api/pm/onboarding/create")
+def pm_onboarding_create(b: OnboardIn) -> dict:
+    from harness import pm, pm_onboard
+    def go(c):
+        try:
+            return pm_onboard.create(c, b.model_dump())
+        except pm.PMError as e:
+            raise HTTPException(422, str(e))
+    return _with_conn(go)
