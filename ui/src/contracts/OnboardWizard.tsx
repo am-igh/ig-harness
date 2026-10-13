@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { type OnbOptions, type OnbPreview, createOnb, getMeta, getOnbOptions, previewOnb } from "../api";
+import { type OnbFields, type OnbOptions, type OnbPreview, createOnb, getMeta, getOnbOptions, getOnbRead, previewOnb, startOnbRead } from "../api";
 import { dateY, money } from "./fmt";
 
 type Rep = { canon: string; title: string; recurrence: string; anchor: string; offset_days: number; fixed_date: string; language: string; format: string; detail: string; clause: string; note: string };
@@ -48,6 +48,25 @@ function toPayload(s: S) {
   };
 }
 
+const str = (v: unknown) => (v === "" || v == null ? "" : String(v));
+
+/** Put what the model found into the form (only where it found something), leaving what she has already typed elsewhere. */
+function applyFields(s: S, f: OnbFields, o: OnbOptions | null): S {
+  const n = { ...s };
+  const keep = <K extends keyof S>(k: K, v: unknown) => { if (v !== "" && v != null) (n as Record<string, unknown>)[k] = v; };
+  const known = o?.funders.find((x) => f.funder.short && (x.short.toLowerCase() === f.funder.short.toLowerCase() || x.name.toLowerCase() === f.funder.name.toLowerCase()));
+  if (known) { n.fmode = "existing"; n.fid = known.id; } else if (f.funder.name || f.funder.short) { n.fmode = "new"; keep("fname", f.funder.name); keep("fshort", f.funder.short); keep("fcur", f.funder.currency); }
+  const c = f.contract;
+  keep("title", c.title); keep("kind", c.kind); keep("reference", c.reference); keep("signed", c.signed_date); keep("start", c.start_date); keep("end", c.end_date);
+  keep("amount", str(c.amount)); keep("cur", c.currency || f.funder.currency); keep("rate", str(c.budget_rate)); keep("summary", c.summary);
+  if (f.payments.length) n.payments = f.payments.map((p) => ({ label: p.label, expected_date: p.expected_date, expected_amount: str(p.expected_amount), condition: p.condition }));
+  if (f.reports.length) n.reports = f.reports.map((r) => ({ ...r, note: "" }));
+  const r = f.rules; keep("overhead", str(r.overhead_pct)); keep("overheadClause", r.overhead_clause); keep("approval", str(r.approval_pct)); keep("threshold", str(r.procurement_threshold)); keep("quotes", str(r.procurement_quotes)); keep("visibility", r.visibility); keep("eligible", r.eligible_costs);
+  const t = f.terms; keep("notice", str(t.termination_notice_days)); keep("law", t.governing_law); keep("ownership", t.ownership); keep("data", t.data_protection); keep("special", t.special_conditions);
+  if (t.contacts.length) n.contacts = t.contacts;
+  return n;
+}
+
 const F = ({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) => <label className="onb-f"><span>{label}</span>{children}{hint && <em className="small muted">{hint}</em>}</label>;
 
 /** Contract onboarding: one guided form that collects everything a contract can require, then shows what will be created before anything is saved. */
@@ -57,6 +76,7 @@ export default function OnboardWizard({ onDone, onCancel }: { onDone: (projectId
   const [step, setStep] = useState(0);
   const [pv, setPv] = useState<OnbPreview | null>(null);
   const [err, setErr] = useState(""); const [busy, setBusy] = useState(false); const [demo, setDemo] = useState(false);
+  const [reading, setReading] = useState<string | null>(null); const [readNote, setReadNote] = useState<{ ok: boolean; text: string } | null>(null);
   useEffect(() => { getOnbOptions().then((x) => { setO(x); setS((p) => ({ ...p, pmode: x.projects.length ? "existing" : "new", pid: x.projects[0]?.id ?? 0, fmode: x.funders.length ? "existing" : "new", fid: x.funders[0]?.id ?? 0 })); }).catch((e) => setErr(e.message)); getMeta().then((m) => setDemo(m.demo)).catch(() => {}); }, []);
   const set = <K extends keyof S>(k: K, v: S[K]) => setS((p) => ({ ...p, [k]: v }));
   const text = (k: keyof S, ph?: string) => <input value={String(s[k])} onChange={(e) => set(k, e.target.value as never)} placeholder={ph} />;
@@ -69,6 +89,22 @@ export default function OnboardWizard({ onDone, onCancel }: { onDone: (projectId
   const setCon = (i: number, patch: Partial<Contact>) => set("contacts", s.contacts.map((r, k) => (k === i ? { ...r, ...patch } : r)));
   const sum = s.payments.reduce((a, p) => a + (Number(p.expected_amount) || 0), 0);
 
+  const readContract = async (file: File) => {
+    setReadNote(null); setReading(file.name);
+    try {
+      const { id } = await startOnbRead(file);
+      for (let i = 0; i < 300; i++) {
+        await new Promise((r) => setTimeout(r, 2000));
+        const r = await getOnbRead(id);
+        if (r.status === "reading") continue;
+        if (r.status === "done" && r.fields) { setS((p) => applyFields(p, r.fields!, o)); setReadNote({ ok: true, text: `Filled in from ${file.name} (${r.found} items found${r.model ? `, read by ${r.model}` : ""}). Please check every step: anything the contract did not state was left blank.` }); }
+        else setReadNote({ ok: false, text: r.error ?? "The contract could not be read." });
+        setReading(null); return;
+      }
+      setReadNote({ ok: false, text: "Reading took too long. You can fill the form by hand." });
+    } catch (e) { setReadNote({ ok: false, text: (e as Error).message }); }
+    setReading(null);
+  };
   const go = async (n: number) => {
     setErr("");
     if (n === 4) { setBusy(true); try { setPv(await previewOnb(toPayload(s))); } catch (e) { setErr((e as Error).message); setBusy(false); return; } setBusy(false); }
@@ -82,6 +118,13 @@ export default function OnboardWizard({ onDone, onCancel }: { onDone: (projectId
       <div className="sub">Collect everything the contract says in one place. Nothing is saved until the last step, where you can see exactly what will be created. The signed contract itself stays in your folders.</div>
       <ol className="onb-steps" aria-label="Steps">{STEPS.map((t, i) => <li key={t} className={i === step ? "on" : i < step ? "done" : ""}><button type="button" onClick={() => (i < step ? setStep(i) : undefined)} disabled={i >= step}>{i + 1}. {t}</button></li>)}</ol>
 
+      {step === 0 && <section className="onb-card onb-read">
+        <h3 className="serif">Start from the contract (optional)</h3>
+        <p className="small muted">Choose the signed PDF and the local model on this Mac reads it and fills in the form for you to check. The contract never leaves your Mac and is not saved. A long contract can take a minute or two.</p>
+        <div className="onb-row"><label className="btn-primary link-btn onb-file">{reading ? "Reading…" : "Choose the contract PDF"}<input type="file" accept="application/pdf" disabled={!!reading} onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) readContract(f); }} style={{ display: "none" }} /></label>
+          {reading && <span className="small muted" role="status">Reading {reading}…</span>}</div>
+        {readNote && <div className={readNote.ok ? "notice" : "notice onb-err"} role="status"><span>{readNote.text}</span></div>}
+      </section>}
       {step === 0 && <section className="onb-card">
         <h3 className="serif">The project</h3>
         <div className="onb-row"><label><input type="radio" checked={s.pmode === "existing"} disabled={!o?.projects.length} onChange={() => set("pmode", "existing")} /> An existing project</label><label><input type="radio" checked={s.pmode === "new"} onChange={() => set("pmode", "new")} /> A new project</label></div>

@@ -1457,6 +1457,11 @@ def pm_contract_pdf(contract_id: int, download: bool = False):
     return FileResponse(path, media_type="application/pdf", filename=path.name, content_disposition_type="attachment" if download else "inline")
 
 
+@app.delete("/api/pm/contracts/{contract_id}")
+def pm_delete_contract(contract_id: int) -> dict:
+    return _pm(lambda c, pm: pm.delete_contract(c, contract_id))
+
+
 @app.post("/api/pm/contracts/{contract_id}/extend")
 def pm_extend(contract_id: int, b: PMExtendIn) -> dict:
     return _pm(lambda c, pm: {"id": pm.extend_contract(c, contract_id, b.new_end, b.title, b.signed_date)})
@@ -1676,6 +1681,28 @@ def pm_onboarding_options() -> dict:
 def pm_onboarding_preview(b: OnboardIn) -> dict:
     from harness import pm_onboard
     return _with_conn(lambda c: pm_onboard.preview(c, b.model_dump()))
+
+
+@app.post("/api/pm/onboarding/read")
+async def pm_onboarding_read(request: Request) -> dict:
+    """Start reading a contract PDF with the local model; poll GET /api/pm/onboarding/read/{id}. The PDF is held in memory only and is not saved."""
+    from urllib.parse import unquote
+    from harness import filingspec, pm_prefill
+    name, content = unquote(request.headers.get("x-filename", "contract.pdf")), await request.body()
+    if not content or len(content) > filingspec.MAX_BYTES:
+        raise HTTPException(422, "Choose a PDF of at most 25 MB")
+    if not content.startswith(b"%PDF"):
+        raise HTTPException(422, "That file is not a PDF")
+    return {"id": pm_prefill.start(content, name)}
+
+
+@app.get("/api/pm/onboarding/read/{rid}")
+def pm_onboarding_read_result(rid: str) -> dict:
+    from harness import pm_prefill
+    r = pm_prefill.result(rid)
+    if r is None:
+        raise HTTPException(404, "That reading has expired. Choose the PDF again.")
+    return r
 
 
 @app.post("/api/pm/onboarding/create")

@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
-import { type PMCrosswalk, type PMDetail, type PMFunder, type PMTranslation, type PMTransfer, confirmPMObligation, getPMFunders, getPMProject, receivePMTransfer, setPMDeadlineStatus, translatePM } from "../api";
+import { type PMCrosswalk, type PMDetail, type PMFunder, type PMTranslation, type PMTransfer, confirmPMObligation, deletePMContract, getPMFunders, getPMProject, receivePMTransfer, setPMDeadlineStatus, translatePM } from "../api";
 import { dayShort } from "../format";
 import ContractViewer from "./ContractViewer";
 import DeadlineDrawer from "./DeadlineDrawer";
@@ -45,7 +45,7 @@ function Contracts({ d, onChanged, onView }: { d: PMDetail; onChanged: () => voi
             <td className="nowrap">{dateY(c.start_date)} → {dateY(c.end_date)}</td>
             <td className="r nowrap">{money(c.amount, c.currency)}</td><td className="r">{c.currency === "CHF" ? "–" : rate(c.budget_rate)}</td>
             <td className="small">{c.file_path ? <><button type="button" className="pm-file" onClick={() => onView(c.id)} title="Open the contract">📄 {c.file_path.split("/").pop()}</button><div className="muted">{c.has_file ? "click to read or download" : "kept in your folders"} · fingerprint {c.file_hash}</div></> : <span className="muted">not recorded</span>}</td>
-            <td>{c.kind === "grant" && <button type="button" className="btn-ghost" onClick={() => setExt(ext === c.id ? null : c.id)}>{ext === c.id ? "Cancel" : "Record an extension"}</button>}</td></tr>
+            <td>{c.kind === "grant" && <button type="button" className="btn-ghost" onClick={() => setExt(ext === c.id ? null : c.id)}>{ext === c.id ? "Cancel" : "Record an extension"}</button>}{c.kind !== "amendment" && <button type="button" className="btn-ghost" onClick={async () => { if (!window.confirm(`Delete “${c.title}” (${c.funder}) from the harness? Its reporting requirements, deadlines and expected payments are removed too. Your signed contract file is not touched.`)) return; try { await deletePMContract(c.id); onChanged(); } catch (e) { window.alert((e as Error).message); } }}>Delete</button>}</td></tr>
           {d.contracts.filter((a) => a.parent_id === c.id).map((a) => (
             <tr key={a.id} className="pm-amend"><td /><td>↳ {a.title}<div className="small muted">Signed {dateY(a.signed_date)} · {a.summary}</div></td><td className="nowrap">→ {dateY(a.end_date)}</td><td colSpan={2} className="small muted">no change in amount</td>
               <td className="small">{a.file_path && <button type="button" className="pm-file" onClick={() => onView(a.id)} title="Open the amendment">📄 {a.file_path.split("/").pop()}</button>}</td><td /></tr>))}

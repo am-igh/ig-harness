@@ -467,6 +467,30 @@ def contract_file(conn, contract_id: int, data_dir: Path | None = None) -> Path 
     return cand if cand.is_file() and cand.parent == base else None
 
 
+def delete_contract(conn, contract_id: int) -> dict:
+    """Remove a contract that was entered by mistake, with its amendments, requirements, generated deadlines and expected (not yet received) transfers. Refused when money has been recorded as
+    received or when reports or drafts are attached to its deadlines: those are her work and must be dealt with first. The signed contract file in her folders is never touched."""
+    ids = [r["id"] for r in conn.execute("SELECT id FROM pm_contracts WHERE id = ? OR parent_id = ?", (contract_id, contract_id))]
+    if contract_id not in ids:
+        raise PMError("Unknown contract")
+    q = ",".join("?" * len(ids))
+    if conn.execute(f"SELECT COUNT(*) FROM pm_transfers WHERE contract_id IN ({q}) AND (received_date IS NOT NULL OR received_amount IS NOT NULL OR chf_received IS NOT NULL)", ids).fetchone()[0]:
+        raise PMError("Money has already been recorded as received under this contract, so it cannot be deleted here.")
+    if conn.execute(f"SELECT COUNT(*) FROM pm_documents WHERE deadline_id IN (SELECT d.id FROM pm_deadlines d JOIN pm_obligations o ON o.id = d.obligation_id WHERE o.contract_id IN ({q}))", ids).fetchone()[0]:
+        raise PMError("Reports or drafts are attached to this contract's deadlines, so it cannot be deleted here.")
+    n = {"deadlines": 0, "obligations": 0, "transfers": 0}
+    with batch(conn):
+        dl = [r["id"] for r in conn.execute(f"SELECT d.id FROM pm_deadlines d JOIN pm_obligations o ON o.id = d.obligation_id WHERE o.contract_id IN ({q})", ids)]
+        for d in dl:
+            conn.execute("DELETE FROM deadlines WHERE source = 'pm' AND source_ref = ?", (f"pm:{d}",))
+        n["deadlines"] = conn.execute(f"DELETE FROM pm_deadlines WHERE obligation_id IN (SELECT id FROM pm_obligations WHERE contract_id IN ({q}))", ids).rowcount
+        n["obligations"] = conn.execute(f"DELETE FROM pm_obligations WHERE contract_id IN ({q})", ids).rowcount
+        n["transfers"] = conn.execute(f"DELETE FROM pm_transfers WHERE contract_id IN ({q})", ids).rowcount
+        conn.execute(f"DELETE FROM pm_contracts WHERE parent_id = ?", (contract_id,))
+        conn.execute("DELETE FROM pm_contracts WHERE id = ?", (contract_id,))
+    return n
+
+
 def funders(conn) -> list[dict]:
     return [dict(r) for r in conn.execute("SELECT * FROM pm_funders ORDER BY role, name")]
 

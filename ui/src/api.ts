@@ -360,3 +360,20 @@ export type OnbPreview = { errors: string[]; warnings: string[]; summary: { fund
 export const getOnbOptions = () => j<OnbOptions>("/api/pm/onboarding/options");
 export const previewOnb = (b: Record<string, unknown>) => postJson<OnbPreview>("/api/pm/onboarding/preview", b);
 export const createOnb = (b: Record<string, unknown>) => postJson<{ project_id: number; contract_id: number; obligations: number; deadlines: number; payments: number }>("/api/pm/onboarding/create", b);
+export const deletePMContract = (id: number) => j<{ deadlines: number; obligations: number; transfers: number }>(`/api/pm/contracts/${id}`, { method: "DELETE" });
+
+export type OnbFields = {
+  funder: { name: string; short: string; currency: string };
+  contract: { title: string; kind: string; reference: string; signed_date: string; start_date: string; end_date: string; amount: number | ""; currency: string; budget_rate: number | ""; summary: string };
+  payments: { label: string; expected_date: string; expected_amount: number | ""; condition: string }[];
+  reports: { canon: string; title: string; recurrence: string; anchor: string; offset_days: number; fixed_date: string; language: string; format: string; detail: string; clause: string }[];
+  rules: { overhead_pct: number | ""; overhead_clause: string; approval_pct: number | ""; procurement_threshold: number | ""; procurement_quotes: number | ""; visibility: string; eligible_costs: string };
+  terms: { termination_notice_days: number | ""; governing_law: string; ownership: string; data_protection: string; special_conditions: string; contacts: { name: string; role: string; email: string; phone: string }[] };
+};
+export type OnbRead = { status: "reading" | "done" | "error"; name: string; fields?: OnbFields | null; found?: number; model?: string | null; error?: string | null };
+export async function startOnbRead(file: File): Promise<{ id: string }> {
+  const r = await fetch("/api/pm/onboarding/read", { method: "POST", headers: { "X-Filename": encodeURIComponent(file.name), "Content-Type": "application/pdf" }, body: file });
+  if (!r.ok) throw new Error((await r.json().catch(() => ({ detail: "Could not start reading" }))).detail ?? "Could not start reading");
+  return r.json();
+}
+export const getOnbRead = (id: string) => j<OnbRead>(`/api/pm/onboarding/read/${id}`);

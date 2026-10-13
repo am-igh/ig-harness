@@ -54,7 +54,7 @@ class Gateway:
     def complete(self, prompt: str, *, source: str, purpose: str, system: str | None = None,
                  prefer: str | None = None, space: str = "work", override_tier: Tier | None = None, job: str | None = None,
                  known_names: tuple[str, ...] = (), approval_id: int | None = None,
-                 max_tokens: int = 1024, json_mode: bool = False) -> GatewayResult:
+                 max_tokens: int = 1024, json_mode: bool = False, model: str | None = None) -> GatewayResult:
         rid = uuid.uuid4().hex[:12]
         conn = self._connect()
         try:
@@ -62,6 +62,8 @@ class Gateway:
             if job:                                         # the model picker's choice for this job
                 sel_provider, chosen_model = get_selection(conn, job)
                 prefer = prefer or sel_provider
+            if model and (prefer or "local") == "local":      # a caller's own choice among LOCAL models (a retry with another one); never applies to an external provider
+                chosen_model = model
             prefer = prefer or "local"
             c = classify(prompt + "\n" + (system or ""), source, space, override_tier)
             res = GatewayResult(ok=False, outcome="blocked", tier=c.tier, provider=prefer, request_id=rid, reasons=c.reasons)

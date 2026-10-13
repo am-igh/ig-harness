@@ -16,6 +16,7 @@ JOBS = {
     "priority": {"label": "Today: what matters most", "tier": Tier.S2},   # work to-do titles and project names: local models only
     "chat": {"label": "Chat: questions about your own data", "tier": Tier.S2},   # the facts include mail subjects, names and deadlines: local models only
     "brief_write": {"label": "Morning brief: what needs your attention", "tier": Tier.S2},   # mail subjects and names in the brief: local models only
+    "contract_read": {"label": "Read a contract to fill the onboarding form", "tier": Tier.S2},   # contracts are confidential: local models only
     "event_extract": {"label": "Read event invitations in email", "tier": Tier.S2},   # invitations are partner email: local models only   # invoices and receipts are confidential: local models only
 }
 PROVIDERS = {"local", "infomaniak", "anthropic", "openrouter"}

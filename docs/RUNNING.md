@@ -283,3 +283,7 @@ in Terminal to see your models again. To avoid it: before you restart the Mac, q
 ## Adding a contract (Contracts & funders)
 
 Click **Add a contract**. Five steps: who (project and funder), money, reports and deadlines, other terms, then a review. The review lists every deadline that will be created and flags anything missing (for example, no location for the signed contract, or payments that do not add up to the contract amount). Nothing is saved until you click **Save the contract**; if anything goes wrong, nothing is half-saved. The deadlines then appear on the project page and on the Today lake. Click the contract's file name later to see its reference number and other terms.
+
+**Start from the PDF.** On the first step, choose the signed contract PDF: the model on your Mac reads it (a minute or two) and fills in the form, which you then check step by step. Nothing leaves your Mac and the PDF is not saved. To try it, use `docs/samples/Sample_grant_agreement_FICTITIOUS.pdf` (an invented contract).
+
+**Deleting a contract entered by mistake.** On the project page, click **Delete** on the contract's row. Its requirements, deadlines and expected payments go with it; your signed contract file is not touched. If money has been recorded as received, or reports or drafts have been saved against its deadlines, the harness refuses and says why.
